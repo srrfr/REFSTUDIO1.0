@@ -3,7 +3,7 @@ import defaultDataset from '@/data/dataset.json';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseService } from '@/lib/supabase/supabase-service';
 
-const STORAGE_KEY = 'refstudio_persistent_db_v1';
+const STORAGE_KEY = 'refstudio_persistent_db_v2';
 
 export const DEFAULT_USERS: UserAccount[] = [
   {
@@ -144,9 +144,15 @@ let inMemoryData: DatabaseState = {
   matches: [...(defaultDataset.matches as unknown as Match[])],
   standingsA: [...(defaultDataset.standingsA as unknown as StandingRow[])],
   standingsB: [...(defaultDataset.standingsB as unknown as StandingRow[])],
-  notes: [...defaultInitialNotes],
-  videos: [...defaultInitialVideos],
-  profiles: [...DEFAULT_USERS],
+  notes: (defaultDataset as any).notes && (defaultDataset as any).notes.length > 0
+    ? [...((defaultDataset as any).notes as Note[])]
+    : [...defaultInitialNotes],
+  videos: (defaultDataset as any).videos && (defaultDataset as any).videos.length > 0
+    ? [...((defaultDataset as any).videos as VideoClip[])]
+    : [...defaultInitialVideos],
+  profiles: (defaultDataset as any).profiles && (defaultDataset as any).profiles.length > 0
+    ? [...((defaultDataset as any).profiles as UserAccount[])]
+    : [...DEFAULT_USERS],
 };
 
 let hasInitializedSupabase = false;
@@ -701,9 +707,15 @@ export class DbService {
       matches: [...(defaultDataset.matches as unknown as Match[])],
       standingsA: [...(defaultDataset.standingsA as unknown as StandingRow[])],
       standingsB: [...(defaultDataset.standingsB as unknown as StandingRow[])],
-      notes: [...defaultInitialNotes],
-      videos: [...defaultInitialVideos],
-      profiles: [...DEFAULT_USERS],
+      notes: (defaultDataset as any).notes && (defaultDataset as any).notes.length > 0
+        ? [...((defaultDataset as any).notes as Note[])]
+        : [...defaultInitialNotes],
+      videos: (defaultDataset as any).videos && (defaultDataset as any).videos.length > 0
+        ? [...((defaultDataset as any).videos as VideoClip[])]
+        : [...defaultInitialVideos],
+      profiles: (defaultDataset as any).profiles && (defaultDataset as any).profiles.length > 0
+        ? [...((defaultDataset as any).profiles as UserAccount[])]
+        : [...DEFAULT_USERS],
     };
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
