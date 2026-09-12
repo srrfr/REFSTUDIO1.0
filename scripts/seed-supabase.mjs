@@ -82,8 +82,22 @@ async function seed() {
   console.log(`   • Note:        ${notes.length}`);
   console.log(`   • Video:       ${videos.length}\n`);
 
+  const shouldClean = process.argv.includes('--clean') || process.argv.includes('--reset');
+
+  if (shouldClean) {
+    console.log('🧹 Modalità RESET rilevata: pulizia tabelle esistenti in Supabase...');
+    // Cancellazione in ordine inverso di vincolo FK
+    await supabase.from('videos').delete().neq('id', '___non_existent___');
+    await supabase.from('notes').delete().neq('id', '___non_existent___');
+    await supabase.from('standings').delete().neq('id', '___non_existent___');
+    await supabase.from('matches').delete().neq('id', '___non_existent___');
+    await supabase.from('players').delete().neq('id', '___non_existent___');
+    await supabase.from('teams').delete().neq('id', '___non_existent___');
+    console.log('   ✅ Tabelle svuotate correttamente per la nuova struttura con ID ufficiali.\n');
+  }
+
   // 1. Inserimento Squadre (Deduplicate per ID)
-  console.log('⏳ 1/6 Inserimento Squadre in Supabase...');
+  console.log('⏳ 1/7 Inserimento Squadre in Supabase...');
   const uniqueTeamsMap = new Map();
   teams.forEach((t) => uniqueTeamsMap.set(t.id, t));
   const teamsPayload = Array.from(uniqueTeamsMap.values()).map((t) => ({
@@ -116,7 +130,7 @@ async function seed() {
   console.log(`   ✅ ${teamsPayload.length} squadre sincronizzate con successo.`);
 
   // 2. Inserimento Calciatori in blocchi da 150 (Deduplicati per ID)
-  console.log('⏳ 2/6 Inserimento Calciatori in blocchi da 150...');
+  console.log('⏳ 2/7 Inserimento Calciatori in blocchi da 150...');
   const uniquePlayersMap = new Map();
   players.forEach((p) => uniquePlayersMap.set(p.id, p));
   const playerPayload = Array.from(uniquePlayersMap.values()).map((p) => ({
@@ -155,7 +169,7 @@ async function seed() {
   console.log(`\n   ✅ ${playerPayload.length} calciatori sincronizzati con successo.`);
 
   // 3. Inserimento Partite in blocchi da 150 (Deduplicate per ID)
-  console.log('⏳ 3/6 Inserimento Partite in blocchi da 150...');
+  console.log('⏳ 3/7 Inserimento Partite in blocchi da 150...');
   const uniqueMatchesMap = new Map();
   matches.forEach((m) => uniqueMatchesMap.set(m.id, m));
   const matchesPayload = Array.from(uniqueMatchesMap.values()).map((m) => ({
@@ -189,7 +203,7 @@ async function seed() {
   console.log(`\n   ✅ ${matchesPayload.length} partite sincronizzate con successo.`);
 
   // 4. Inserimento Classifiche
-  console.log('⏳ 4/6 Inserimento Classifiche...');
+  console.log('⏳ 4/7 Inserimento Classifiche...');
   const standingsPayload = [
     ...standingsA.map((s) => ({
       id: `standing-A-${s.position}-${s.teamId || s.teamName}`,
@@ -234,13 +248,17 @@ async function seed() {
 
   // 5. Inserimento Note (Deduplicate per ID)
   if (notes.length > 0) {
-    console.log('⏳ 5/6 Inserimento Note confidenziali...');
+    console.log('⏳ 5/7 Inserimento Note confidenziali...');
     const uniqueNotesMap = new Map();
     notes.forEach((n) => uniqueNotesMap.set(n.id, n));
     const notesPayload = Array.from(uniqueNotesMap.values()).map((n) => ({
       id: n.id,
-      author_id: n.authorId || 'ref-1',
-      author_name: n.authorName || 'Mario Rossi (AIA Reggio Emilia)',
+      author_id: n.authorId || 'samueleromini',
+      author_name: n.authorName || 'Samuele Romini',
+      author_role: n.authorRole || 'AE',
+      author_avatar: n.authorAvatar || '',
+      author_section: n.authorSection || '',
+      is_public: n.isPublic !== undefined ? n.isPublic : true,
       target_type: n.targetType,
       target_id: n.targetId,
       target_name: n.targetName,
@@ -259,7 +277,7 @@ async function seed() {
 
   // 6. Inserimento Video (Deduplicati per ID)
   if (videos.length > 0) {
-    console.log('⏳ 6/6 Inserimento Video e clip didattiche...');
+    console.log('⏳ 6/7 Inserimento Video e clip didattiche...');
     const uniqueVideosMap = new Map();
     videos.forEach((v) => uniqueVideosMap.set(v.id, v));
     const videosPayload = Array.from(uniqueVideosMap.values()).map((v) => ({
@@ -282,6 +300,35 @@ async function seed() {
     } else {
       console.log(`   ✅ ${videosPayload.length} video e clip sincronizzate.`);
     }
+  }
+
+  // 7. Inserimento Profili Arbitri
+  console.log('⏳ 7/7 Inserimento Profili Arbitri...');
+  const profiles = dataset.profiles || [
+    { username: 'samueleromini', password: 'samueleromini1', displayName: 'Samuele Romini', email: 'samuele.romini@refstudio.internal', role: 'admin', refereeRole: 'AE', sectionAia: 'Sezione AIA Bologna', categoryAia: 'Eccellenza' },
+    { username: 'lucaghirardi', password: 'lucaghirardi1', displayName: 'Luca Ghirardi', email: 'luca.ghirardi@refstudio.internal', role: 'arbitro', refereeRole: 'AA', sectionAia: 'Sezione AIA Parma', categoryAia: 'Eccellenza' },
+    { username: 'simoneclemente', password: 'simoneclemente1', displayName: 'Simone Clemente', email: 'simone.clemente@refstudio.internal', role: 'arbitro', refereeRole: 'AE', sectionAia: 'Sezione AIA Forlì', categoryAia: 'Eccellenza' },
+    { username: 'karimpalombo', password: 'karimpalombo1', displayName: 'Karim Palombo', email: 'karim.palombo@refstudio.internal', role: 'arbitro', refereeRole: 'AA', sectionAia: 'Sezione AIA Ravenna', categoryAia: 'Eccellenza' },
+    { username: 'riccardosamaritani', password: 'riccardosamaritani1', displayName: 'Riccardo Samaritani', email: 'riccardo.samaritani@refstudio.internal', role: 'arbitro', refereeRole: 'OA', sectionAia: 'Sezione AIA Ferrara', categoryAia: 'Eccellenza' },
+  ];
+
+  const profilesPayload = profiles.map((p) => ({
+    username: p.username,
+    password: p.password || '',
+    display_name: p.displayName,
+    email: p.email || null,
+    role: p.role || 'arbitro',
+    referee_role: p.refereeRole || 'AE',
+    section_aia: p.sectionAia || 'Sezione AIA Bologna',
+    category_aia: p.categoryAia || 'Eccellenza',
+    avatar_url: p.avatarUrl || null,
+  }));
+
+  const { error: prErr } = await supabase.from('profiles').upsert(profilesPayload, { onConflict: 'username' });
+  if (prErr) {
+    console.error('❌ Errore durante inserimento profili:', prErr.message);
+  } else {
+    console.log(`   ✅ ${profilesPayload.length} profili arbitrali sincronizzati.`);
   }
 
   console.log('\n======================================================');

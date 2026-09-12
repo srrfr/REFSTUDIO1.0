@@ -3,7 +3,7 @@ import defaultDataset from '@/data/dataset.json';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseService } from '@/lib/supabase/supabase-service';
 
-const STORAGE_KEY = 'refstudio_persistent_db_v2';
+const STORAGE_KEY = 'refstudio_persistent_db_v3';
 
 export const DEFAULT_USERS: UserAccount[] = [
   {
