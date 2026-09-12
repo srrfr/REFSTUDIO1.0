@@ -11,6 +11,8 @@ on:
 jobs:
   scrape-and-sync:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: 1. Checkout repository

@@ -11,6 +11,10 @@ from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
+# Forza l'output console in UTF-8 per evitare UnicodeEncodeError su Windows
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+
 # =============================================================
 # CONFIGURAZIONE & CREDENZIALI TUTTOCAMPO
 # =============================================================
@@ -34,43 +38,77 @@ MESI = {
 
 
 def accetta_cookie_se_presenti(page):
-    """Accetta il banner dei cookie se viene visualizzato."""
+    """Accetta il banner dei cookie FastCMP o Iubenda e rimuove overlay bloccanti."""
     try:
+        # 1. FastCMP in iframe
+        if page.locator("#fast-cmp-iframe").count() > 0:
+            frame = page.frame_locator("#fast-cmp-iframe")
+            btn = frame.locator("button.fast-cmp-button-primary, button:has-text('Accettare'), button:has-text('Accetta')")
+            if btn.count() > 0:
+                btn.first.click(timeout=3000)
+                time.sleep(0.5)
+    except Exception:
+        pass
+
+    try:
+        # 2. Iubenda o pulsanti standard
         btn_cookie = page.query_selector("button#iubenda-cs-accept-btn, button.iubenda-cs-accept-btn, #iubFooterBtn")
         if btn_cookie:
             btn_cookie.click()
-            time.sleep(1)
+            time.sleep(0.5)
+    except Exception:
+        pass
+
+    # Rimuove l'overlay se ancora presente per evitare blocchi al puntatore
+    try:
+        page.evaluate("() => { document.getElementById('fast-cmp-root')?.remove(); document.querySelector('.iubenda-cs-overlay')?.remove(); }")
     except Exception:
         pass
 
 
 def effettua_login_modal(page):
-    """Gestisce il login tramite il popup / modale (#loginmodal)."""
+    """Gestisce il login tramite il popup / modale (#loginmodal) dopo aver chiuso i cookie."""
     print(" -> Apertura home page per autenticazione...")
-    page.goto("https://www.tuttocampo.it/", wait_until="domcontentloaded")
+    page.goto("https://www.tuttocampo.it/", wait_until="domcontentloaded", timeout=30000)
     time.sleep(2)
 
     accetta_cookie_se_presenti(page)
 
     print(" -> Apertura del modale di login...")
     try:
-        page.goto("https://www.tuttocampo.it/#loginmodal", wait_until="domcontentloaded")
-        time.sleep(1.5)
+        # Clicca sul trigger del modale
+        login_btn = page.locator("a.login, a[href='#loginmodal'], a:has-text('LOGIN')")
+        if login_btn.count() > 0:
+            login_btn.first.click(timeout=5000)
+        else:
+            page.goto("https://www.tuttocampo.it/#loginmodal", wait_until="domcontentloaded")
+        
+        time.sleep(1)
 
-        page.wait_for_selector("input#Username, input[name='Username'], input[type='text']", timeout=10000)
-        page.fill("input#Username, input[name='Username']", EMAIL_TUTTOCAMPO)
-        page.fill("input#Password, input[name='Password']", PASSWORD_TUTTOCAMPO)
+        page.wait_for_selector("#login_username, input[name='username'], input#Username", state="visible", timeout=10000)
+        page.fill("#login_username, input[name='username'], input#Username", EMAIL_TUTTOCAMPO)
+        page.fill("#login_password, input[name='password'], input#Password", PASSWORD_TUTTOCAMPO)
 
         print(" -> Invio credenziali...")
-        page.click("button[type='submit'], input[type='submit'], #loginmodal button.btn-primary")
-        time.sleep(3)
+        submit_btn = page.locator("#loginmodal input[type='submit'], #loginmodal button[type='submit'], input[name='submit_login']")
+        
+        try:
+            with page.expect_navigation(timeout=15000):
+                submit_btn.first.click()
+        except Exception:
+            # Se la navigazione non scatta esplicitamente con submit
+            submit_btn.first.click()
+            time.sleep(3)
+
         print(" [✓] Login completato con successo!")
+        time.sleep(1.5)
+        accetta_cookie_se_presenti(page)
     except Exception as e:
         print(f" [!] Errore o timeout durante il login: {e}")
 
 
 def get_html_with_browser(page, url):
-    """Scarica il codice HTML dopo il caricamento dinamico JS."""
+    """Scarica il codice HTML dopo il caricamento del DOM e rimozione cookie."""
     try:
         page.goto(url, wait_until="domcontentloaded", timeout=30000)
         time.sleep(1.5)
@@ -156,9 +194,7 @@ def get_rosa_squadra(page, sq_info, nome_girone):
     if not soup:
         return giocatori
 
-    links_giocatori = soup.find_all('a', href=re.compile(r'/giocatore/', re.IGNORECASE))
-    if not links_giocatori:
-        links_giocatori = soup.find_all('a', href=re.compile(r'/Scheda/', re.IGNORECASE))
+    links_giocatori = soup.find_all('a', href=re.compile(r'/giocatore/|/Scheda/', re.IGNORECASE))
 
     for link in links_giocatori:
         nome_giocatore = link.get_text(strip=True)
@@ -393,13 +429,12 @@ def get_gare_girone(page, url_girone, num_giornate):
 
 
 # -------------------------------------------------------------
-# 3. GENERAZIONE UNICA FILE EXCEL COMPLETO
+# 3. GENERAZIONE UNICA FILE EXCEL COMPLETO (SICURA SENZA ERRORI)
 # -------------------------------------------------------------
 
 def genera_excel_completo(database_calciatori, dati_gironi, file_out="Eccellenza_Emilia_Romagna_Database_Completo.xlsx"):
-    """Crea un UNICO file Excel con 5 Fogli: Calciatori, Girone A - Gare, Girone A - Classifica, Girone B - Gare, Girone B - Classifica."""
+    """Crea un UNICO file Excel con 5 Fogli garantendo che almeno un foglio sia sempre presente."""
     wb = openpyxl.Workbook()
-    wb.remove(wb.active)
 
     header_fill = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
@@ -410,6 +445,15 @@ def genera_excel_completo(database_calciatori, dati_gironi, file_out="Eccellenza
     thin_border = Border(left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'), top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9'))
     zebra_fill = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
 
+    # Colonne predefinite nel caso in cui una lista sia vuota
+    default_columns = {
+        "Calciatori": ['Nome', 'Cognome', 'ID Giocatore', 'ID Rosa', 'Nome Rosa', 'Categoria', 'Girone', 'Regione', 'Anno di nascita', 'Ruolo', 'Presenze', 'Reti', 'Ammonizioni', 'Espulsioni'],
+        "Girone A - Gare": ['Numero giornata', 'Data', 'Giocata', 'Squadra ospitante', 'Reti squadra ospitante', 'Squadra ospite', 'Reti squadra ospite'],
+        "Girone A - Classifica": ['Posizione', 'Squadra', 'Punti', 'Partite giocate', 'Vittorie', 'Pareggi', 'Sconfitte', 'Gol fatti', 'Gol subiti', 'Differenza reti'],
+        "Girone B - Gare": ['Numero giornata', 'Data', 'Giocata', 'Squadra ospitante', 'Reti squadra ospitante', 'Squadra ospite', 'Reti squadra ospite'],
+        "Girone B - Classifica": ['Posizione', 'Squadra', 'Punti', 'Partite giocate', 'Vittorie', 'Pareggi', 'Sconfitte', 'Gol fatti', 'Gol subiti', 'Differenza reti'],
+    }
+
     fogli_ordinati = [
         ("Calciatori", database_calciatori),
         ("Girone A - Gare", dati_gironi.get("Girone A", {}).get("gare", [])),
@@ -418,13 +462,22 @@ def genera_excel_completo(database_calciatori, dati_gironi, file_out="Eccellenza
         ("Girone B - Classifica", dati_gironi.get("Girone B", {}).get("classifica", []))
     ]
 
+    first_sheet = True
     for title_sheet, lista_dati in fogli_ordinati:
-        if not lista_dati:
-            continue
+        if first_sheet:
+            ws = wb.active
+            ws.title = title_sheet
+            first_sheet = False
+        else:
+            ws = wb.create_sheet(title=title_sheet)
 
-        df = pd.DataFrame(lista_dati)
-        ws = wb.create_sheet(title=title_sheet)
-        headers = list(df.columns)
+        if lista_dati:
+            df = pd.DataFrame(lista_dati)
+            headers = list(df.columns)
+            row_values = df.values
+        else:
+            headers = default_columns.get(title_sheet, [])
+            row_values = []
 
         for col_idx, col_name in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col_idx, value=col_name)
@@ -433,7 +486,7 @@ def genera_excel_completo(database_calciatori, dati_gironi, file_out="Eccellenza
             cell.alignment = center_align
             cell.border = thin_border
 
-        for row_idx, row_vals in enumerate(df.values, 2):
+        for row_idx, row_vals in enumerate(row_values, 2):
             for col_idx, val in enumerate(row_vals, 1):
                 cell = ws.cell(row=row_idx, column=col_idx, value=val)
                 cell.font = data_font
@@ -451,14 +504,14 @@ def genera_excel_completo(database_calciatori, dati_gironi, file_out="Eccellenza
                     cell.fill = zebra_fill
 
         ws.freeze_panes = "A2"
-        ws.auto_filter.ref = ws.dimensions
+        if len(row_values) > 0:
+            ws.auto_filter.ref = ws.dimensions
 
         for col in ws.columns:
             max_len = max(len(str(cell.value or '')) for cell in col)
             col_letter = openpyxl.utils.get_column_letter(col[0].column)
             ws.column_dimensions[col_letter].width = max(max_len + 4, 12)
 
-    # Salva sia nella root che in data/excel/
     wb.save(file_out)
     os.makedirs("data/excel", exist_ok=True)
     wb.save(os.path.join("data/excel", file_out))
@@ -502,12 +555,11 @@ def run_app_sync():
 
 def main():
     parser = argparse.ArgumentParser(description="Tuttocampo Scraper automatico per RefStudio")
-    parser.add_argument("--headless", action="store_true", help="Esegui il browser in modalità headless (senza interfaccia grafica)")
+    parser.add_argument("--headless", action="store_true", help="Esegui il browser in modalità headless")
     parser.add_argument("--headed", action="store_true", help="Forza il browser con interfaccia visibile")
     parser.add_argument("--sync", action="store_true", help="Esegui automaticamente l'aggiornamento dell'app e Supabase dopo lo scraping")
     args = parser.parse_args()
 
-    # Modalità headless: default True se impostato da env var o se in ambiente CI, altrimenti configurabile
     is_ci = os.getenv("CI", "false").lower() == "true" or os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
     headless = True if (args.headless or is_ci or os.getenv("HEADLESS", "false").lower() == "true") else not args.headed
 
@@ -573,16 +625,21 @@ def main():
 
         browser.close()
 
-    # Generazione file unico Excel
+    # Generazione file unico Excel protetta da errori
     print("\n------------------------------------------")
     print("Salvataggio file Excel unico in corso...")
     file_excel = "Eccellenza_Emilia_Romagna_Database_Completo.xlsx"
-    genera_excel_completo(database_totale_calciatori, dati_gironi_gare_classifica, file_excel)
-    print("\n[✓] ESECUZIONE SCRAPING COMPLETATA CON SUCCESSO!")
+    
+    if len(database_totale_calciatori) == 0:
+        print("⚠️ ATTENZIONE: Nessun calciatore estratto durante questa sessione.")
+        print("Il file Excel non verrà sovrascritto per proteggere i dati esistenti.")
+    else:
+        genera_excel_completo(database_totale_calciatori, dati_gironi_gare_classifica, file_excel)
+        print("\n[✓] ESECUZIONE SCRAPING COMPLETATA CON SUCCESSO!")
 
-    # Se richiesto, esegue il sync automatico con il database e Supabase
-    if args.sync or os.getenv("AUTO_SYNC", "false").lower() == "true":
-        run_app_sync()
+        # Se richiesto, esegue il sync automatico con il database e Supabase
+        if args.sync or os.getenv("AUTO_SYNC", "false").lower() == "true":
+            run_app_sync()
 
 
 if __name__ == "__main__":
