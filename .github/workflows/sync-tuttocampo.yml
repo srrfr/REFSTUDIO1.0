@@ -1,0 +1,64 @@
+name: Aggiornamento Automatico Tuttocampo (RefStudio)
+
+on:
+  schedule:
+    # Esegue ogni Domenica sera alle 21:00 UTC (22:00/23:00 ora italiana) dopo il turno di campionato
+    - cron: '0 21 * * 0'
+    # Esegue ogni Lunedi mattina alle 08:00 UTC per acquisire aggiornamenti e comunicati
+    - cron: '0 8 * * 1'
+  workflow_dispatch: # Consente di lanciare l'aggiornamento manualmente con 1 clic da GitHub
+
+jobs:
+  scrape-and-sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 1. Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 2. Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 3. Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: 4. Installa dipendenze Python e browser Playwright
+        run: |
+          pip install -r requirements.txt
+          playwright install --with-deps chromium
+
+      - name: 5. Installa dipendenze Node.js
+        run: |
+          npm ci
+
+      - name: 6. Esegui Scraping Tuttocampo & Sincronizzazione Supabase
+        env:
+          TUTTOCAMPO_EMAIL: ${{ secrets.TUTTOCAMPO_EMAIL || 'srrfr2026' }}
+          TUTTOCAMPO_PASSWORD: ${{ secrets.TUTTOCAMPO_PASSWORD || 'gp22wt!prBALp4y' }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          CI: 'true'
+          HEADLESS: 'true'
+        run: |
+          python scripts/scraper_tuttocampo.py --headless --sync
+
+      - name: 7. Commit & Push modifiche dataset su GitHub
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/ src/data/ Eccellenza_Emilia_Romagna_Database_Completo.xlsx
+          if git diff --staged --quiet; then
+            echo "Nessuna modifica da salvare."
+          else
+            git commit -m "chore(data): auto-update rose, gare e classifiche da Tuttocampo [skip ci]"
+            git push origin main
+          fi

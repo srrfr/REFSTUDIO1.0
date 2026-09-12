@@ -17,6 +17,10 @@ import {
   Server,
   Activity,
   Users,
+  Terminal,
+  Play,
+  ExternalLink,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRealtime } from '@/lib/supabase/realtime-context';
@@ -29,9 +33,20 @@ export default function AdminSyncPage() {
   const [error, setError] = useState<string | null>(null);
 
   // File upload state
+  const [fileDatabaseCompleto, setFileDatabaseCompleto] = useState<File | null>(null);
   const [fileGironeA, setFileGironeA] = useState<File | null>(null);
   const [fileGironeB, setFileGironeB] = useState<File | null>(null);
   const [fileGare, setFileGare] = useState<File | null>(null);
+
+  // Scraper Python State
+  const [scraperStatus, setScraperStatus] = useState<{
+    isRunning: boolean;
+    lastRunTime: string | null;
+    lastRunStatus: string;
+    isVercel: boolean;
+    logSummary: string;
+  } | null>(null);
+  const [scraperLoading, setScraperLoading] = useState(false);
 
   // Supabase Cloud State
   const [supabaseStatus, setSupabaseStatus] = useState<{
@@ -47,7 +62,33 @@ export default function AdminSyncPage() {
 
   useEffect(() => {
     checkSupabaseStatus();
+    checkScraperStatus();
   }, []);
+
+  const checkScraperStatus = async () => {
+    try {
+      const res = await fetch('/api/sync/scraper');
+      const data = await res.json();
+      setScraperStatus(data);
+    } catch {}
+  };
+
+  const handleRunScraper = async () => {
+    setScraperLoading(true);
+    try {
+      const res = await fetch('/api/sync/scraper', { method: 'POST' });
+      const data = await res.json();
+      if (data.isVercel) {
+        window.open(data.githubActionsUrl || 'https://github.com/srrfr/REFSTUDIO1.0/actions', '_blank');
+      } else {
+        await checkScraperStatus();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Errore durante l\'avvio dello scraper');
+    } finally {
+      setScraperLoading(false);
+    }
+  };
 
   const checkSupabaseStatus = async () => {
     try {
@@ -92,8 +133,9 @@ export default function AdminSyncPage() {
 
     try {
       let res: Response;
-      if (useFiles && (fileGironeA || fileGironeB || fileGare)) {
+      if (useFiles && (fileDatabaseCompleto || fileGironeA || fileGironeB || fileGare)) {
         const formData = new FormData();
+        if (fileDatabaseCompleto) formData.append('fileDatabaseCompleto', fileDatabaseCompleto);
         if (fileGironeA) formData.append('fileGironeA', fileGironeA);
         if (fileGironeB) formData.append('fileGironeB', fileGironeB);
         if (fileGare) formData.append('fileGareClassifica', fileGare);
@@ -105,6 +147,7 @@ export default function AdminSyncPage() {
       const data = await res.json();
       if (data.success) {
         setSyncResponse(data);
+        checkSupabaseStatus();
       } else {
         setError(data.message || 'Errore durante la sincronizzazione');
       }
@@ -129,13 +172,88 @@ export default function AdminSyncPage() {
         </p>
       </div>
 
+      {/* TUTTOCAMPO SCRAPER AUTOMATICO */}
+      <div className="rounded-2xl bg-[#0D0F16] border border-[#212638] p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h3 className="font-black text-base text-white flex items-center gap-2">
+                <Terminal className="w-5 h-5 text-[#CCFF00]" />
+                Tuttocampo Scraper & Schedulazione Automatica
+              </h3>
+              {scraperStatus?.isRunning ? (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                  Scraping in corso...
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#141824] text-[#CCFF00] border border-[#212638]">
+                  <CheckCircle2 className="w-3 h-3 text-[#CCFF00]" />
+                  Scraper Pronto
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400">
+              Estrae automaticamente rose, gare, ammonizioni, espulsioni e classifiche con codici ufficiali ID Giocatore e ID Rosa
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              onClick={handleRunScraper}
+              disabled={scraperLoading || scraperStatus?.isRunning}
+              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] disabled:bg-[#141824] disabled:text-slate-600 text-black font-black text-xs shadow-[0_0_15px_rgba(204,255,0,0.3)] transition-all"
+            >
+              <Play className={`w-3.5 h-3.5 fill-black ${scraperLoading ? 'animate-spin' : ''}`} />
+              <span>{scraperStatus?.isRunning ? 'Scraping Attivo...' : 'Avvia Scraper Tuttocampo'}</span>
+            </button>
+
+            <a
+              href="https://github.com/srrfr/REFSTUDIO1.0/actions"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] text-xs font-bold transition-all"
+            >
+              <span>GitHub Actions</span>
+              <ExternalLink className="w-3.5 h-3.5 text-slate-400" />
+            </a>
+          </div>
+        </div>
+
+        {/* Automatismo & Cron Info Box */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div className="p-4 rounded-xl bg-[#11141D] border border-[#212638] space-y-2">
+            <div className="flex items-center gap-2 text-white font-bold">
+              <Calendar className="w-4 h-4 text-[#CCFF00]" />
+              <span>Schedulazione Cloud Automatica (Zero Intervento)</span>
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed">
+              Il workflow GitHub Actions esegue automaticamente lo scraper ogni <strong className="text-white">Domenica alle 21:00 UTC</strong> (dopo le gare) e ogni <strong className="text-white">Lunedì alle 08:00 UTC</strong>. I dati aggiornati vengono inviati all&apos;istante a Supabase e visibili su tutti i dispositivi.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-[#11141D] border border-[#212638] space-y-2">
+            <div className="flex items-center gap-2 text-white font-bold">
+              <Terminal className="w-4 h-4 text-[#CCFF00]" />
+              <span>Comando Rapido da Terminale</span>
+            </div>
+            <div className="bg-[#0A0C12] p-2.5 rounded-lg font-mono text-[11px] text-[#CCFF00] border border-[#212638]">
+              npm run scrape:sync
+            </div>
+            <p className="text-[10px] text-slate-500">
+              Esegue lo scraper Playwright in locale, ricostruisce il database Excel e aggiorna Supabase Cloud in un unico comando.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Sync Execution Section */}
       <div className="rounded-2xl bg-[#0D0F16] border border-[#212638] p-6 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h3 className="font-black text-base text-white">Sincronizzazione Immediata</h3>
+            <h3 className="font-black text-base text-white">Ricarica Database da File Excel Master</h3>
             <p className="text-xs text-slate-400">
-              Rielabora istantaneamente i tre file Excel ufficiali presenti nella cartella di sistema
+              Rielabora il file completo master salvato sul server preservando tutte le note confidenziali e i tag arbitrali
             </p>
           </div>
 
@@ -151,51 +269,72 @@ export default function AdminSyncPage() {
 
         {/* Upload Custom Files Accordion / Box */}
         <div className="p-5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-4">
-          <div className="flex items-center gap-2 font-bold text-xs text-white">
-            <Upload className="w-4 h-4 text-[#CCFF00]" />
-            <span>Oppure carica manualmente file Excel aggiornati (.xlsx):</span>
+          {/* Primary Unified File Upload */}
+          <div className="p-4 bg-[#0D0F16] rounded-xl border border-[#CCFF00]/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-[#CCFF00] font-black block text-xs uppercase tracking-wider">
+                File Excel Master Completo (.xlsx)
+              </label>
+              <span className="text-[10px] font-mono text-slate-400">
+                Eccellenza_Emilia_Romagna_Database_Completo.xlsx
+              </span>
+            </div>
+            <input
+              type="file"
+              accept=".xlsx"
+              onChange={(e) => setFileDatabaseCompleto(e.target.files?.[0] || null)}
+              className="w-full text-xs text-slate-300 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-black file:bg-[#CCFF00] file:text-black hover:file:bg-[#D8FF33] cursor-pointer"
+            />
+            {fileDatabaseCompleto && (
+              <p className="text-xs text-[#CCFF00] font-mono font-bold">
+                ✓ Selezionato: {fileDatabaseCompleto.name} ({(fileDatabaseCompleto.size / 1024).toFixed(1)} KB)
+              </p>
+            )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
-            <div className="p-3.5 bg-[#0D0F16] rounded-xl border border-[#212638] space-y-2">
-              <label className="text-slate-400 font-bold block text-[11px] uppercase tracking-wider">Girone A (.xlsx)</label>
-              <input
-                type="file"
-                accept=".xlsx"
-                onChange={(e) => setFileGironeA(e.target.files?.[0] || null)}
-                className="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#161B28] file:text-[#CCFF00] cursor-pointer"
-              />
-              {fileGironeA && <p className="text-[10px] text-[#CCFF00] font-mono font-semibold truncate">{fileGironeA.name}</p>}
-            </div>
+          {/* Secondary Legacy Files */}
+          <details className="text-xs text-slate-400">
+            <summary className="cursor-pointer font-bold text-slate-300 hover:text-[#CCFF00] transition-colors">
+              + Oppure carica file separati per singolo girone (opzionale)
+            </summary>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3">
+              <div className="p-3 bg-[#0D0F16] rounded-xl border border-[#212638] space-y-1.5">
+                <label className="text-slate-400 font-bold block text-[10px] uppercase">Girone A (.xlsx)</label>
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={(e) => setFileGironeA(e.target.files?.[0] || null)}
+                  className="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#161B28] file:text-[#CCFF00] cursor-pointer"
+                />
+              </div>
 
-            <div className="p-3.5 bg-[#0D0F16] rounded-xl border border-[#212638] space-y-2">
-              <label className="text-slate-400 font-bold block text-[11px] uppercase tracking-wider">Girone B (.xlsx)</label>
-              <input
-                type="file"
-                accept=".xlsx"
-                onChange={(e) => setFileGironeB(e.target.files?.[0] || null)}
-                className="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#161B28] file:text-[#CCFF00] cursor-pointer"
-              />
-              {fileGironeB && <p className="text-[10px] text-[#CCFF00] font-mono font-semibold truncate">{fileGironeB.name}</p>}
-            </div>
+              <div className="p-3 bg-[#0D0F16] rounded-xl border border-[#212638] space-y-1.5">
+                <label className="text-slate-400 font-bold block text-[10px] uppercase">Girone B (.xlsx)</label>
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={(e) => setFileGironeB(e.target.files?.[0] || null)}
+                  className="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#161B28] file:text-[#CCFF00] cursor-pointer"
+                />
+              </div>
 
-            <div className="p-3.5 bg-[#0D0F16] rounded-xl border border-[#212638] space-y-2">
-              <label className="text-slate-400 font-bold block text-[11px] uppercase tracking-wider">Gare & Classifiche (.xlsx)</label>
-              <input
-                type="file"
-                accept=".xlsx"
-                onChange={(e) => setFileGare(e.target.files?.[0] || null)}
-                className="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-[#161B28] file:text-[#CCFF00] cursor-pointer"
-              />
-              {fileGare && <p className="text-[10px] text-[#CCFF00] font-mono font-semibold truncate">{fileGare.name}</p>}
+              <div className="p-3 bg-[#0D0F16] rounded-xl border border-[#212638] space-y-1.5">
+                <label className="text-slate-400 font-bold block text-[10px] uppercase">Gare & Classifiche (.xlsx)</label>
+                <input
+                  type="file"
+                  accept=".xlsx"
+                  onChange={(e) => setFileGare(e.target.files?.[0] || null)}
+                  className="w-full text-[11px] text-slate-300 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-[#161B28] file:text-[#CCFF00] cursor-pointer"
+                />
+              </div>
             </div>
-          </div>
+          </details>
 
-          {(fileGironeA || fileGironeB || fileGare) && (
+          {(fileDatabaseCompleto || fileGironeA || fileGironeB || fileGare) && (
             <button
               onClick={() => handleRunSync(true)}
               disabled={loading}
-              className="px-4 py-2.5 rounded-xl bg-[#161B28] hover:bg-[#1F2538] text-[#CCFF00] border border-[#CCFF00]/40 text-xs font-black transition-all shadow-[0_0_12px_rgba(204,255,0,0.15)]"
+              className="px-5 py-2.5 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black text-xs font-black transition-all shadow-[0_0_15px_rgba(204,255,0,0.25)]"
             >
               Carica ed Elabora File Selezionati
             </button>

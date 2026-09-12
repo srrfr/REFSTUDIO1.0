@@ -8,7 +8,10 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "sync-excel": "node scripts/sync-excel.mjs",
-    "seed-supabase": "node scripts/seed-supabase.mjs"
+    "seed-supabase": "node scripts/seed-supabase.mjs",
+    "rebuild-db": "node scripts/rebuild-database.mjs",
+    "scrape": "python scripts/scraper_tuttocampo.py",
+    "scrape:sync": "python scripts/scraper_tuttocampo.py --sync"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

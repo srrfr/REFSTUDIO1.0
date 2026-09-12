@@ -1,8 +1,10 @@
-﻿import fs from 'fs';
+import fs from 'fs';
 import path from 'path';
 import XLSX from 'xlsx';
 
-const EXCEL_PATH = 'Eccellenza_Emilia_Romagna_Database_Completo.xlsx';
+const EXCEL_PATH = fs.existsSync('Eccellenza_Emilia_Romagna_Database_Completo.xlsx')
+  ? 'Eccellenza_Emilia_Romagna_Database_Completo.xlsx'
+  : 'data/excel/Eccellenza_Emilia_Romagna_Database_Completo.xlsx';
 const wb = XLSX.readFile(EXCEL_PATH);
 
 // 1. Carica stato esistente per preservare annotazioni, tag, note e profili
@@ -60,28 +62,28 @@ rawPlayers.forEach(p => {
   const category = String(p['Categoria'] || 'Eccellenza').trim();
 
   if (teamId && !teamsMap.has(teamId)) {
-    const existing = existingTeamsMap.get(teamName.toLowerCase()) || {};
+    const existing = existingTeamsMap.get(teamName.toLowerCase());
     teamsMap.set(teamId, {
-      id: teamId, // ID Rosa ufficiale
+      id: teamId, // ID Rosa ufficiale univoco
       championshipId: `eccellenza-er-girone-${girone.toLowerCase()}`,
       name: teamName,
       normalizedName: slugify(teamName),
       girone: girone,
-      city: existing.city || '',
-      logoUrl: existing.logoUrl || '',
-      stadium: existing.stadium || '',
-      stadiumAddress: existing.stadiumAddress || '',
-      pitchSurface: existing.pitchSurface || 'Erba Naturale',
-      tuttocampoUrl: existing.tuttocampoUrl || '',
-      technicalLevel: existing.technicalLevel || 3,
-      aggressionLevel: existing.aggressionLevel || 3,
-      benchAttitude: existing.benchAttitude || 'Da valutare',
-      coachAttitude: existing.coachAttitude || 'Da valutare',
-      coachName: existing.coachName || '',
-      managerName: existing.managerName || '',
-      refereeNotes: existing.refereeNotes || '',
-      stats: {
-        position: 1,
+      city: existing?.city || '',
+      logoUrl: existing?.logoUrl || '',
+      stadium: existing?.stadium || '',
+      stadiumAddress: existing?.stadiumAddress || '',
+      pitchSurface: existing?.pitchSurface || 'Erba Naturale',
+      tuttocampoUrl: existing?.tuttocampoUrl || '',
+      technicalLevel: existing?.technicalLevel || 3,
+      aggressionLevel: existing?.aggressionLevel || 3,
+      benchAttitude: existing?.benchAttitude || 'Da valutare',
+      coachAttitude: existing?.coachAttitude || 'Da valutare',
+      coachName: existing?.coachName || '',
+      managerName: existing?.managerName || '',
+      refereeNotes: existing?.refereeNotes || '',
+      stats: existing?.stats || {
+        position: 0,
         points: 0,
         played: 0,
         won: 0,
@@ -97,55 +99,64 @@ rawPlayers.forEach(p => {
   }
 });
 
-console.log(`✅ Squadre uniche trovate: ${teamsMap.size}`);
+console.log(`✅ Squadre processate: ${teamsMap.size}`);
 
-// 2. Classifiche Girone A e B
+// 2. Classifiche
 const standingsA = [];
 const standingsB = [];
 
-for (const g of ['A', 'B']) {
+['A', 'B'].forEach(g => {
   const sheet = wb.Sheets[`Girone ${g} - Classifica`];
-  if (!sheet) continue;
+  if (!sheet) return;
   const rows = XLSX.utils.sheet_to_json(sheet);
-  const targetList = g === 'A' ? standingsA : standingsB;
+  const targetArray = g === 'A' ? standingsA : standingsB;
 
-  rows.forEach(r => {
+  rows.forEach((r, idx) => {
     const teamName = String(r['Squadra'] || '').trim();
     const teamId = teamNameToId.get(teamName.toLowerCase()) || slugify(teamName);
-    const rowObj = {
-      position: parseInt(r['Posizione'] || 0, 10),
+    const played = parseInt(r['Partite giocate'] || 0, 10);
+    const points = parseInt(r['Punti'] || 0, 10);
+    const won = parseInt(r['Vittorie'] || 0, 10);
+    const drawn = parseInt(r['Pareggi'] || 0, 10);
+    const lost = parseInt(r['Sconfitte'] || 0, 10);
+    const goalsFor = parseInt(r['Gol fatti'] || 0, 10);
+    const goalsAgainst = parseInt(r['Gol subiti'] || 0, 10);
+    const goalDifference = parseInt(r['Differenza reti'] || (goalsFor - goalsAgainst), 10);
+    const position = parseInt(r['Posizione'] || (idx + 1), 10);
+
+    targetArray.push({
+      position: position,
       teamName: teamName,
       teamId: teamId,
-      points: parseInt(r['Punti'] || 0, 10),
-      played: parseInt(r['Partite giocate'] || 0, 10),
-      won: parseInt(r['Vittorie'] || 0, 10),
-      drawn: parseInt(r['Pareggi'] || 0, 10),
-      lost: parseInt(r['Sconfitte'] || 0, 10),
-      goalsFor: parseInt(r['Gol fatti'] || 0, 10),
-      goalsAgainst: parseInt(r['Gol subiti'] || 0, 10),
-      goalDifference: parseInt(r['Differenza reti'] || 0, 10)
-    };
-    targetList.push(rowObj);
+      points: points,
+      played: played,
+      won: won,
+      drawn: drawn,
+      lost: lost,
+      goalsFor: goalsFor,
+      goalsAgainst: goalsAgainst,
+      goalDifference: goalDifference
+    });
 
-    // Aggiorna anche le stats dentro la squadra
-    const team = teamsMap.get(teamId);
-    if (team) {
-      team.stats = {
-        position: rowObj.position,
-        points: rowObj.points,
-        played: rowObj.played,
-        won: rowObj.won,
-        drawn: rowObj.drawn,
-        lost: rowObj.lost,
-        goalsFor: rowObj.goalsFor,
-        goalsAgainst: rowObj.goalsAgainst,
-        goalDifference: rowObj.goalDifference
+    // Aggiorna anche le stats della squadra
+    if (teamsMap.has(teamId)) {
+      const sq = teamsMap.get(teamId);
+      sq.stats = {
+        position: position,
+        points: points,
+        played: played,
+        won: won,
+        drawn: drawn,
+        lost: lost,
+        goalsFor: goalsFor,
+        goalsAgainst: goalsAgainst,
+        goalDifference: goalDifference
       };
     }
   });
-}
+});
 
-console.log(`✅ Classifiche lette: Girone A (${standingsA.length}), Girone B (${standingsB.length})`);
+console.log(`✅ Classifiche processate: Girone A (${standingsA.length}), Girone B (${standingsB.length})`);
 
 // 3. Calciatori
 const players = [];
@@ -172,7 +183,8 @@ rawPlayers.forEach(p => {
   else if (yellowCards >= 4) disciplinaryStatus = 'DIFFIDATO';
 
   // Recupera eventuali tag e note precedentemente assegnate dall'arbitro
-  const existingByFullName = existingPlayersMap.get(`${firstName} ${lastName}`.toLowerCase().trim())
+  const existingByFullName = existingPlayersMap.get(playerId)
+    || existingPlayersMap.get(`${firstName} ${lastName}`.toLowerCase().trim())
     || existingPlayersMap.get(`${lastName} ${firstName}`.toLowerCase().trim());
 
   const customTags = existingByFullName?.customTags || [];
@@ -251,11 +263,14 @@ notes.forEach(n => {
     const teamId = teamNameToId.get(n.targetName.toLowerCase().trim());
     if (teamId) n.targetId = teamId;
   } else if (n.targetType === 'giocatore') {
-    // Cerca calciatore per nome
-    const pMatch = players.find(p => n.targetName.toLowerCase().includes(p.lastName.toLowerCase()));
-    if (pMatch) {
-      n.targetId = pMatch.id;
-      n.targetName = `${pMatch.firstName} ${pMatch.lastName} (${pMatch.teamName})`;
+    // Se targetId corrisponde già a un giocatore valido, preservalo
+    const existingById = players.find(p => p.id === n.targetId);
+    if (!existingById) {
+      const pMatch = players.find(p => n.targetName.toLowerCase().includes(p.lastName.toLowerCase()));
+      if (pMatch) {
+        n.targetId = pMatch.id;
+        n.targetName = `${pMatch.firstName} ${pMatch.lastName} (${pMatch.teamName})`;
+      }
     }
   }
 });
