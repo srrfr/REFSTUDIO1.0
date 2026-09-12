@@ -1,0 +1,170 @@
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import {
+  LayoutDashboard,
+  Shield,
+  Users,
+  Calendar,
+  FileText,
+  Video,
+  RefreshCw,
+  Award,
+  Sparkles,
+  Lock,
+  UserCheck,
+  User,
+  X,
+} from 'lucide-react';
+import { useAuth } from '@/lib/auth/auth-context';
+
+interface SidebarProps {
+  onOpenAdminPin: () => void;
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ onOpenAdminPin, isOpen = false, onClose }) => {
+  const pathname = usePathname();
+  const { user, isAdmin } = useAuth();
+
+  const navItems = [
+    { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { label: 'Calciatori & Stats', href: '/giocatori', icon: Users },
+    { label: 'Squadre & Rose', href: '/squadre', icon: Shield },
+    { label: 'Partite & Classifiche', href: '/partite', icon: Calendar },
+    { label: 'Note & Video', href: '/note-video', icon: FileText },
+    { label: 'Profilo Arbitro', href: '/profilo', icon: UserCheck },
+    { label: 'Data Provider Sync', href: '/admin/sync', icon: RefreshCw },
+  ];
+
+  const renderContent = (isMobileView: boolean = false) => (
+    <>
+      {/* Brand Header */}
+      <div>
+        <div className="p-5 border-b border-[#1B1F2C] flex items-center justify-between">
+          <Link
+            href="/"
+            onClick={() => isMobileView && onClose?.()}
+            className="flex items-center gap-3 group"
+          >
+            <div className="w-10 h-10 rounded-xl bg-[#CCFF00] flex items-center justify-center text-black font-black shadow-[0_0_20px_rgba(204,255,0,0.4)] group-hover:scale-105 transition-transform">
+              <Award className="w-6 h-6 text-black" strokeWidth={2.5} />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-lg tracking-tight text-white group-hover:text-[#CCFF00] transition-colors">
+                  REFSTUDIO
+                </span>
+                <span className="text-[10px] uppercase font-black bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 px-1.5 py-0.5 rounded">
+                  PRO
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 font-medium tracking-wide">Live Stats & Arbitri ER</p>
+            </div>
+          </Link>
+
+          {isMobileView && (
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#141722] transition-colors"
+              title="Chiudi Menu"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="p-3.5 space-y-1.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => isMobileView && onClose?.()}
+                className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all ${
+                  isActive
+                    ? 'bg-[#CCFF00] text-black shadow-[0_0_20px_rgba(204,255,0,0.35)]'
+                    : 'text-slate-400 hover:text-white hover:bg-[#141722]'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-black' : 'text-slate-400'}`} strokeWidth={isActive ? 2.5 : 2} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Admin Status & Footer */}
+      <div className="p-4 border-t border-[#1B1F2C] space-y-3">
+        <div className="p-3.5 rounded-xl bg-[#11141D] border border-[#212638]">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] text-slate-400 font-semibold">Ruolo Attuale</span>
+            {isAdmin ? (
+              <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/40">
+                ADMIN
+              </span>
+            ) : (
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[#1C202C] text-slate-300 border border-[#2B3142]">
+                ARBITRO
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              if (isMobileView) onClose?.();
+              onOpenAdminPin();
+            }}
+            className={`w-full text-xs font-black py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 transition-all ${
+              isAdmin
+                ? 'bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/25 border border-[#CCFF00]/40 shadow-sm'
+                : 'bg-[#181C28] hover:bg-[#202534] text-slate-200 border border-[#282E40]'
+            }`}
+          >
+            <Lock className="w-3.5 h-3.5 text-[#CCFF00]" />
+            {isAdmin ? 'Gestisci PIN Admin' : 'Sblocca Admin (PIN)'}
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 font-medium">
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-[#CCFF00]" />
+            <span className="text-slate-400">Gemini AI Hub</span>
+          </div>
+          <span className="text-[10px] text-slate-600 font-mono">v1.0-dark</span>
+        </div>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop Sidebar (Fixed sticky) */}
+      <aside className="hidden lg:flex w-64 bg-[#0A0C10] border-r border-[#1B1F2C] flex-col justify-between shrink-0 h-screen sticky top-0 select-none">
+        {renderContent(false)}
+      </aside>
+
+      {/* Mobile & Tablet Drawer (Off-canvas slide-out) */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          {/* Dark Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity duration-300"
+            onClick={onClose}
+          />
+          {/* Drawer Panel */}
+          <aside className="relative w-72 max-w-[85vw] bg-[#0A0C10] border-r border-[#1B1F2C] flex flex-col justify-between h-full z-10 shadow-[0_0_50px_rgba(0,0,0,0.8)] animate-in slide-in-from-left duration-300 select-none">
+            {renderContent(true)}
+          </aside>
+        </div>
+      )}
+    </>
+  );
+};
