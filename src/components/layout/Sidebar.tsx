@@ -17,6 +17,8 @@ import {
   UserCheck,
   User,
   X,
+  Download,
+  Smartphone,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 
@@ -29,6 +31,17 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({ onOpenAdminPin, isOpen = false, onClose }) => {
   const pathname = usePathname();
   const { user, isAdmin } = useAuth();
+  const [isInstalled, setIsInstalled] = React.useState(false);
+
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      setIsInstalled(isStandalone);
+    }
+  }, []);
+
 
   const navItems = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
@@ -131,7 +144,27 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAdminPin, isOpen = false
             <Lock className="w-3.5 h-3.5 text-[#CCFF00]" />
             {isAdmin ? 'Gestisci PIN Admin' : 'Sblocca Admin (PIN)'}
           </button>
+
+          {!isInstalled ? (
+            <button
+              onClick={() => {
+                if (isMobileView) onClose?.();
+                window.dispatchEvent(new CustomEvent('pwa-install-trigger'));
+              }}
+              className="w-full mt-2 text-xs font-bold py-2 px-3 rounded-lg flex items-center justify-center gap-2 bg-[#141824] hover:bg-[#1D2335] text-slate-300 hover:text-[#CCFF00] border border-[#212638] hover:border-[#CCFF00]/40 transition-all cursor-pointer"
+              title="Installa RefStudio a schermo intero sul tuo smartphone o tablet"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-[#CCFF00]" />
+              <span>Installa App (PWA)</span>
+            </button>
+          ) : (
+            <div className="mt-2 py-1 px-2 rounded-lg bg-[#CCFF00]/10 border border-[#CCFF00]/20 flex items-center justify-center gap-1.5 text-[10px] font-bold text-[#CCFF00]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-pulse" />
+              <span>App Installata (Schermo Intero)</span>
+            </div>
+          )}
         </div>
+
 
         <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 font-medium">
           <div className="flex items-center gap-1.5">

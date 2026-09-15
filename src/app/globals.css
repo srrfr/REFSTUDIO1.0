@@ -55,3 +55,26 @@ body {
     linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* PWA Safe Area insets for notch and edge-to-edge displays */
+.safe-area-pt {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-area-pb {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+.safe-area-pl {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.safe-area-pr {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Standalone PWA Mobile UX optimizations */
+@media all and (display-mode: standalone) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+}
+

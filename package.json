@@ -11,8 +11,10 @@
     "seed-supabase": "node scripts/seed-supabase.mjs",
     "rebuild-db": "node scripts/rebuild-database.mjs",
     "scrape": "python scripts/scraper_tuttocampo.py",
-    "scrape:sync": "python scripts/scraper_tuttocampo.py --sync"
+    "scrape:sync": "python scripts/scraper_tuttocampo.py --sync",
+    "icons:generate": "node scripts/generate-pwa-icons.mjs"
   },
+
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.116.0",
