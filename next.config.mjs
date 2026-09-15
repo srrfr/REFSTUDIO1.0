@@ -36,8 +36,8 @@ const nextConfig = {
             value: 'application/manifest+json; charset=utf-8',
           },
           {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
           },
         ],
       },
@@ -46,4 +46,5 @@ const nextConfig = {
 };
 
 export default nextConfig;
+
 

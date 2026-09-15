@@ -10,7 +10,6 @@ export const metadata: Metadata = {
   description:
     'Piattaforma avanzata per arbitri di calcio: analisi squadre, calciatori, note disciplinari, video e briefing AI.',
   applicationName: 'RefStudio',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -52,7 +51,10 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="RefStudio" />
+        <meta name="theme-color" content="#08090C" />
       </head>
+
+
       <body className="bg-[#08090C] text-slate-100 min-h-screen antialiased">
         <AuthProvider>
           <AppLayout>{children}</AppLayout>

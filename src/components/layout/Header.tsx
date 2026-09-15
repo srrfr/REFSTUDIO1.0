@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, User, Lock, CheckCircle2, Cloud, RefreshCw, Zap, Menu } from 'lucide-react';
+import { Search, User, Lock, CheckCircle2, Cloud, RefreshCw, Zap, Menu, Download } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRealtime } from '@/lib/supabase/realtime-context';
 
@@ -19,6 +19,18 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdminPin, onToggleMobileMe
   const [searchTerm, setSearchTerm] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [showLiveNotification, setShowLiveNotification] = useState(false);
+  const [isStandalone, setIsStandalone] = useState(true);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isStandaloneMode =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.matchMedia('(display-mode: fullscreen)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      setIsStandalone(isStandaloneMode);
+    }
+  }, []);
+
 
   // Mostra notifica toast quando arriva un aggiornamento in tempo reale da un altro dispositivo
   useEffect(() => {
@@ -111,8 +123,22 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdminPin, onToggleMobileMe
       </div>
 
       {/* Right controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Pulsante Installa App (visibile se non ancora installata a schermo intero) */}
+        {!isStandalone && (
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('pwa-install-trigger'))}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all shrink-0 active:scale-95 cursor-pointer animate-pulse hover:animate-none"
+            title="Installa RefStudio a schermo intero sul tuo smartphone o tablet"
+          >
+            <Download className="w-3.5 h-3.5 text-black" strokeWidth={2.5} />
+            <span className="hidden sm:inline">Installa App</span>
+            <span className="sm:hidden">Installa</span>
+          </button>
+        )}
+
         {/* Admin Badge */}
+
         {isAdmin ? (
           <button
             onClick={onOpenAdminPin}
