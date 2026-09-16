@@ -36,14 +36,20 @@ MESI = {
     "novembre": "11", "dicembre": "12"
 }
 
+STEALTH_JS = """
+Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+window.chrome = { runtime: {} };
+Object.defineProperty(navigator, 'languages', { get: () => ['it-IT', 'it', 'en-US', 'en'] });
+Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+"""
+
 
 def accetta_cookie_se_presenti(page):
     """Accetta il banner dei cookie FastCMP o Iubenda e rimuove overlay bloccanti."""
     try:
-        # 1. FastCMP in iframe
         if page.locator("#fast-cmp-iframe").count() > 0:
             frame = page.frame_locator("#fast-cmp-iframe")
-            btn = frame.locator("button.fast-cmp-button-primary, button:has-text('Accettare'), button:has-text('Accetta')")
+            btn = frame.locator("button:has-text('Accettare'), button:has-text('Accetta'), button.fast-cmp-button-primary")
             if btn.count() > 0:
                 btn.first.click(timeout=3000)
                 time.sleep(0.5)
@@ -51,7 +57,6 @@ def accetta_cookie_se_presenti(page):
         pass
 
     try:
-        # 2. Iubenda o pulsanti standard
         btn_cookie = page.query_selector("button#iubenda-cs-accept-btn, button.iubenda-cs-accept-btn, #iubFooterBtn")
         if btn_cookie:
             btn_cookie.click()
@@ -59,7 +64,6 @@ def accetta_cookie_se_presenti(page):
     except Exception:
         pass
 
-    # Rimuove l'overlay se ancora presente per evitare blocchi al puntatore
     try:
         page.evaluate("() => { document.getElementById('fast-cmp-root')?.remove(); document.querySelector('.iubenda-cs-overlay')?.remove(); }")
     except Exception:
@@ -67,57 +71,73 @@ def accetta_cookie_se_presenti(page):
 
 
 def effettua_login_modal(page):
-    """Gestisce il login tramite il popup / modale (#loginmodal) dopo aver chiuso i cookie."""
+    """Gestisce il login tramite il popup / modale (#loginmodal) dopo aver gestito i cookie."""
     print(" -> Apertura home page per autenticazione...")
-    page.goto("https://www.tuttocampo.it/", wait_until="domcontentloaded", timeout=30000)
-    time.sleep(2)
-
-    accetta_cookie_se_presenti(page)
+    try:
+        page.goto("https://www.tuttocampo.it/", wait_until="domcontentloaded", timeout=30000)
+        time.sleep(1.5)
+        accetta_cookie_se_presenti(page)
+    except Exception as e:
+        print(f" [!] Errore nel caricamento della home page: {e}")
+        return False
 
     print(" -> Apertura del modale di login...")
     try:
-        # Clicca sul trigger del modale
-        login_btn = page.locator("a.login, a[href='#loginmodal'], a:has-text('LOGIN')")
-        if login_btn.count() > 0:
-            login_btn.first.click(timeout=5000)
-        else:
-            page.goto("https://www.tuttocampo.it/#loginmodal", wait_until="domcontentloaded")
-        
-        time.sleep(1)
+        # Rende visibile il form direttamente nel DOM
+        page.evaluate("() => { const m = document.getElementById('loginmodal'); if (m) { m.style.display = 'block'; m.style.opacity = '1'; } }")
+        time.sleep(0.5)
 
-        page.wait_for_selector("#login_username, input[name='username'], input#Username", state="visible", timeout=10000)
         page.fill("#login_username, input[name='username'], input#Username", EMAIL_TUTTOCAMPO)
         page.fill("#login_password, input[name='password'], input#Password", PASSWORD_TUTTOCAMPO)
 
         print(" -> Invio credenziali...")
         submit_btn = page.locator("#loginmodal input[type='submit'], #loginmodal button[type='submit'], input[name='submit_login']")
-        
-        try:
-            with page.expect_navigation(timeout=15000):
-                submit_btn.first.click()
-        except Exception:
-            # Se la navigazione non scatta esplicitamente con submit
-            submit_btn.first.click()
-            time.sleep(3)
+        submit_btn.first.click()
+        time.sleep(3)
 
-        print(" [✓] Login completato con successo!")
-        time.sleep(1.5)
-        accetta_cookie_se_presenti(page)
+        feedback = page.locator("#loginmodal").inner_text()
+        if "utente non attivo" in feedback.lower():
+            print(" [⚠️] AVVISO TUTTOCAMPO: L'account risulta 'Utente non attivo' (è necessario confermare il link di attivazione inviato da Tuttocampo via email).")
+            print("      -> Procedo regolarmente con l'estrazione delle squadre, classifiche e giornate (dati pubblici).")
+            return False
+        elif "password" in feedback.lower() and "errat" in feedback.lower():
+            print(" [⚠️] AVVISO TUTTOCAMPO: Password non corretta.")
+            return False
+        else:
+            print(" [✓] Login completato con successo!")
+            time.sleep(1)
+            accetta_cookie_se_presenti(page)
+            return True
     except Exception as e:
-        print(f" [!] Errore o timeout durante il login: {e}")
+        print(f" [!] Avviso durante il login: {e}")
+        return False
 
 
 def get_html_with_browser(page, url):
     """Scarica il codice HTML dopo il caricamento del DOM e rimozione cookie."""
-    try:
-        page.goto(url, wait_until="domcontentloaded", timeout=30000)
-        time.sleep(1.5)
-        accetta_cookie_se_presenti(page)
-        content = page.content()
-        return BeautifulSoup(content, 'html.parser')
-    except Exception as e:
-        print(f"  [!] Errore nel caricamento di {url}: {e}")
-        return None
+    for tentativo in range(1, 3):
+        try:
+            resp = page.goto(url, wait_until="domcontentloaded", timeout=30000)
+            time.sleep(1.5)
+            accetta_cookie_se_presenti(page)
+
+            if resp and resp.status == 403:
+                print(f"  [!] Risposta 403 Forbidden per {url}, attendo e riprovo ({tentativo}/2)...")
+                time.sleep(2)
+                continue
+
+            content = page.content()
+            if "403 Forbidden" in content:
+                print(f"  [!] Rilevato 403 Forbidden in {url}, attendo e riprovo ({tentativo}/2)...")
+                time.sleep(2)
+                continue
+
+            return BeautifulSoup(content, 'html.parser')
+        except Exception as e:
+            print(f"  [!] Errore nel caricamento di {url} (tentativo {tentativo}): {e}")
+            time.sleep(2)
+    return None
+
 
 
 # -------------------------------------------------------------
@@ -578,13 +598,25 @@ def main():
             args=[
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
-                "--disable-setuid-sandbox"
+                "--disable-setuid-sandbox",
+                "--disable-infobars",
+                "--window-size=1920,1080"
             ]
         )
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 800}
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            viewport={"width": 1920, "height": 1080},
+            extra_http_headers={
+                "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
+                "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+                "sec-ch-ua-mobile": "?0",
+                "sec-ch-ua-platform": '"Windows"',
+                "Upgrade-Insecure-Requests": "1"
+            },
+            locale="it-IT",
+            timezone_id="Europe/Rome"
         )
+        context.add_init_script(STEALTH_JS)
         page = context.new_page()
 
         effettua_login_modal(page)
@@ -630,16 +662,26 @@ def main():
     print("Salvataggio file Excel unico in corso...")
     file_excel = "Eccellenza_Emilia_Romagna_Database_Completo.xlsx"
     
+    # Se per qualsiasi motivo i calciatori estratti sono 0 (es. account non ancora attivato via email),
+    # preserviamo e riutilizziamo la rosa dei calciatori già presente nel file Excel per non perderli!
     if len(database_totale_calciatori) == 0:
-        print("⚠️ ATTENZIONE: Nessun calciatore estratto durante questa sessione.")
-        print("Il file Excel non verrà sovrascritto per proteggere i dati esistenti.")
-    else:
-        genera_excel_completo(database_totale_calciatori, dati_gironi_gare_classifica, file_excel)
-        print("\n[✓] ESECUZIONE SCRAPING COMPLETATA CON SUCCESSO!")
+        print("⚠️ Nessun nuovo calciatore estratto in questa sessione (account Tuttocampo non ancora attivo).")
+        if os.path.exists(file_excel):
+            print("ℹ️ Preservo e recupero le rose dei calciatori già presenti nel file Excel esistente...")
+            try:
+                df_calciatori = pd.read_excel(file_excel, sheet_name="Calciatori")
+                database_totale_calciatori = df_calciatori.fillna("").to_dict('records')
+                print(f" [✓] Recuperati {len(database_totale_calciatori)} calciatori dal database precedente.")
+            except Exception as err:
+                print(f" ⚠️ Errore nel recupero calciatori esistenti: {err}")
 
-        # Se richiesto, esegue il sync automatico con il database e Supabase
-        if args.sync or os.getenv("AUTO_SYNC", "false").lower() == "true":
-            run_app_sync()
+    genera_excel_completo(database_totale_calciatori, dati_gironi_gare_classifica, file_excel)
+    print("\n[✓] ESECUZIONE SCRAPING E SALVATAGGIO EXCEL COMPLETATI CON SUCCESSO!")
+
+    # Se richiesto, esegue il sync automatico con il database e Supabase
+    if args.sync or os.getenv("AUTO_SYNC", "false").lower() == "true":
+        run_app_sync()
+
 
 
 if __name__ == "__main__":
