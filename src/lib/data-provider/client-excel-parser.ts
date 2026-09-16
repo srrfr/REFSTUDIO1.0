@@ -1,12 +1,7 @@
-import * as fs from 'fs';
-import * as path from 'path';
 import * as XLSX from 'xlsx';
 import { Team, Player, Match, StandingRow } from '@/types/refstudio';
-import { DbService } from '@/lib/repository/db-service';
-import { SupabaseService } from '@/lib/supabase/supabase-service';
-import { isSupabaseConfigured } from '@/lib/supabase/client';
 
-export class UnifiedExcelService {
+export class ClientExcelParser {
   static slugify(str: string): string {
     return String(str || '')
       .toLowerCase()
@@ -26,21 +21,10 @@ export class UnifiedExcelService {
     return 'SCONOSCIUTO';
   }
 
-  static findMasterExcelPath(): string | null {
-    const candidates = [
-      path.resolve(process.cwd(), 'Eccellenza_Emilia_Romagna_Database_Completo.xlsx'),
-      path.resolve(process.cwd(), 'data', 'excel', 'Eccellenza_Emilia_Romagna_Database_Completo.xlsx'),
-    ];
-    for (const c of candidates) {
-      if (fs.existsSync(c)) return c;
-    }
-    return null;
-  }
-
-  static processWorkbook(wb: XLSX.WorkBook): {
+  static parseWorkbook(wb: XLSX.WorkBook, existingState: any = {}): {
     success: boolean;
     dataset?: any;
-    summary: {
+    summary?: {
       teams: number;
       players: number;
       matches: number;
@@ -51,22 +35,10 @@ export class UnifiedExcelService {
     };
     error?: string;
   } {
-
     try {
       const calciatoriSheet = wb.Sheets['Calciatori'];
       if (!calciatoriSheet) {
         throw new Error('Foglio obbligatorio "Calciatori" non trovato nel file Excel.');
-      }
-
-      // 1. Carica stato esistente per preservare note, video e profili
-      let existingState: any = {};
-      try {
-        const stateFile = path.resolve(process.cwd(), 'data', 'db-state.json');
-        if (fs.existsSync(stateFile)) {
-          existingState = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
-        }
-      } catch {
-        // Ignora
       }
 
       const existingTeamsMap = new Map<string, Team>();
@@ -85,7 +57,7 @@ export class UnifiedExcelService {
 
       const rawPlayers: any[] = XLSX.utils.sheet_to_json(calciatoriSheet);
 
-      // 2. Mappa Squadre per ID Rosa
+      // 1. Squadre
       const teamsMap = new Map<string, Team>();
       const teamNameToId = new Map<string, string>();
 
@@ -133,9 +105,17 @@ export class UnifiedExcelService {
         }
       });
 
-      // 3. Classifiche
-      const standingsA: StandingRow[] = [];
-      const standingsB: StandingRow[] = [];
+      // Se non ci sono squadre nel file Excel, riutilizziamo quelle esistenti
+      if (teamsMap.size === 0 && existingState.teams) {
+        existingState.teams.forEach((t: Team) => {
+          teamsMap.set(t.id, t);
+          teamNameToId.set(t.name.toLowerCase(), t.id);
+        });
+      }
+
+      // 2. Classifiche
+      let standingsA: StandingRow[] = [];
+      let standingsB: StandingRow[] = [];
 
       (['A', 'B'] as const).forEach((g) => {
         const sheet = wb.Sheets[`Girone ${g} - Classifica`];
@@ -187,7 +167,15 @@ export class UnifiedExcelService {
         });
       });
 
-      // 4. Calciatori
+      // Se le classifiche nell'Excel caricato sono vuote, preserviamo quelle esistenti
+      if (standingsA.length === 0 && existingState.standingsA?.length) {
+        standingsA = existingState.standingsA;
+      }
+      if (standingsB.length === 0 && existingState.standingsB?.length) {
+        standingsB = existingState.standingsB;
+      }
+
+      // 3. Calciatori
       const players: Player[] = [];
       const currentYear = new Date().getFullYear();
 
@@ -241,8 +229,8 @@ export class UnifiedExcelService {
         });
       });
 
-      // 5. Partite
-      const matches: Match[] = [];
+      // 4. Partite
+      let matches: Match[] = [];
       (['A', 'B'] as const).forEach((g) => {
         const sheet = wb.Sheets[`Girone ${g} - Gare`];
         if (!sheet) return;
@@ -281,52 +269,24 @@ export class UnifiedExcelService {
         });
       });
 
-      // 6. Note esistenti
-      const notes = existingState.notes || [];
-      notes.forEach((n: any) => {
-        if (n.targetType === 'squadra') {
-          const teamId = teamNameToId.get(n.targetName.toLowerCase().trim());
-          if (teamId) n.targetId = teamId;
-        } else if (n.targetType === 'giocatore') {
-          const existingById = players.find((p) => p.id === n.targetId);
-          if (!existingById) {
-            const pMatch = players.find((p) => n.targetName.toLowerCase().includes(p.lastName.toLowerCase()));
-            if (pMatch) {
-              n.targetId = pMatch.id;
-              n.targetName = `${pMatch.firstName} ${pMatch.lastName} (${pMatch.teamName})`;
-            }
-          }
-        }
-      });
+      // Se le partite nell'Excel sono vuote, preserviamo quelle già caricate
+      if (matches.length === 0 && existingState.matches?.length) {
+        matches = existingState.matches;
+      }
 
-      // Se partite o classifiche sono vuote nel file Excel caricato, preserviamo quelle storiche
-      const finalMatches = matches.length > 0 ? matches : (existingState.matches || []);
-      const finalStandingsA = standingsA.length > 0 ? standingsA : (existingState.standingsA || []);
-      const finalStandingsB = standingsB.length > 0 ? standingsB : (existingState.standingsB || []);
+      // 5. Note
+      const notes = existingState.notes || [];
 
       const finalDatabase = {
         teams: Array.from(teamsMap.values()),
         players: players.length > 0 ? players : (existingState.players || []),
-        matches: finalMatches,
-        standingsA: finalStandingsA,
-        standingsB: finalStandingsB,
+        matches: matches,
+        standingsA: standingsA,
+        standingsB: standingsB,
         notes: notes,
         videos: existingState.videos || [],
         profiles: existingState.profiles || [],
       };
-
-      // Aggiorna dataset su disco se in ambiente server
-      try {
-        const stateFile = path.resolve(process.cwd(), 'data', 'db-state.json');
-        const datasetFile = path.resolve(process.cwd(), 'src', 'data', 'dataset.json');
-        fs.writeFileSync(stateFile, JSON.stringify(finalDatabase, null, 2), 'utf-8');
-        fs.writeFileSync(datasetFile, JSON.stringify(finalDatabase, null, 2), 'utf-8');
-      } catch {
-        // Ignora su ambienti read-only come Vercel serverless
-      }
-
-      // Sincronizza memoria
-      DbService.replaceFullDataset(finalDatabase as any);
 
       return {
         success: true,
@@ -335,8 +295,8 @@ export class UnifiedExcelService {
           teams: finalDatabase.teams.length,
           players: finalDatabase.players.length,
           matches: finalDatabase.matches.length,
-          standingsA: finalStandingsA.length,
-          standingsB: finalStandingsB.length,
+          standingsA: standingsA.length,
+          standingsB: standingsB.length,
           notes: notes.length,
           profiles: (finalDatabase.profiles || []).length,
         },
@@ -344,43 +304,8 @@ export class UnifiedExcelService {
     } catch (err: any) {
       return {
         success: false,
-        summary: { teams: 0, players: 0, matches: 0, standingsA: 0, standingsB: 0, notes: 0, profiles: 0 },
         error: err.message,
       };
     }
   }
-
-  static async processWorkbookAsync(wb: XLSX.WorkBook): Promise<{
-    success: boolean;
-    summary: {
-      teams: number;
-      players: number;
-      matches: number;
-      standingsA: number;
-      standingsB: number;
-      notes: number;
-      profiles: number;
-    };
-    dataset?: any;
-    error?: string;
-  }> {
-    const result = this.processWorkbook(wb);
-    if (!result.success || !result.dataset) {
-      return result;
-    }
-
-    // Se Supabase è configurato, attende la migrazione completa senza far morire la funzione serverless a metà
-    if (isSupabaseConfigured()) {
-      try {
-        console.log('⚡ [UnifiedExcelService] Avvio sincronizzazione completa batch con Supabase Cloud...');
-        const supRes = await SupabaseService.migrateFullDataset(result.dataset);
-        console.log('✅ [UnifiedExcelService] Supabase sincronizzato con successo:', supRes.summary);
-      } catch (err: any) {
-        console.warn('⚠️ [UnifiedExcelService] Avviso migrazione Supabase:', err.message);
-      }
-    }
-
-    return result;
-  }
 }
-

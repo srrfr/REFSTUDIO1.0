@@ -6,6 +6,9 @@ import { UnifiedExcelService } from '@/lib/data-provider/unified-excel-service';
 import { ExcelDataProvider } from '@/lib/data-provider/excel-data-provider';
 import { DbService } from '@/lib/repository/db-service';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const contentType = request.headers.get('content-type') || '';
@@ -32,9 +35,9 @@ export async function POST(request: Request) {
           fs.writeFileSync(path.join(uploadDir, 'Eccellenza_Emilia_Romagna_Database_Completo.xlsx'), buffer);
         } catch {}
 
-        // Elabora immediatamente il file Excel caricato
+        // Elabora immediatamente il file Excel caricato e attende la migrazione cloud
         const wb = XLSX.read(buffer, { type: 'buffer' });
-        const result = UnifiedExcelService.processWorkbook(wb);
+        const result = await UnifiedExcelService.processWorkbookAsync(wb);
 
         if (!result.success) {
           return NextResponse.json({ success: false, message: result.error }, { status: 400 });
@@ -44,6 +47,7 @@ export async function POST(request: Request) {
           success: true,
           message: 'Database aggiornato con successo dal file Excel completo (36 squadre, 924 giocatori, 405 gare)',
           summary: result.summary,
+          dataset: result.dataset,
         });
       }
 
@@ -73,16 +77,18 @@ export async function POST(request: Request) {
     if (masterPath && fs.existsSync(masterPath)) {
       const buffer = fs.readFileSync(masterPath);
       const wb = XLSX.read(buffer, { type: 'buffer' });
-      const result = UnifiedExcelService.processWorkbook(wb);
+      const result = await UnifiedExcelService.processWorkbookAsync(wb);
 
       if (result.success) {
         return NextResponse.json({
           success: true,
           message: 'Sincronizzazione completata dal Database Excel Completo con ID ufficiali',
           summary: result.summary,
+          dataset: result.dataset,
         });
       }
     }
+
 
     // 3. Fallback sul vecchio provider a 3 file se il master non è presente
     const provider = new ExcelDataProvider();

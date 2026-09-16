@@ -24,10 +24,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRealtime } from '@/lib/supabase/realtime-context';
+import { DbService } from '@/lib/repository/db-service';
+import { ClientExcelParser } from '@/lib/data-provider/client-excel-parser';
 
 export default function AdminSyncPage() {
   const { isAdmin } = useAuth();
-  const { isConnected: isRealtimeConnected, onlineRefereesCount, lastEvent } = useRealtime();
+  const { isConnected: isRealtimeConnected, onlineRefereesCount, lastEvent, syncNow } = useRealtime();
   const [loading, setLoading] = useState(false);
   const [syncResponse, setSyncResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -132,6 +134,28 @@ export default function AdminSyncPage() {
     setSyncResponse(null);
 
     try {
+      // 1. Elaborazione istantanea client-side se è stato selezionato il file Excel completo
+      if (useFiles && fileDatabaseCompleto) {
+        try {
+          const XLSX = await import('xlsx');
+          const arrayBuffer = await fileDatabaseCompleto.arrayBuffer();
+          const wb = XLSX.read(arrayBuffer, { type: 'array' });
+          const currentState = DbService.getState();
+          const clientParsed = ClientExcelParser.parseWorkbook(wb, currentState);
+          if (clientParsed.success && clientParsed.dataset) {
+            DbService.replaceFullDataset(clientParsed.dataset);
+            setSyncResponse({
+              success: true,
+              message: '✓ Dati applicati istantaneamente in locale! Sincronizzazione Cloud in corso...',
+              summary: clientParsed.summary,
+            });
+          }
+        } catch (clientErr: any) {
+          console.warn('Avviso parsing locale client:', clientErr);
+        }
+      }
+
+      // 2. Invio multipart al server per persistenza e sincronizzazione Supabase Cloud
       let res: Response;
       if (useFiles && (fileDatabaseCompleto || fileGironeA || fileGironeB || fileGare)) {
         const formData = new FormData();
@@ -146,6 +170,10 @@ export default function AdminSyncPage() {
 
       const data = await res.json();
       if (data.success) {
+        if (data.dataset) {
+          DbService.replaceFullDataset(data.dataset);
+        }
+        await syncNow();
         setSyncResponse(data);
         checkSupabaseStatus();
       } else {
@@ -157,6 +185,7 @@ export default function AdminSyncPage() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-8">

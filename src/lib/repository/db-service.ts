@@ -681,7 +681,12 @@ export class DbService {
     };
   }
 
-  static replaceFullDataset(newDataset: typeof defaultDataset) {
+  static getState(): DatabaseState {
+    this.ensureLoaded();
+    return inMemoryData;
+  }
+
+  static replaceFullDataset(newDataset: typeof defaultDataset | any) {
     this.ensureLoaded();
     inMemoryData = {
       ...inMemoryData,
@@ -693,12 +698,17 @@ export class DbService {
     };
     this.persist();
 
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { fullSync: true } }));
+    }
+
     if (isSupabaseConfigured()) {
       SupabaseService.migrateFullDataset(inMemoryData).catch((err) =>
         console.warn('Errore sincronizzazione batch Supabase:', err)
       );
     }
   }
+
 
   static resetToDefault(): void {
     inMemoryData = {
