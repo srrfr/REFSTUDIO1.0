@@ -615,6 +615,25 @@ def main():
     print(f"   Credenziali: {EMAIL_TUTTOCAMPO}")
     print("===========================================================\n")
 
+    cookies_file = "tuttocampo_cookies.json"
+    storage_state_env = os.getenv("TUTTOCAMPO_STORAGE_STATE", "").strip()
+    if storage_state_env and not os.path.exists(cookies_file):
+        try:
+            import base64
+            content = storage_state_env
+            if not content.startswith("{"):
+                try:
+                    content = base64.b64decode(content).decode("utf-8")
+                except Exception:
+                    pass
+            with open(cookies_file, "w", encoding="utf-8") as f:
+                f.write(content)
+            print(f" [✓] Sessione Tuttocampo ripristinata da TUTTOCAMPO_STORAGE_STATE.")
+        except Exception as e:
+            print(f" [!] Errore nel salvataggio della sessione da env: {e}")
+
+    has_cookies = os.path.exists(cookies_file)
+
     with sync_playwright() as p:
         browser = p.chromium.launch(
             headless=headless,
@@ -626,23 +645,34 @@ def main():
                 "--window-size=1920,1080"
             ]
         )
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-            viewport={"width": 1920, "height": 1080},
-            extra_http_headers={
+
+        context_kwargs = {
+            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "viewport": {"width": 1920, "height": 1080},
+            "extra_http_headers": {
                 "Accept-Language": "it-IT,it;q=0.9,en-US;q=0.8,en;q=0.7",
                 "sec-ch-ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
                 "sec-ch-ua-mobile": "?0",
                 "sec-ch-ua-platform": '"Windows"',
                 "Upgrade-Insecure-Requests": "1"
             },
-            locale="it-IT",
-            timezone_id="Europe/Rome"
-        )
+            "locale": "it-IT",
+            "timezone_id": "Europe/Rome"
+        }
+
+        if has_cookies:
+            context_kwargs["storage_state"] = cookies_file
+            print(f" [✓] Rilevata sessione Google Premium salvata in '{cookies_file}'.")
+
+        context = browser.new_context(**context_kwargs)
         context.add_init_script(STEALTH_JS)
         page = context.new_page()
 
-        effettua_login_modal(page)
+        if has_cookies:
+            print(" -> Sessione Google Premium caricata con successo: bypass del modale di login.")
+        else:
+            effettua_login_modal(page)
+
 
         for nome_girone, url_girone in GIRONI.items():
             print(f"\n==========================================")

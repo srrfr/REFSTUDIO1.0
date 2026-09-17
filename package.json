@@ -12,8 +12,10 @@
     "rebuild-db": "node scripts/rebuild-database.mjs",
     "scrape": "python scripts/scraper_tuttocampo.py",
     "scrape:sync": "python scripts/scraper_tuttocampo.py --sync",
+    "login:google": "python scripts/salva_sessione_tuttocampo.py",
     "icons:generate": "node scripts/generate-pwa-icons.mjs"
   },
+
 
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

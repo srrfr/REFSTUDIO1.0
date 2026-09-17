@@ -45,6 +45,7 @@ jobs:
         env:
           TUTTOCAMPO_EMAIL: ${{ secrets.TUTTOCAMPO_EMAIL || 'user20260916' }}
           TUTTOCAMPO_PASSWORD: ${{ secrets.TUTTOCAMPO_PASSWORD || '!yu2EV.?fyv#Qgd' }}
+          TUTTOCAMPO_STORAGE_STATE: ${{ secrets.TUTTOCAMPO_STORAGE_STATE }}
 
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
