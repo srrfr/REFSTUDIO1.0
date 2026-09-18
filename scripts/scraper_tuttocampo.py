@@ -4,6 +4,7 @@ import time
 import re
 import argparse
 import subprocess
+import random
 from datetime import datetime
 import pandas as pd
 import openpyxl
@@ -44,6 +45,22 @@ Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
 """
 
 
+def clean_name(s):
+    if not s:
+        return ""
+    s = re.sub(r'^(logo|Logo)\s+', '', str(s), flags=re.I)
+    s = re.sub(r'\s+', ' ', s)
+    return s.strip()
+
+
+def safe_int(x, default=0):
+    try:
+        m = re.search(r'\d+', str(x))
+        return int(m.group()) if m else default
+    except Exception:
+        return default
+
+
 def accetta_cookie_se_presenti(page):
     """Accetta il banner dei cookie FastCMP o Iubenda e rimuove overlay bloccanti."""
     try:
@@ -68,7 +85,7 @@ def accetta_cookie_se_presenti(page):
         pass
 
 
-def wait_for_page_ready(page, timeout=15, need_table=False):
+def wait_for_page_ready(page, timeout=12, need_table=False):
     """Attende il completamento di challenge WAF o script asincroni e il caricamento dei contenuti."""
     start = time.time()
     while time.time() - start < timeout:
@@ -76,15 +93,40 @@ def wait_for_page_ready(page, timeout=15, need_table=False):
             c = page.content()
             if "gokuProps" not in c and "awsWafCookieDomainList" not in c:
                 if need_table:
-                    if page.locator("table, .table, .ranking, .league-round-matches").count() > 0:
+                    if page.locator("table.team-players, table.ranking, table.league-round-matches, table").count() > 0:
                         break
                 else:
-                    if page.locator("table, .table, .ranking, .content, #site").count() > 0 or len(c) > 40000:
+                    if len(c) > 30000:
                         break
         except Exception:
             pass
         time.sleep(0.3)
     accetta_cookie_se_presenti(page)
+
+
+def get_html_with_browser(page, url, need_table=False, max_retries=3):
+    """Scarica il codice HTML con gestione avanzata di tentativi, status 403 ed exponential backoff."""
+    for tentativo in range(1, max_retries + 1):
+        try:
+            resp = page.goto(url, wait_until="domcontentloaded", timeout=25000)
+            if resp and resp.status == 403:
+                print(f"  [!] HTTP 403 Forbidden su {url}, attendo e riprovo ({tentativo}/{max_retries})...")
+                time.sleep(tentativo * 2)
+                continue
+
+            wait_for_page_ready(page, timeout=10, need_table=need_table)
+
+            content = page.content()
+            if "403 Forbidden" in content and len(content) < 1000:
+                print(f"  [!] Rilevato 403 Forbidden nel body su {url}, attendo e riprovo ({tentativo}/{max_retries})...")
+                time.sleep(tentativo * 2)
+                continue
+
+            return BeautifulSoup(content, 'html.parser')
+        except Exception as e:
+            print(f"  [!] Timeout o errore su {url} (tentativo {tentativo}/{max_retries}): {e}")
+            time.sleep(tentativo * 1.5)
+    return None
 
 
 def effettua_login_modal(page):
@@ -138,34 +180,12 @@ def effettua_login_modal(page):
         return False
 
 
-def get_html_with_browser(page, url, need_table=False):
-    """Scarica il codice HTML dopo il caricamento del DOM e superamento challenge."""
-    for tentativo in range(1, 3):
-        try:
-            page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            wait_for_page_ready(page, timeout=12, need_table=need_table)
-
-            content = page.content()
-            if "403 Forbidden" in content:
-                print(f"  [!] Rilevato 403 Forbidden in {url}, attendo e riprovo ({tentativo}/2)...")
-                time.sleep(2)
-                continue
-
-            return BeautifulSoup(content, 'html.parser')
-        except Exception as e:
-            print(f"  [!] Errore nel caricamento di {url} (tentativo {tentativo}): {e}")
-            time.sleep(2)
-    return None
-
-
-
-
 # -------------------------------------------------------------
-# 1. PARTE SQUADRE E ROSE CON ESTRAZIONE ID
+# 1. PARTE SQUADRE E ROSE CON ESTRAZIONE RIGOROSA
 # -------------------------------------------------------------
 
 def get_squadre_da_girone(page, url_girone):
-    """Estrae le squadre reali e il loro ID Rosa dall'URL."""
+    """Estrae le 18 squadre reali e il loro ID Rosa dall'URL, garantendo il nome completo."""
     soup = get_html_with_browser(page, url_girone, need_table=True)
     squadre = []
     if not soup:
@@ -173,9 +193,12 @@ def get_squadre_da_girone(page, url_girone):
 
     main_table = soup.find('table', class_=re.compile(r'ranking|standings|table', re.I)) or soup
 
+    # Mappa per memorizzare id_rosa -> squadra con nome più lungo/completo
+    squadre_map = {}
+
     for a in main_table.find_all('a', href=True):
         href = a['href']
-        if '/Squadra/' in href:
+        if '/Squadra/' in href and len(href.split('/')) >= 6:
             img = a.find('img')
             nome_squadra = ""
             if img and img.get('alt'):
@@ -185,15 +208,9 @@ def get_squadre_da_girone(page, url_girone):
             else:
                 nome_squadra = a.get_text(strip=True)
 
-            nome_squadra = re.sub(r'^(logo|Logo)\s+', '', nome_squadra, flags=re.IGNORECASE).strip()
+            nome_squadra = clean_name(nome_squadra)
 
-            if not nome_squadra or len(nome_squadra) <= 3:
-                match = re.search(r'/Squadra/([^/]+)', href)
-                if match:
-                    slug = match.group(1)
-                    nome_squadra = re.sub(r'([a-z])([A-Z])', r'\1 \2', slug)
-
-            if not nome_squadra or len(nome_squadra) < 2:
+            if not nome_squadra or len(nome_squadra) < 2 or nome_squadra.lower() in ['scheda', 'rosa', 'risultati', 'classifica']:
                 continue
 
             full_url = BASE_URL + href if href.startswith('/') else href
@@ -206,106 +223,128 @@ def get_squadre_da_girone(page, url_girone):
                 base_sq = full_url.rsplit('/', 1)[0] if full_url.endswith('/') else full_url
                 url_rosa = base_sq + '/Rosa'
 
-            # Estrazione ID Rosa dall'URL (es. /Squadra/ImoleseCalcio/936424/Rosa -> 936424)
+            # Estrazione ID Rosa dall'URL (es. /Squadra/Arcetana/2720/Rosa -> 2720)
             match_id_rosa = re.search(r'/Squadra/[^/]+/(\d+)', url_rosa, re.I)
-            id_rosa = match_id_rosa.group(1) if match_id_rosa else ""
+            id_rosa = match_id_rosa.group(1) if match_id_rosa else url_rosa
 
-            squadra_entry = {
-                'nome': nome_squadra,
-                'id_rosa': id_rosa,
-                'url_scheda': full_url,
-                'url_rosa': url_rosa
-            }
+            # Aggiorna se non presente o se il nuovo nome è più completo (es. 'Arcetana' vs 'Arc')
+            if id_rosa not in squadre_map:
+                squadre_map[id_rosa] = {
+                    'nome': nome_squadra,
+                    'id_rosa': id_rosa,
+                    'url_scheda': full_url,
+                    'url_rosa': url_rosa
+                }
+            else:
+                if len(nome_squadra) > len(squadre_map[id_rosa]['nome']):
+                    squadre_map[id_rosa]['nome'] = nome_squadra
 
-            if not any(s['url_rosa'] == url_rosa for s in squadre):
-                squadre.append(squadra_entry)
-
+    squadre = list(squadre_map.values())
     return squadre
 
 
 def get_rosa_squadra(page, sq_info, nome_girone):
-    """Estrae i calciatori con ID Giocatore, ID Rosa, Anno di Nascita e tutte le statistiche."""
+    """
+    Estrae TUTTI i calciatori per la squadra scansionando rigorosamente ogni riga <tr>
+    della tabella della rosa, senza saltare calciatori privi di link o con ID non assegnato.
+    """
     url_rosa = sq_info['url_rosa']
     nome_squadra = sq_info['nome']
     id_rosa = sq_info['id_rosa']
 
-    soup = get_html_with_browser(page, url_rosa, need_table=False)
     giocatori = []
-    if not soup:
-        return giocatori
 
-
-    links_giocatori = soup.find_all('a', href=re.compile(r'/giocatore/|/Scheda/', re.IGNORECASE))
-
-    for link in links_giocatori:
-        nome_giocatore = link.get_text(strip=True)
-        href_g = link['href']
-
-        if not nome_giocatore or len(nome_giocatore) < 3 or 'squadra' in href_g.lower():
+    for tentativo in range(1, 3):
+        soup = get_html_with_browser(page, url_rosa, need_table=True)
+        if not soup:
+            time.sleep(1)
             continue
 
-        url_giocatore = BASE_URL + href_g if href_g.startswith('/') else href_g
+        tables = soup.find_all('table')
+        for table in tables:
+            rows = table.find_all('tr')
+            for row in rows:
+                tds = row.find_all('td')
+                if len(tds) < 4:
+                    continue
 
-        # Estrazione ID Giocatore dall'URL (es. /Giocatore/Scheda/7291378/Scheda -> 7291378)
-        match_id_g = re.search(r'/(?:Giocatore|Scheda)/(?:Scheda/)?(\d+)', url_giocatore, re.I)
-        id_giocatore = match_id_g.group(1) if match_id_g else ""
+                # Cerca link calciatore se presente
+                link_g = row.find('a', href=re.compile(r'/giocatore/|/Scheda/', re.I))
 
-        parent_row = link.find_parent('tr') or link.find_parent('div')
-        dettagli_testo = ""
-        if parent_row:
-            dettagli_testo = " | ".join([t.strip() for t in parent_row.stripped_strings if t.strip()])
+                col_nome_idx = 1 if len(tds) >= 6 else 0
+                td_nome = tds[col_nome_idx]
 
-        # Parsing dettagli della riga
-        parts = [p.strip() for p in dettagli_testo.split("|") if p.strip()]
-        parts_cleaned = [p for p in parts if not re.match(r'^\(\d+\)$', p)]
+                if link_g:
+                    full_name = clean_name(link_g.get_text(strip=True))
+                    href_g = link_g['href']
+                    match_id = re.search(r'/(?:Giocatore|Scheda)/(?:Scheda/)?(\d+)', href_g, re.I)
+                    id_giocatore = match_id.group(1) if match_id else ""
+                else:
+                    full_name = clean_name(td_nome.get_text(strip=True))
+                    id_giocatore = ""
 
-        full_name = parts_cleaned[0] if len(parts_cleaned) > 0 else nome_giocatore
-        data_nascita = parts_cleaned[1] if len(parts_cleaned) > 1 else ""
-        ruolo = parts_cleaned[2] if len(parts_cleaned) > 2 else ""
+                # Scarta intestazioni o righe vuote
+                if not full_name or full_name.upper() in ['GIOCATORE', 'CALCIATORE', 'NOME', 'RUOLO', 'ALLENATORE', 'STAFF']:
+                    continue
 
-        def safe_int(x):
-            try: return int(x)
-            except: return 0
+                # Offset colonne: se tds[0] è la foto, le altre sono spostate di 1
+                offset = 1 if len(tds) >= 7 else 0
 
-        reti = safe_int(parts_cleaned[3]) if len(parts_cleaned) > 3 else 0
-        presenze = safe_int(parts_cleaned[4]) if len(parts_cleaned) > 4 else 0
-        ammonizioni = safe_int(parts_cleaned[5]) if len(parts_cleaned) > 5 else 0
-        espulsioni = safe_int(parts_cleaned[6]) if len(parts_cleaned) > 6 else 0
+                data_nascita = tds[offset + 1].get_text(strip=True) if len(tds) > offset + 1 else ""
+                ruolo = tds[offset + 2].get_text(strip=True) if len(tds) > offset + 2 else ""
+                reti_str = tds[offset + 3].get_text(strip=True) if len(tds) > offset + 3 else "0"
+                pres_str = tds[offset + 4].get_text(strip=True) if len(tds) > offset + 4 else "0"
+                amm_str = tds[offset + 5].get_text(strip=True) if len(tds) > offset + 5 else "0"
+                esp_str = tds[offset + 6].get_text(strip=True) if len(tds) > offset + 6 else "0"
 
-        # Estrae l'Anno di Nascita (es. da 27-09-2000 ricava 2000)
-        match_anno = re.search(r'\b(19\d\d|20\d\d)\b', data_nascita)
-        anno_nascita = match_anno.group(1) if match_anno else data_nascita
+                # Estrazione anno nascita a 4 cifre
+                match_anno = re.search(r'\b(19\d\d|20\d\d)\b', data_nascita)
+                anno_nascita = match_anno.group(1) if match_anno else data_nascita
 
-        name_parts = full_name.split()
-        if len(name_parts) == 1:
-            cognome = name_parts[0]
-            nome = ""
-        elif len(name_parts) >= 2:
-            cognome = name_parts[0]
-            nome = " ".join(name_parts[1:])
+                # Divisione Nome e Cognome
+                name_parts = full_name.split()
+                if len(name_parts) == 1:
+                    cognome = name_parts[0]
+                    nome = ""
+                elif len(name_parts) >= 2:
+                    cognome = name_parts[0]
+                    nome = " ".join(name_parts[1:])
+                else:
+                    cognome = ""
+                    nome = ""
+
+                # Chiave univoca robusta: NON scarta calciatori senza ID!
+                unique_key = f"{id_giocatore}_{id_rosa}" if id_giocatore else f"{full_name.lower()}_{id_rosa}"
+
+                giocatore_data = {
+                    'Nome': nome,
+                    'Cognome': cognome,
+                    'ID Giocatore': id_giocatore,
+                    'ID Rosa': id_rosa,
+                    'Nome Rosa': nome_squadra,
+                    'Categoria': 'Eccellenza',
+                    'Girone': nome_girone,
+                    'Regione': 'Emilia-Romagna',
+                    'Anno di nascita': anno_nascita,
+                    'Ruolo': ruolo,
+                    'Presenze': safe_int(pres_str),
+                    'Reti': safe_int(reti_str),
+                    'Ammonizioni': safe_int(amm_str),
+                    'Espulsioni': safe_int(esp_str),
+                    '_unique_key': unique_key
+                }
+
+                if not any(g.get('_unique_key') == unique_key for g in giocatori):
+                    giocatori.append(giocatore_data)
+
+        if len(giocatori) > 0:
+            break
         else:
-            cognome = ""
-            nome = ""
+            time.sleep(1.5)
 
-        giocatore_data = {
-            'Nome': nome,
-            'Cognome': cognome,
-            'ID Giocatore': id_giocatore,
-            'ID Rosa': id_rosa,
-            'Nome Rosa': nome_squadra,
-            'Categoria': 'Eccellenza',
-            'Girone': nome_girone,
-            'Regione': 'Emilia-Romagna',
-            'Anno di nascita': anno_nascita,
-            'Ruolo': ruolo,
-            'Presenze': presenze,
-            'Reti': reti,
-            'Ammonizioni': ammonizioni,
-            'Espulsioni': espulsioni
-        }
-
-        if not any(g['ID Giocatore'] == id_giocatore and g['ID Rosa'] == id_rosa for g in giocatori):
-            giocatori.append(giocatore_data)
+    # Rimuove il campo di supporto interno
+    for g in giocatori:
+        g.pop('_unique_key', None)
 
     return giocatori
 
@@ -330,8 +369,7 @@ def get_classifica_girone(page, url_girone):
         if not team_link:
             continue
 
-        nome_sq = team_link.get_text(strip=True)
-        nome_sq = re.sub(r'^(logo|Logo)\s+', '', nome_sq, flags=re.I).strip()
+        nome_sq = clean_name(team_link.get_text(strip=True))
 
         if not nome_sq or len(nome_sq) < 2 or nome_sq.lower() in ['squadra', 'pos']:
             continue
@@ -403,70 +441,107 @@ def parse_data_stringa(data_text):
     return None, data_text
 
 
-def get_gare_girone(page, url_girone, num_giornate):
+def get_gare_girone(page, url_girone, num_giornate=34):
+    """
+    Estrae TUTTE le 34 giornate di campionato in modo rigoroso, con retry dedicato
+    per giornata e senza mai inventare punteggi per partite future o non disputate.
+    """
     gare = []
-    today = datetime.now()
 
     for n_giornata in range(1, num_giornate + 1):
         url_giornata = f"{url_girone}/Giornata{n_giornata}"
         print(f"    -> Scansione Giornata {n_giornata}/{num_giornate}...")
-        soup = get_html_with_browser(page, url_giornata, need_table=True)
-        if not soup:
 
+        soup = None
+        for attempt in range(1, 4):
+            soup = get_html_with_browser(page, url_giornata, need_table=True)
+            if soup and len(soup.find_all('tr')) >= 9:
+                break
+            time.sleep(1.5)
+
+        if not soup:
+            print(f"       [!] Impossibile caricare Giornata {n_giornata} dopo 3 tentativi.")
             continue
 
-        date_header = soup.find(class_=re.compile(r'date|header|day', re.I))
+        date_header = soup.find(class_=re.compile(r'date|header|day|league-round-date', re.I))
         data_giornata_text = date_header.get_text(strip=True) if date_header else ""
         dt_obj, current_date_str = parse_data_stringa(data_giornata_text)
 
+        gare_giornata = []
         rows = soup.find_all('tr')
+
         for row in rows:
-            squadre_links = row.find_all('a', href=re.compile(r'/Squadra/', re.I))
-            if len(squadre_links) >= 2:
-                casa = re.sub(r'^(logo|Logo)\s+', '', squadre_links[0].get_text(strip=True), flags=re.I)
-                trasferta = re.sub(r'^(logo|Logo)\s+', '', squadre_links[1].get_text(strip=True), flags=re.I)
+            td_home = row.find('td', class_=re.compile(r'\bhome\b', re.I))
+            td_away = row.find('td', class_=re.compile(r'\baway\b', re.I))
 
-                if not casa or not trasferta or casa == trasferta:
-                    continue
+            casa = ""
+            trasferta = ""
 
-                gol_casa = None
-                gol_trasf = None
-                giocata = "No"
+            if td_home and td_away:
+                a_h = td_home.find('a', class_='team-name') or td_home.find('a')
+                a_a = td_away.find('a', class_='team-name') or td_away.find('a')
+                if a_h and a_a:
+                    casa = clean_name(a_h.get_text(strip=True))
+                    trasferta = clean_name(a_a.get_text(strip=True))
 
-                score_elements = row.find_all(['td', 'span', 'div'], class_=re.compile(r'score|result|goal', re.I))
-                punteggi = []
-                for el in score_elements:
-                    txt = el.get_text(strip=True)
-                    if txt.isdigit():
-                        punteggi.append(int(txt))
+            # Fallback generico se le classi home/away non sono presenti
+            if not casa or not trasferta:
+                sq_links = row.find_all('a', href=re.compile(r'/Squadra/', re.I))
+                if len(sq_links) >= 2:
+                    casa = clean_name(sq_links[0].get_text(strip=True))
+                    trasferta = clean_name(sq_links[1].get_text(strip=True))
 
-                if len(punteggi) >= 2:
-                    gol_casa = punteggi[0]
-                    gol_trasf = punteggi[1]
-                else:
-                    riga_pulta = re.sub(r'\b\d{1,2}[:.]\d{2}\b', '', row.get_text(" ", strip=True))
-                    numeri = re.findall(r'\b\d{1,2}\b', riga_pulta)
-                    nums = [int(n) for n in numeri if int(n) < 15]
-                    if len(nums) >= 2:
-                        gol_casa = nums[0]
-                        gol_trasf = nums[1]
+            if not casa or not trasferta or casa == trasferta:
+                continue
 
-                if gol_casa is not None and gol_trasf is not None:
+            # Estrazione punteggio reale da span/td con classe 'goal' o 'score'
+            gol_casa = None
+            gol_trasf = None
+            giocata = "No"
+
+            goal_elements = row.find_all(class_=re.compile(r'\bgoal\b|\bscore\b|\bresult\b', re.I))
+            score_digits = []
+            for gel in goal_elements:
+                txt = gel.get_text(strip=True)
+                if txt.isdigit():
+                    score_digits.append(int(txt))
+
+            if len(score_digits) >= 2:
+                gol_casa = score_digits[0]
+                gol_trasf = score_digits[1]
+                giocata = "Si"
+            elif td_home and td_away:
+                gh_el = td_home.find(class_=re.compile(r'\bgoal\b', re.I))
+                ga_el = td_away.find(class_=re.compile(r'\bgoal\b', re.I))
+                if gh_el and ga_el and gh_el.get_text(strip=True).isdigit() and ga_el.get_text(strip=True).isdigit():
+                    gol_casa = int(gh_el.get_text(strip=True))
+                    gol_trasf = int(ga_el.get_text(strip=True))
                     giocata = "Si"
-                elif dt_obj and dt_obj <= today:
-                    giocata = "Si"
-                else:
-                    giocata = "No"
 
-                gare.append({
-                    "Numero giornata": n_giornata,
-                    "Data": current_date_str if current_date_str else f"Giornata {n_giornata}",
-                    "Giocata": giocata,
-                    "Squadra ospitante": casa,
-                    "Reti squadra ospitante": gol_casa if giocata == "Si" else None,
-                    "Squadra ospite": trasferta,
-                    "Reti squadra ospite": gol_trasf if giocata == "Si" else None
-                })
+            # Orario e data specifica della gara
+            time_el = row.find(class_=re.compile(r'\bhour\b|\btime\b|\bmatch-time\b', re.I))
+            ora_gara = time_el.get_text(strip=True) if time_el else ""
+
+            data_gara = current_date_str if current_date_str else f"Giornata {n_giornata}"
+            if ora_gara and ":" in ora_gara:
+                data_gara = f"{data_gara} {ora_gara}"
+
+            match_entry = {
+                "Numero giornata": n_giornata,
+                "Data": data_gara,
+                "Giocata": giocata,
+                "Squadra ospitante": casa,
+                "Reti squadra ospitante": gol_casa if giocata == "Si" else None,
+                "Squadra ospite": trasferta,
+                "Reti squadra ospite": gol_trasf if giocata == "Si" else None
+            }
+
+            if not any(g['Squadra ospitante'] == casa and g['Squadra ospite'] == trasferta for g in gare_giornata):
+                gare_giornata.append(match_entry)
+
+        print(f"       [+] Giornata {n_giornata}: estratte {len(gare_giornata)} gare.")
+        gare.extend(gare_giornata)
+        time.sleep(random.uniform(0.5, 0.9))
 
     return gare
 
@@ -476,7 +551,7 @@ def get_gare_girone(page, url_girone, num_giornate):
 # -------------------------------------------------------------
 
 def genera_excel_completo(database_calciatori, dati_gironi, file_out="Eccellenza_Emilia_Romagna_Database_Completo.xlsx"):
-    """Crea un UNICO file Excel con 5 Fogli garantendo che almeno un foglio sia sempre presente."""
+    """Crea un UNICO file Excel con 5 Fogli garantendo formattazione e completezza."""
     wb = openpyxl.Workbook()
 
     header_fill = PatternFill(start_color="1F497D", end_color="1F497D", fill_type="solid")
@@ -488,7 +563,6 @@ def genera_excel_completo(database_calciatori, dati_gironi, file_out="Eccellenza
     thin_border = Border(left=Side(style='thin', color='D9D9D9'), right=Side(style='thin', color='D9D9D9'), top=Side(style='thin', color='D9D9D9'), bottom=Side(style='thin', color='D9D9D9'))
     zebra_fill = PatternFill(start_color="F9FAFB", end_color="F9FAFB", fill_type="solid")
 
-    # Colonne predefinite nel caso in cui una lista sia vuota
     default_columns = {
         "Calciatori": ['Nome', 'Cognome', 'ID Giocatore', 'ID Rosa', 'Nome Rosa', 'Categoria', 'Girone', 'Regione', 'Anno di nascita', 'Ruolo', 'Presenze', 'Reti', 'Ammonizioni', 'Espulsioni'],
         "Girone A - Gare": ['Numero giornata', 'Data', 'Giocata', 'Squadra ospitante', 'Reti squadra ospitante', 'Squadra ospite', 'Reti squadra ospite'],
@@ -571,7 +645,6 @@ def run_app_sync():
     print("⚡ AGGIORNAMENTO AUTOMATICO DELL'APPLICAZIONE IN CORSO...")
     print("===========================================================")
 
-    # 1. Ricalcolo database locale
     print("1. Ricostruzione dataset e mappatura note/profili...")
     res_rebuild = subprocess.run(["node", "scripts/rebuild-database.mjs"], capture_output=True, text=True)
     if res_rebuild.returncode != 0:
@@ -579,7 +652,6 @@ def run_app_sync():
         return False
     print(res_rebuild.stdout.strip())
 
-    # 2. Sincronizzazione Supabase Cloud
     print("\n2. Sincronizzazione cloud PostgreSQL Supabase...")
     res_seed = subprocess.run(["node", "scripts/seed-supabase.mjs"], capture_output=True, text=True)
     if res_seed.returncode != 0:
@@ -610,9 +682,9 @@ def main():
     dati_gironi_gare_classifica = {}
 
     print("\n===========================================================")
-    print("🚀 REFSTUDIO - TUTTOCAMPO SCRAPER AUTOMATICO")
+    print("🚀 REFSTUDIO - TUTTOCAMPO SCRAPER RIGOROSO AUTOMATICO")
     print(f"   Browser Headless: {headless}")
-    print(f"   Credenziali: {EMAIL_TUTTOCAMPO}")
+    print(f"   Credenziali fallback: {EMAIL_TUTTOCAMPO}")
     print("===========================================================\n")
 
     cookies_file = "tuttocampo_cookies.json"
@@ -635,16 +707,21 @@ def main():
     has_cookies = os.path.exists(cookies_file)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=headless,
-            args=[
+        browser_kwargs = {
+            "headless": headless,
+            "args": [
                 "--disable-blink-features=AutomationControlled",
                 "--no-sandbox",
                 "--disable-setuid-sandbox",
                 "--disable-infobars",
                 "--window-size=1920,1080"
             ]
-        )
+        }
+        # Tenta Chrome reale per bypass WAF e Google se disponibile
+        try:
+            browser = p.chromium.launch(channel="chrome", **browser_kwargs)
+        except Exception:
+            browser = p.chromium.launch(**browser_kwargs)
 
         context_kwargs = {
             "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -666,13 +743,24 @@ def main():
 
         context = browser.new_context(**context_kwargs)
         context.add_init_script(STEALTH_JS)
+
+        # Route abort su ad network e asset pesanti per navigazione ultra-veloce e senza timeout
+        def intercept_route(route):
+            req = route.request
+            if req.resource_type in ["image", "media", "font"]:
+                route.abort()
+            elif any(ad in req.url for ad in ["doubleclick", "googlesyndication", "criteo", "taboola", "smartadserver", "amazon-adsystem", "adnxs"]):
+                route.abort()
+            else:
+                route.continue_()
+
+        context.route("**/*", intercept_route)
         page = context.new_page()
 
         if has_cookies:
             print(" -> Sessione Google Premium caricata con successo: bypass del modale di login.")
         else:
             effettua_login_modal(page)
-
 
         for nome_girone, url_girone in GIRONI.items():
             print(f"\n==========================================")
@@ -689,19 +777,19 @@ def main():
                 giocatori = get_rosa_squadra(page, sq, nome_girone)
                 print(f"      [+] Trovati {len(giocatori)} giocatori.")
                 database_totale_calciatori.extend(giocatori)
-                time.sleep(0.3)
+                time.sleep(random.uniform(0.5, 0.8))
 
             # 3. Estrazione Classifica
             print(f"\n   -> Estraggo Classifica per {nome_girone}...")
             classifica = get_classifica_girone(page, url_girone)
             print(f"      [+] Trovate {len(classifica)} righe di classifica.")
 
-            # 4. Estrazione Gare: Formula (X*2)-2
+            # 4. Estrazione Gare: esattamente 34 giornate
             num_squadre = len(squadre)
             num_giornate = (num_squadre * 2) - 2 if num_squadre > 0 else 34
             print(f"\n   -> Estraggo {num_giornate} giornate di gare per {nome_girone}...")
             gare = get_gare_girone(page, url_girone, num_giornate)
-            print(f"      [+] Estratte {len(gare)} gare totali.")
+            print(f"      [+] Estratte {len(gare)} gare totali per {nome_girone}.")
 
             dati_gironi_gare_classifica[nome_girone] = {
                 "classifica": classifica,
@@ -710,32 +798,69 @@ def main():
 
         browser.close()
 
-    # Generazione file unico Excel protetta da errori
+    # Generazione file unico Excel con salvaguardia intelligente
     print("\n------------------------------------------")
-    print("Salvataggio file Excel unico in corso...")
+    print("Salvataggio e fusione file Excel unico in corso...")
     file_excel = "Eccellenza_Emilia_Romagna_Database_Completo.xlsx"
-    
-    # Fusione intelligente con il database esistente per non perdere le rose di squadre non ancora pubblicate
+
+    # Fusione intelligente con il database esistente (per Calciatori, Gare e Classifiche)
     if os.path.exists(file_excel):
         try:
+            # 1. Salvaguardia Calciatori
             df_calciatori = pd.read_excel(file_excel, sheet_name="Calciatori").fillna("")
             calciatori_esistenti = df_calciatori.to_dict('records')
+
             if len(database_totale_calciatori) == 0:
-                print(f"ℹ️ Nessun nuovo calciatore estratto online (rose in attesa di caricamento su Tuttocampo):")
-                print(f"   -> Preservo integralmente tutti i {len(calciatori_esistenti)} calciatori dal database esistente.")
+                print(f"ℹ️ Nessun calciatore estratto online: preservo tutti i {len(calciatori_esistenti)} calciatori esistenti.")
                 database_totale_calciatori = calciatori_esistenti
             else:
-                squadre_nuove = set(str(c.get("Nome Rosa", "")).strip().lower() for c in database_totale_calciatori if c.get("Nome Rosa"))
+                # Se per una squadra lo scraping online ha ottenuto meno giocatori di prima, mantieni i più completi
+                conteggio_nuovi = pd.Series([c['Nome Rosa'] for c in database_totale_calciatori]).value_counts().to_dict()
+                conteggio_vecchi = pd.Series([c['Nome Rosa'] for c in calciatori_esistenti]).value_counts().to_dict()
+
+                squadre_online = set(conteggio_nuovi.keys())
                 calciatori_da_preservare = [
-                    c for c in calciatori_esistenti 
-                    if str(c.get("Nome Rosa", "")).strip().lower() not in squadre_nuove
+                    c for c in calciatori_esistenti
+                    if c.get("Nome Rosa") not in squadre_online or conteggio_vecchi.get(c.get("Nome Rosa"), 0) > conteggio_nuovi.get(c.get("Nome Rosa"), 0)
                 ]
-                if calciatori_da_preservare:
-                    print(f"ℹ️ Preservati {len(calciatori_da_preservare)} calciatori per squadre con rosa non ancora pubblicata.")
-                    database_totale_calciatori.extend(calciatori_da_preservare)
-                print(f" [✓] Totale calciatori nel database finale: {len(database_totale_calciatori)}")
+
+                # Se ci sono squadre dove la vecchia rosa era più numerosa, ripristina la vecchia rosa per quella squadra
+                squadre_ripristinate = set(c.get("Nome Rosa") for c in calciatori_da_preservare if c.get("Nome Rosa") in squadre_online)
+                if squadre_ripristinate:
+                    print(f"ℹ️ Preservate rose precedenti più complete per: {', '.join(squadre_ripristinate)}")
+                    database_totale_calciatori = [c for c in database_totale_calciatori if c.get("Nome Rosa") not in squadre_ripristinate]
+                    database_totale_calciatori.extend([c for c in calciatori_esistenti if c.get("Nome Rosa") in squadre_ripristinate])
+
+                # Aggiungi eventuali squadre non presenti nello scraping online
+                squadre_non_online = [c for c in calciatori_esistenti if c.get("Nome Rosa") not in squadre_online]
+                if squadre_non_online:
+                    database_totale_calciatori.extend(squadre_non_online)
+
+                print(f" [✓] Totale calciatori consolidati nel database: {len(database_totale_calciatori)}")
+
+            # 2. Salvaguardia Gare
+            for nome_girone in ["Girone A", "Girone B"]:
+                gare_online = dati_gironi_gare_classifica.get(nome_girone, {}).get("gare", [])
+                sheet_gare = f"{nome_girone} - Gare"
+                try:
+                    df_gare_esistenti = pd.read_excel(file_excel, sheet_name=sheet_gare).fillna("")
+                    gare_esistenti = df_gare_esistenti.to_dict('records')
+                    if len(gare_online) < len(gare_esistenti) and len(gare_esistenti) > 0:
+                        print(f"ℹ️ {nome_girone}: preservo il calendario completo precedente ({len(gare_esistenti)} gare esistenti vs {len(gare_online)} online).")
+                        # Aggiorna le gare esistenti con i nuovi risultati online
+                        map_online = {(g['Numero giornata'], g['Squadra ospitante']): g for g in gare_online}
+                        for g_es in gare_esistenti:
+                            key = (g_es['Numero giornata'], g_es['Squadra ospitante'])
+                            if key in map_online and map_online[key]['Giocata'] == 'Si':
+                                g_es['Giocata'] = 'Si'
+                                g_es['Reti squadra ospitante'] = map_online[key]['Reti squadra ospitante']
+                                g_es['Reti squadra ospite'] = map_online[key]['Reti squadra ospite']
+                        dati_gironi_gare_classifica.setdefault(nome_girone, {})["gare"] = gare_esistenti
+                except Exception:
+                    pass
+
         except Exception as err:
-            print(f" ⚠️ Errore nel recupero calciatori esistenti: {err}")
+            print(f" ⚠️ Errore nel consolidamento con il database esistente: {err}")
 
     genera_excel_completo(database_totale_calciatori, dati_gironi_gare_classifica, file_excel)
 
@@ -744,7 +869,6 @@ def main():
     # Se richiesto, esegue il sync automatico con il database e Supabase
     if args.sync or os.getenv("AUTO_SYNC", "false").lower() == "true":
         run_app_sync()
-
 
 
 if __name__ == "__main__":
