@@ -25,12 +25,14 @@ import {
   ArrowRight,
   LayoutList,
   LayoutGrid,
+  ChevronLeft,
   ChevronRight,
   TrendingUp,
   Activity,
   Sparkles,
   Info,
   Filter,
+  Layers,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
 import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow } from '@/types/refstudio';
@@ -109,9 +111,18 @@ function computeTeamRecentMatches(team: Team, allMatches: Match[], limit: number
   });
 }
 
+type ViewStep = 'CATEGORY' | 'GIRONE' | 'TEAMS';
+
 function SquadreContent() {
   const searchParams = useSearchParams();
   const initialQ = searchParams.get('q') || '';
+
+  // Step di Navigazione:
+  // 1: 'CATEGORY' -> Selezione Categoria (al momento Eccellenza)
+  // 2: 'GIRONE'   -> Selezione Girone (A o B)
+  // 3: 'TEAMS'    -> Visualizzazione Squadre & Rose
+  const [viewStep, setViewStep] = useState<ViewStep>(initialQ ? 'TEAMS' : 'CATEGORY');
+  const [selectedCategory, setSelectedCategory] = useState<'eccellenza'>('eccellenza');
 
   const { user, isAdmin } = useAuth();
   const [teams, setTeams] = useState<Team[]>([]);
@@ -198,8 +209,19 @@ function SquadreContent() {
   useEffect(() => {
     if (initialQ) {
       setSearchQuery(initialQ);
+      setViewStep('TEAMS');
     }
   }, [initialQ]);
+
+  const handleSelectCategory = (cat: 'eccellenza') => {
+    setSelectedCategory(cat);
+    setViewStep('GIRONE');
+  };
+
+  const handleSelectGirone = (girone: 'A' | 'B') => {
+    setGironeFilter(girone);
+    setViewStep('TEAMS');
+  };
 
   // Map pre-calcolata delle ultime 5 gare per ciascuna squadra
   const recentMatchesByTeam = useMemo(() => {
@@ -418,8 +440,299 @@ function SquadreContent() {
     );
   };
 
+  // =========================================================================
+  // STEP 1: SCHEDA SELEZIONE CATEGORIA
+  // =========================================================================
+  if (viewStep === 'CATEGORY') {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
+        {/* Intestazione Fase 1 */}
+        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 sm:p-8 shadow-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-2.5 py-0.5 rounded-full border border-[#CCFF00]/30 font-bold">
+              Passo 1 di 3 • Selezione Competizione
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-3">
+            <Award className="w-8 h-8 text-[#CCFF00]" />
+            Seleziona la Categoria
+          </h1>
+          <p className="text-sm text-slate-400 mt-2 max-w-2xl">
+            Scegli il campionato di riferimento per accedere alla scelta del girone, consultare le rose ufficiali e la scheda informativa delle squadre.
+          </p>
+        </div>
+
+        {/* Griglia Categorie */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Categoria 1: Eccellenza (ATTIVA) */}
+          <div
+            onClick={() => handleSelectCategory('eccellenza')}
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#CCFF00]/40 hover:border-[#CCFF00] p-6 shadow-[0_0_25px_rgba(204,255,0,0.08)] hover:shadow-[0_0_35px_rgba(204,255,0,0.2)] transition-all cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Award className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-mono font-black uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  Attiva Ora
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-white group-hover:text-[#CCFF00] transition-colors">
+                  Eccellenza
+                </h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  CRER • Emilia-Romagna (FIGC - LND)
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Massima divisione regionale. Gironi A e B da 18 squadre ciascuno, schede club, ultime gare e organici completi.
+              </p>
+
+              {/* Statistiche rapide */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#1C2232] text-[11px]">
+                <div className="bg-[#141824] p-2 rounded-xl border border-[#212638]">
+                  <span className="text-slate-400 block text-[10px]">Gironi:</span>
+                  <span className="font-mono font-bold text-white">Girone A & B</span>
+                </div>
+                <div className="bg-[#141824] p-2 rounded-xl border border-[#212638]">
+                  <span className="text-slate-400 block text-[10px]">Società:</span>
+                  <span className="font-mono font-bold text-[#CCFF00]">36 Squadre</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#1C2232] flex items-center justify-between">
+              <span className="text-xs font-black text-[#CCFF00] group-hover:underline">
+                Seleziona Categoria
+              </span>
+              <div className="w-8 h-8 rounded-full bg-[#CCFF00] text-black flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                <ArrowRight className="w-4 h-4 font-bold" />
+              </div>
+            </div>
+          </div>
+
+          {/* Categoria 2: Promozione (PROSSIMAMENTE) */}
+          <div className="rounded-3xl bg-[#0D0F16]/60 border border-[#1A1F2C] p-6 opacity-60 flex flex-col justify-between cursor-not-allowed">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-[#141824] border border-[#212638] flex items-center justify-center text-slate-500">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700">
+                  In Arrivo
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-300">Promozione</h3>
+                <p className="text-xs text-slate-500">Campionato Regionale</p>
+              </div>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Gestione dei gironi regionali di Promozione. La sincronizzazione delle rose sarà abilitata nei prossimi aggiornamenti.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#1A1F2C] text-xs text-slate-500 font-mono">
+              Disponibile a breve
+            </div>
+          </div>
+
+          {/* Categoria 3: Prima Categoria (PROSSIMAMENTE) */}
+          <div className="rounded-3xl bg-[#0D0F16]/60 border border-[#1A1F2C] p-6 opacity-60 flex flex-col justify-between cursor-not-allowed">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-[#141824] border border-[#212638] flex items-center justify-center text-slate-500">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700">
+                  In Arrivo
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-300">Prima Categoria</h3>
+                <p className="text-xs text-slate-500">Campionati Provinciali / Regionali</p>
+              </div>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Campionati di Prima Categoria con schede informative e organici completi.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#1A1F2C] text-xs text-slate-500 font-mono">
+              Disponibile a breve
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STEP 2: SCHEDA SELEZIONE GIRONE (Snella, immediata: click su A o su B)
+  // =========================================================================
+  if (viewStep === 'GIRONE') {
+    return (
+      <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-200">
+        {/* Barra di Navigazione a Ritroso */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setViewStep('CATEGORY')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0F16] hover:bg-[#141824] text-slate-300 hover:text-[#CCFF00] border border-[#1F2433] text-xs font-bold transition-all group shadow-sm"
+          >
+            <ChevronLeft className="w-4 h-4 text-[#CCFF00] group-hover:-translate-x-0.5 transition-transform" />
+            <span>← Torna a Categorie</span>
+          </button>
+
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1 rounded-full border border-[#CCFF00]/30 font-bold">
+            Passo 2 di 3 • Selezione Girone
+          </span>
+        </div>
+
+        {/* Intestazione Rapida */}
+        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 text-center shadow-xl space-y-1">
+          <h1 className="text-2xl font-black text-white tracking-wide">
+            Seleziona il Girone
+          </h1>
+          <p className="text-xs text-slate-400">
+            Eccellenza Emilia-Romagna • Clicca sul girone desiderato per consultare le squadre
+          </p>
+        </div>
+
+        {/* Selezione Rapida A o B (identica a Partite & Classifiche) */}
+        <div className="grid grid-cols-2 gap-4 sm:gap-6">
+          {/* Pulsante Girone A */}
+          <button
+            onClick={() => handleSelectGirone('A')}
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-10 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.22)] transition-all flex flex-col items-center justify-center space-y-4 active:scale-95 text-center cursor-pointer"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-3xl sm:text-4xl font-black text-[#CCFF00] group-hover:scale-110 transition-transform shadow-inner">
+              A
+            </div>
+            <div>
+              <span className="text-xl sm:text-2xl font-black text-white group-hover:text-[#CCFF00] transition-colors block">
+                Girone A
+              </span>
+              <span className="text-xs font-mono text-slate-400 font-semibold mt-0.5 block">
+                18 Squadre
+              </span>
+            </div>
+            <div className="w-full pt-3 border-t border-[#1C2232] flex items-center justify-center gap-1 text-xs font-bold text-[#CCFF00] group-hover:underline">
+              <span>Seleziona</span>
+              <ArrowRight className="w-3.5 h-3.5 font-bold group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+
+          {/* Pulsante Girone B */}
+          <button
+            onClick={() => handleSelectGirone('B')}
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-10 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.22)] transition-all flex flex-col items-center justify-center space-y-4 active:scale-95 text-center cursor-pointer"
+          >
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-3xl sm:text-4xl font-black text-[#CCFF00] group-hover:scale-110 transition-transform shadow-inner">
+              B
+            </div>
+            <div>
+              <span className="text-xl sm:text-2xl font-black text-white group-hover:text-[#CCFF00] transition-colors block">
+                Girone B
+              </span>
+              <span className="text-xs font-mono text-slate-400 font-semibold mt-0.5 block">
+                18 Squadre
+              </span>
+            </div>
+            <div className="w-full pt-3 border-t border-[#1C2232] flex items-center justify-center gap-1 text-xs font-bold text-[#CCFF00] group-hover:underline">
+              <span>Seleziona</span>
+              <ArrowRight className="w-3.5 h-3.5 font-bold group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STEP 3: SCHEDA SQUADRE & ROSE (Visualizzazione originale intatta con back bar)
+  // =========================================================================
   return (
     <div className="space-y-6">
+      {/* 0. BARRA DI NAVIGAZIONE A RITROSO */}
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#0D0F16] border border-[#1F2433] rounded-2xl px-5 py-3 shadow-md">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setSelectedTeam(null);
+              setViewStep('GIRONE');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-200 hover:text-[#CCFF00] border border-[#212638] text-xs font-bold transition-all shadow-sm group"
+            title="Torna alla selezione del Girone"
+          >
+            <ChevronLeft className="w-4 h-4 text-[#CCFF00] group-hover:-translate-x-0.5 transition-transform" />
+            <span>Cambia Girone</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setSelectedTeam(null);
+              setViewStep('CATEGORY');
+            }}
+            className="px-2.5 py-1.5 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-[#141824] transition-colors"
+            title="Torna alla selezione Categoria"
+          >
+            ← Categoria
+          </button>
+
+          <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 ml-2">
+            <span className="text-slate-600">•</span>
+            <span className="font-semibold text-slate-300">Eccellenza</span>
+            <span className="text-slate-600">/</span>
+            <span className="font-black text-[#CCFF00]">
+              {gironeFilter === 'ALL' ? 'Tutti i Gironi' : `Girone ${gironeFilter}`}
+            </span>
+            <span className="text-slate-500 font-mono text-[11px]">
+              {gironeFilter === 'ALL' ? '(36 Squadre)' : '(18 Squadre)'}
+            </span>
+          </div>
+        </div>
+
+        {/* Girone quick pill toggle */}
+        <div className="flex items-center gap-1 bg-[#11141D] border border-[#212638] p-1 rounded-xl">
+          <button
+            onClick={() => setGironeFilter('A')}
+            className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+              gironeFilter === 'A'
+                ? 'bg-[#CCFF00] text-black shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Girone A
+          </button>
+          <button
+            onClick={() => setGironeFilter('B')}
+            className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+              gironeFilter === 'B'
+                ? 'bg-[#CCFF00] text-black shadow-sm'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Girone B
+          </button>
+          <button
+            onClick={() => setGironeFilter('ALL')}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+              gironeFilter === 'ALL'
+                ? 'bg-[#1E2435] text-white'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            Tutti
+          </button>
+        </div>
+      </div>
+
       {/* 1. HEADER & CONTROLS SNELLI */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-[#0D0F16] border border-[#1F2433] rounded-2xl p-5 shadow-lg">
         <div>
