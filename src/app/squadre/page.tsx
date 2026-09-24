@@ -32,6 +32,7 @@ import { TagBadge } from '@/components/common/TagBadge';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
+import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 
 const AVAILABLE_TAGS: RefereeCustomTag[] = [
@@ -81,6 +82,10 @@ function SquadreContent() {
   const [videoModalTargetType, setVideoModalTargetType] = useState<'squadra' | 'giocatore'>('squadra');
   const [videoModalTargetId, setVideoModalTargetId] = useState('');
   const [videoModalTargetName, setVideoModalTargetName] = useState('');
+
+  // In-App Media Viewer State
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
   const loadTeams = React.useCallback(() => {
     const list = DbService.getTeams(gironeFilter === 'ALL' ? undefined : gironeFilter);
@@ -568,6 +573,31 @@ function SquadreContent() {
                       </div>
 
                       <p className="text-slate-200 leading-relaxed whitespace-pre-line">{n.content}</p>
+
+                      {n.attachments && n.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {n.attachments.map((att, i) => (
+                            <button
+                              key={i}
+                              type="button"
+                              onClick={() => {
+                                const isImg = att.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i);
+                                setActiveViewerMedia({
+                                  url: att,
+                                  title: `${selectedTeam.name} - Allegato ${i + 1}`,
+                                  subtitle: `Nota arbitrale di ${n.authorName || 'Arbitro'}`,
+                                  description: n.content,
+                                  mediaType: isImg ? 'image' : 'video',
+                                });
+                                setIsViewerOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 text-[10px] text-[#CCFF00] bg-[#141824] border border-[#212638] px-2.5 py-1 rounded-lg hover:border-[#CCFF00]/40 transition-colors"
+                            >
+                              <Paperclip className="w-3 h-3" /> Allegato {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -852,15 +882,24 @@ function SquadreContent() {
                       {note.attachments && note.attachments.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 pt-1">
                           {note.attachments.map((att, i) => (
-                            <a
+                            <button
                               key={i}
-                              href={att}
-                              target="_blank"
-                              rel="noreferrer"
+                              type="button"
+                              onClick={() => {
+                                const isImg = att.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i);
+                                setActiveViewerMedia({
+                                  url: att,
+                                  title: `${selectedPlayer.firstName} ${selectedPlayer.lastName} - Allegato ${i + 1}`,
+                                  subtitle: `Nota arbitrale di ${note.authorName || 'Arbitro'}`,
+                                  description: note.content,
+                                  mediaType: isImg ? 'image' : 'video',
+                                });
+                                setIsViewerOpen(true);
+                              }}
                               className="inline-flex items-center gap-1 text-[10px] text-[#CCFF00] bg-[#141824] border border-[#212638] px-2.5 py-1 rounded-lg hover:border-[#CCFF00]/40 transition-colors"
                             >
                               <Paperclip className="w-3 h-3" /> Allegato {i + 1}
-                            </a>
+                            </button>
                           ))}
                         </div>
                       )}
@@ -912,6 +951,16 @@ function SquadreContent() {
           DbService.addVideo(data);
           setIsVideoModalOpen(false);
         }}
+      />
+
+      {/* Universal In-App Media Viewer Modal */}
+      <MediaViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => {
+          setIsViewerOpen(false);
+          setActiveViewerMedia(null);
+        }}
+        media={activeViewerMedia}
       />
     </div>
   );

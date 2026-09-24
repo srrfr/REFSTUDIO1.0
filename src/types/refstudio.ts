@@ -157,6 +157,7 @@ export interface VideoClip {
   title: string;
   description?: string;
   timestampMark?: string; // "14:20" (minuto dell'episodio)
+  mediaType?: 'video' | 'image'; // tipo media per visualizzazione immediata
   createdAt: string;
   updatedAt?: string;
 }

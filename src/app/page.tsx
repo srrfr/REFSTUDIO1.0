@@ -31,6 +31,7 @@ import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { RatingStars } from '@/components/common/RatingStars';
 import { AiBriefingModal } from '@/components/modals/AiBriefingModal';
+import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 import { useAuth } from '@/lib/auth/auth-context';
 
@@ -52,6 +53,8 @@ export default function DashboardPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [recentNotes, setRecentNotes] = useState<Note[]>([]);
   const [recentVideos, setRecentVideos] = useState<VideoClip[]>([]);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
   // AI Briefing State
   const [isAiBriefingOpen, setIsAiBriefingOpen] = useState(false);
@@ -737,19 +740,41 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                <a
-                  href={v.externalUrl || '#'}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black rounded-xl transition-all shadow-[0_0_12px_rgba(204,255,0,0.3)]"
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (v.externalUrl) {
+                      setActiveViewerMedia({
+                        url: v.externalUrl,
+                        title: v.title,
+                        subtitle: v.targetName,
+                        description: v.description,
+                        timestampMark: v.timestampMark,
+                        mediaType: v.mediaType,
+                      });
+                      setIsViewerOpen(true);
+                    }
+                  }}
+                  className="p-2.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black rounded-xl transition-all shadow-[0_0_12px_rgba(204,255,0,0.3)] flex-shrink-0"
+                  title="Riproduci in App"
                 >
                   <Play className="w-4 h-4 fill-black text-black" />
-                </a>
+                </button>
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* In-App Media Viewer Modal */}
+      <MediaViewerModal
+        isOpen={isViewerOpen}
+        onClose={() => {
+          setIsViewerOpen(false);
+          setActiveViewerMedia(null);
+        }}
+        media={activeViewerMedia}
+      />
 
       {/* Gemini AI Briefing Modal */}
       <AiBriefingModal

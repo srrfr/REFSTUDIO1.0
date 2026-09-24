@@ -3,7 +3,7 @@ import defaultDataset from '@/data/dataset.json';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseService } from '@/lib/supabase/supabase-service';
 
-const STORAGE_KEY = 'refstudio_persistent_db_v3';
+const STORAGE_KEY = 'refstudio_persistent_db_v4';
 
 export const DEFAULT_USERS: UserAccount[] = [
   {
@@ -455,7 +455,16 @@ export class DbService {
     let list = inMemoryData.matches;
     if (girone) list = list.filter((m) => m.girone === girone);
     if (matchDay) list = list.filter((m) => m.matchDay === matchDay);
-    return list;
+
+    // Deduplica difensiva per evitare doppioni da vecchi ID partita
+    const uniqueMap = new Map<string, Match>();
+    list.forEach((m) => {
+      const key = `${m.girone}-${m.matchDay}-${m.homeTeamName.toLowerCase().trim()}-vs-${m.awayTeamName.toLowerCase().trim()}`;
+      if (!uniqueMap.has(key) || (m.played && !uniqueMap.get(key)!.played)) {
+        uniqueMap.set(key, m);
+      }
+    });
+    return Array.from(uniqueMap.values());
   }
 
   static getMatchById(matchId: string): Match | undefined {
@@ -486,7 +495,29 @@ export class DbService {
 
   static getStandings(girone: 'A' | 'B'): StandingRow[] {
     this.ensureLoaded();
-    return girone === 'A' ? inMemoryData.standingsA : inMemoryData.standingsB;
+    const raw = girone === 'A' ? inMemoryData.standingsA : inMemoryData.standingsB;
+
+    // Deduplicazione difensiva: garantisce che ogni squadra compaia UNA SOLA VOLTA
+    const map = new Map<string, StandingRow>();
+    const sorted = [...raw].sort((a, b) => (b.played || 0) - (a.played || 0) || (b.points || 0) - (a.points || 0));
+    sorted.forEach((r) => {
+      const key = (r.teamName || r.teamId || '').toLowerCase().trim();
+      if (key && !map.has(key)) {
+        map.set(key, r);
+      }
+    });
+
+    return Array.from(map.values())
+      .sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (b.goalDifference !== a.goalDifference) return b.goalDifference - a.goalDifference;
+        if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
+        return (a.position || 0) - (b.position || 0);
+      })
+      .map((r, idx) => ({
+        ...r,
+        position: idx + 1,
+      }));
   }
 
   static getNotes(targetType?: string, targetId?: string, currentUsername?: string): Note[] {

@@ -199,7 +199,16 @@ export class SupabaseService {
       console.error('Supabase fetch matches error:', error);
       return [];
     }
-    return (data || []).map(this.mapMatchFromRow);
+    const rawMatches = (data || []).map(this.mapMatchFromRow);
+    // Deduplicazione difensiva per giornata e squadre (rimuove doppioni da vecchi ID)
+    const uniqueMap = new Map<string, Match>();
+    rawMatches.forEach((m) => {
+      const key = `${m.girone}-${m.matchDay}-${m.homeTeamName.toLowerCase().trim()}-vs-${m.awayTeamName.toLowerCase().trim()}`;
+      if (!uniqueMap.has(key) || (m.played && !uniqueMap.get(key)!.played)) {
+        uniqueMap.set(key, m);
+      }
+    });
+    return Array.from(uniqueMap.values());
   }
 
   static async fetchStandings(): Promise<{ standingsA: StandingRow[]; standingsB: StandingRow[] }> {
@@ -211,9 +220,25 @@ export class SupabaseService {
       return { standingsA: [], standingsB: [] };
     }
     const rows = data || [];
+
+    // Deduplicazione difensiva: 1 sola riga per squadra (quella con più giocate o punti in caso di orfani storici)
+    const dedupeStandings = (list: any[]) => {
+      const map = new Map<string, any>();
+      const sorted = [...list].sort((a, b) => (b.played || 0) - (a.played || 0) || (b.points || 0) - (a.points || 0));
+      sorted.forEach((r) => {
+        const key = (r.team_name || r.team_id || '').toLowerCase().trim();
+        if (key && !map.has(key)) {
+          map.set(key, r);
+        }
+      });
+      return Array.from(map.values())
+        .sort((a, b) => (a.position || 0) - (b.position || 0))
+        .map(this.mapStandingFromRow);
+    };
+
     return {
-      standingsA: rows.filter((r) => r.girone === 'A').map(this.mapStandingFromRow),
-      standingsB: rows.filter((r) => r.girone === 'B').map(this.mapStandingFromRow),
+      standingsA: dedupeStandings(rows.filter((r) => r.girone === 'A')),
+      standingsB: dedupeStandings(rows.filter((r) => r.girone === 'B')),
     };
   }
 
@@ -529,6 +554,18 @@ export class SupabaseService {
         observations: m.observations,
       }));
 
+      // Rimuovi eventuali partite obsolete rimaste su Supabase con ID non validi
+      const validMatchIds = new Set(matchesPayload.map((m) => m.id));
+      const { data: existingMatches } = await supabase.from('matches').select('id');
+      if (existingMatches && existingMatches.length > 0) {
+        const obsoleteIds = existingMatches.map((m) => m.id).filter((id) => !validMatchIds.has(id));
+        if (obsoleteIds.length > 0) {
+          for (let i = 0; i < obsoleteIds.length; i += 100) {
+            await supabase.from('matches').delete().in('id', obsoleteIds.slice(i, i + 100));
+          }
+        }
+      }
+
       for (let i = 0; i < matchesPayload.length; i += 200) {
         const chunk = matchesPayload.slice(i, i + 200);
         const { error: mErr } = await supabase.from('matches').upsert(chunk, { onConflict: 'id' });
@@ -536,9 +573,12 @@ export class SupabaseService {
       }
 
       // 4. Standings
+      // Pulisci i record precedenti delle classifiche per evitare duplicati da posizioni storiche
+      await supabase.from('standings').delete().in('girone', ['A', 'B']);
+
       const standingsPayload = [
         ...data.standingsA.map((s) => ({
-          id: `standing-A-${s.position}-${s.teamId || s.teamName}`,
+          id: `standing-A-${s.teamId || this.slugify(s.teamName)}`,
           girone: 'A',
           position: s.position,
           team_name: s.teamName,
@@ -553,7 +593,7 @@ export class SupabaseService {
           goal_difference: s.goalDifference,
         })),
         ...data.standingsB.map((s) => ({
-          id: `standing-B-${s.position}-${s.teamId || s.teamName}`,
+          id: `standing-B-${s.teamId || this.slugify(s.teamName)}`,
           girone: 'B',
           position: s.position,
           team_name: s.teamName,
@@ -656,5 +696,14 @@ export class SupabaseService {
     return () => {
       supabase.removeChannel(channel);
     };
+  }
+
+  private static slugify(str: string): string {
+    return String(str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
   }
 }

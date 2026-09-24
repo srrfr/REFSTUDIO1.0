@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { NoteTargetType, Note } from '@/types/refstudio';
-import { FileText, X, AlertCircle, Globe, Lock, ShieldAlert } from 'lucide-react';
+import { FileText, X, AlertCircle, Globe, Lock, ShieldAlert, Paperclip, Film, Image as ImageIcon, Plus } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
+import { MediaDropzone, UploadResult } from '@/components/media/MediaDropzone';
 
 interface NoteModalProps {
   isOpen: boolean;
@@ -302,39 +303,85 @@ export const NoteModal: React.FC<NoteModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-              Allegato Immagine o Link File (Opzionale)
-            </label>
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider text-[10px]">
+                Allegati Multimediali (Foto, Referti o Video)
+              </label>
+              <span className="text-[10px] text-slate-500 font-mono">
+                {attachments.length} {attachments.length === 1 ? 'allegato' : 'allegati'}
+              </span>
+            </div>
+
+            {/* Drag & Drop uploader */}
+            <MediaDropzone
+              onUploaded={(res) => {
+                setAttachments([...attachments, res.url]);
+              }}
+              accept="all"
+              compact={true}
+              helperText="Trascina foto del referto, immagini dell'episodio o clip video dal PC"
+            />
+
+            {/* Inserimento manuale link esterno opzionale */}
+            <div className="mt-2.5 flex gap-2">
               <input
                 type="text"
                 value={attachmentUrl}
                 onChange={(e) => setAttachmentUrl(e.target.value)}
-                placeholder="https://... o percorso allegato"
-                className="flex-1 bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
+                placeholder="Oppure incolla un URL esterno..."
+                className="flex-1 bg-[#11141D] border border-[#212638] rounded-xl px-3 py-1.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
               />
               <button
                 type="button"
                 onClick={handleAddAttachment}
-                className="px-3.5 py-2 bg-[#161B28] hover:bg-[#1F2538] border border-[#242C40] rounded-xl text-xs font-bold text-slate-200 transition-all hover:text-white"
+                className="px-3 py-1.5 bg-[#161B28] hover:bg-[#1F2538] border border-[#242C40] rounded-xl text-xs font-bold text-slate-200 transition-all hover:text-white flex-shrink-0 flex items-center gap-1"
               >
-                Aggiungi
+                <Plus className="w-3.5 h-3.5" /> Aggiungi URL
               </button>
             </div>
+
+            {/* Galleria allegati inseriti */}
             {attachments.length > 0 && (
-              <div className="mt-2 space-y-1.5">
-                {attachments.map((att, i) => (
-                  <div key={i} className="flex items-center justify-between bg-[#11141D] border border-[#1E2333] px-3 py-1.5 rounded-lg text-xs">
-                    <span className="truncate max-w-[280px] text-slate-300 font-mono text-[11px]">{att}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveAttachment(i)}
-                      className="text-rose-400 hover:text-rose-300 font-bold ml-2"
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                {attachments.map((att, i) => {
+                  const isImg = att.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i);
+                  const isVid = att.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i) || att.includes('/videos/');
+
+                  return (
+                    <div
+                      key={i}
+                      className="relative rounded-xl bg-[#11141D] border border-[#212638] p-2 flex items-center gap-2 group hover:border-[#CCFF00]/40 transition-all"
                     >
-                      Rimuovi
-                    </button>
-                  </div>
-                ))}
+                      <div className="w-10 h-10 rounded-lg bg-black/60 border border-[#282F42] overflow-hidden flex items-center justify-center flex-shrink-0">
+                        {isImg ? (
+                          <img src={att} alt="Allegato" className="w-full h-full object-cover" />
+                        ) : isVid ? (
+                          <Film className="w-4 h-4 text-[#FF334B]" />
+                        ) : (
+                          <Paperclip className="w-4 h-4 text-[#CCFF00]" />
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-bold text-white truncate">
+                          {att.split('/').pop()?.split('?')[0] || `Allegato ${i + 1}`}
+                        </span>
+                        <span className="text-[9px] font-mono text-slate-400">
+                          {isImg ? 'Immagine' : isVid ? 'Video' : 'File'}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(i)}
+                        className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        title="Rimuovi allegato"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

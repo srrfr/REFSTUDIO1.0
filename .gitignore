@@ -6,3 +6,4 @@ __pycache__/
 *.pyc
 tuttocampo_cookies.json
 cookie_input.txt
+public/uploads/

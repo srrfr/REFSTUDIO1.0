@@ -354,7 +354,7 @@ def get_rosa_squadra(page, sq_info, nome_girone):
 # -------------------------------------------------------------
 
 def get_classifica_girone(page, url_girone):
-    """Estrae la classifica per il girone."""
+    """Estrae la classifica per il girone garantendo l'estrazione corretta di punti e statistiche."""
     url_classifica = f"{url_girone}/Classifica"
     soup = get_html_with_browser(page, url_classifica, need_table=True)
     classifica = []
@@ -362,18 +362,20 @@ def get_classifica_girone(page, url_girone):
     if not soup:
         return classifica
 
-    rows = soup.find_all('tr')
+    table = soup.find('table', class_=re.compile(r'table_ranking|ranking|standings', re.I)) or soup
+    rows = table.find_all('tr')
     pos = 1
+
     for r in rows:
         team_link = r.find('a', href=re.compile(r'/Squadra/', re.I))
         if not team_link:
             continue
 
         nome_sq = clean_name(team_link.get_text(strip=True))
-
         if not nome_sq or len(nome_sq) < 2 or nome_sq.lower() in ['squadra', 'pos']:
             continue
 
+        # Estrai tutti i valori numerici presenti nelle celle td della riga
         cells = r.find_all(['td', 'th'])
         valori_numerici = []
         for c in cells:
@@ -381,38 +383,33 @@ def get_classifica_girone(page, url_girone):
             if re.match(r'^-?\d+$', txt):
                 valori_numerici.append(int(txt))
 
+        # Su Tuttocampo, i valori numerici della classifica sono nell'ordine:
+        # [Punti (PT), Giocate (G), Vittorie (V), Pareggi (N), Sconfitte (P), Gol Fatti (F), Gol Subiti (S), Diff Reti (DR)]
+        # La posizione NON è un valore numerico nella tabella principale (è l'ordine della riga).
         if len(valori_numerici) >= 6:
-            if valori_numerici[0] == pos or (pos == 1 and valori_numerici[0] in [1, 0]):
-                valori = valori_numerici[1:]
-                p_num = valori_numerici[0]
-            else:
-                valori = valori_numerici
-                p_num = pos
+            punti = valori_numerici[0]
+            giocate = valori_numerici[1]
+            vittorie = valori_numerici[2]
+            pareggi = valori_numerici[3]
+            sconfitte = valori_numerici[4]
+            gf = valori_numerici[5]
+            gs = valori_numerici[6] if len(valori_numerici) > 6 else 0
+            dr = valori_numerici[7] if len(valori_numerici) > 7 else (gf - gs)
 
-            if len(valori) >= 6:
-                punti = valori[0]
-                giocate = valori[1]
-                vittorie = valori[2]
-                pareggi = valori[3]
-                sconfitte = valori[4]
-                gf = valori[5]
-                gs = valori[6] if len(valori) > 6 else 0
-                dr = (gf - gs) if len(valori) <= 7 else valori[7]
-
-                if not any(c['Squadra'] == nome_sq for c in classifica):
-                    classifica.append({
-                        "Posizione": p_num,
-                        "Squadra": nome_sq,
-                        "Punti": punti,
-                        "Partite giocate": giocate,
-                        "Vittorie": vittorie,
-                        "Pareggi": pareggi,
-                        "Sconfitte": sconfitte,
-                        "Gol fatti": gf,
-                        "Gol subiti": gs,
-                        "Differenza reti": dr
-                    })
-                    pos += 1
+            if not any(c['Squadra'] == nome_sq for c in classifica):
+                classifica.append({
+                    "Posizione": pos,
+                    "Squadra": nome_sq,
+                    "Punti": punti,
+                    "Partite giocate": giocate,
+                    "Vittorie": vittorie,
+                    "Pareggi": pareggi,
+                    "Sconfitte": sconfitte,
+                    "Gol fatti": gf,
+                    "Gol subiti": gs,
+                    "Differenza reti": dr
+                })
+                pos += 1
 
     return classifica
 
@@ -443,7 +440,7 @@ def parse_data_stringa(data_text):
 
 def get_gare_girone(page, url_girone, num_giornate=34):
     """
-    Estrae TUTTE le 34 giornate di campionato in modo rigoroso, con retry dedicato
+    Estrae TUTTE le giornate di campionato in modo rigoroso, con retry dedicato
     per giornata e senza mai inventare punteggi per partite future o non disputate.
     """
     gare = []
@@ -478,8 +475,8 @@ def get_gare_girone(page, url_girone, num_giornate=34):
             trasferta = ""
 
             if td_home and td_away:
-                a_h = td_home.find('a', class_='team-name') or td_home.find('a')
-                a_a = td_away.find('a', class_='team-name') or td_away.find('a')
+                a_h = td_home.find('a', class_='team-name') or td_home.find('a', href=re.compile(r'/Squadra/', re.I))
+                a_a = td_away.find('a', class_='team-name') or td_away.find('a', href=re.compile(r'/Squadra/', re.I))
                 if a_h and a_a:
                     casa = clean_name(a_h.get_text(strip=True))
                     trasferta = clean_name(a_a.get_text(strip=True))
@@ -494,28 +491,28 @@ def get_gare_girone(page, url_girone, num_giornate=34):
             if not casa or not trasferta or casa == trasferta:
                 continue
 
-            # Estrazione punteggio reale da span/td con classe 'goal' o 'score'
+            # Estrazione punteggio reale
             gol_casa = None
             gol_trasf = None
             giocata = "No"
 
-            goal_elements = row.find_all(class_=re.compile(r'\bgoal\b|\bscore\b|\bresult\b', re.I))
-            score_digits = []
-            for gel in goal_elements:
-                txt = gel.get_text(strip=True)
-                if txt.isdigit():
-                    score_digits.append(int(txt))
+            gh_el = td_home.find(class_=re.compile(r'\bgoal\b', re.I)) if td_home else None
+            ga_el = td_away.find(class_=re.compile(r'\bgoal\b', re.I)) if td_away else None
 
-            if len(score_digits) >= 2:
-                gol_casa = score_digits[0]
-                gol_trasf = score_digits[1]
+            if gh_el and ga_el and gh_el.get_text(strip=True).isdigit() and ga_el.get_text(strip=True).isdigit():
+                gol_casa = int(gh_el.get_text(strip=True))
+                gol_trasf = int(ga_el.get_text(strip=True))
                 giocata = "Si"
-            elif td_home and td_away:
-                gh_el = td_home.find(class_=re.compile(r'\bgoal\b', re.I))
-                ga_el = td_away.find(class_=re.compile(r'\bgoal\b', re.I))
-                if gh_el and ga_el and gh_el.get_text(strip=True).isdigit() and ga_el.get_text(strip=True).isdigit():
-                    gol_casa = int(gh_el.get_text(strip=True))
-                    gol_trasf = int(ga_el.get_text(strip=True))
+            else:
+                goal_elements = row.find_all(class_=re.compile(r'\bgoal\b|\bscore\b|\bresult\b', re.I))
+                score_digits = []
+                for gel in goal_elements:
+                    txt = gel.get_text(strip=True)
+                    if txt.isdigit():
+                        score_digits.append(int(txt))
+                if len(score_digits) >= 2:
+                    gol_casa = score_digits[0]
+                    gol_trasf = score_digits[1]
                     giocata = "Si"
 
             # Orario e data specifica della gara
@@ -646,18 +643,32 @@ def run_app_sync():
     print("===========================================================")
 
     print("1. Ricostruzione dataset e mappatura note/profili...")
-    res_rebuild = subprocess.run(["node", "scripts/rebuild-database.mjs"], capture_output=True, text=True)
+    res_rebuild = subprocess.run(
+        ["node", "scripts/rebuild-database.mjs"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
     if res_rebuild.returncode != 0:
-        print(f"❌ Errore in rebuild-database: {res_rebuild.stderr}")
+        print(f"❌ Errore in rebuild-database: {res_rebuild.stderr or ''}")
         return False
-    print(res_rebuild.stdout.strip())
+    if res_rebuild.stdout:
+        print(res_rebuild.stdout.strip())
 
     print("\n2. Sincronizzazione cloud PostgreSQL Supabase...")
-    res_seed = subprocess.run(["node", "scripts/seed-supabase.mjs"], capture_output=True, text=True)
+    res_seed = subprocess.run(
+        ["node", "scripts/seed-supabase.mjs"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
     if res_seed.returncode != 0:
-        print(f"❌ Errore in seed-supabase: {res_seed.stderr}")
+        print(f"❌ Errore in seed-supabase: {res_seed.stderr or ''}")
         return False
-    print(res_seed.stdout.strip())
+    if res_seed.stdout:
+        print(res_seed.stdout.strip())
 
     print("\n🎉 AGGIORNAMENTO AUTOMATICO REFSTUDIO COMPLETATO!")
     print("Tutti i dati (rose, gare, classifiche) sono ora aggiornati in tempo reale sull'applicazione.")
@@ -806,7 +817,10 @@ def main():
     # Fusione intelligente con il database esistente (per Calciatori, Gare e Classifiche)
     if os.path.exists(file_excel):
         try:
-            # 1. Salvaguardia Calciatori
+            # 1. Consolidamento Calciatori:
+            # - Se il calciatore è presente nel nuovo scraping: SOVRASCRIVI SEMPRE (statistiche/informazioni aggiornate)
+            # - Se non è presente nel nuovo scraping: NON PERDERE il dato vecchio (mantieni i giocatori storici)
+            # - Se è un calciatore nuovo: aggiungilo
             df_calciatori = pd.read_excel(file_excel, sheet_name="Calciatori").fillna("")
             calciatori_esistenti = df_calciatori.to_dict('records')
 
@@ -814,50 +828,115 @@ def main():
                 print(f"ℹ️ Nessun calciatore estratto online: preservo tutti i {len(calciatori_esistenti)} calciatori esistenti.")
                 database_totale_calciatori = calciatori_esistenti
             else:
-                # Se per una squadra lo scraping online ha ottenuto meno giocatori di prima, mantieni i più completi
-                conteggio_nuovi = pd.Series([c['Nome Rosa'] for c in database_totale_calciatori]).value_counts().to_dict()
-                conteggio_vecchi = pd.Series([c['Nome Rosa'] for c in calciatori_esistenti]).value_counts().to_dict()
+                def get_player_key(p):
+                    id_g = str(p.get('ID Giocatore') or '').strip()
+                    if id_g and id_g not in ['0', 'None', 'nan']:
+                        return f"id_{id_g}"
+                    nome = re.sub(r'[^a-z0-9]', '', clean_name(str(p.get('Nome') or '')).lower())
+                    cognome = re.sub(r'[^a-z0-9]', '', clean_name(str(p.get('Cognome') or '')).lower())
+                    id_rosa = str(p.get('ID Rosa') or '').strip()
+                    nome_rosa = re.sub(r'[^a-z0-9]', '', clean_name(str(p.get('Nome Rosa') or '')).lower())
+                    team_ref = id_rosa if id_rosa else nome_rosa
+                    return f"name_{cognome}_{nome}_{team_ref}"
 
-                squadre_online = set(conteggio_nuovi.keys())
-                calciatori_da_preservare = [
-                    c for c in calciatori_esistenti
-                    if c.get("Nome Rosa") not in squadre_online or conteggio_vecchi.get(c.get("Nome Rosa"), 0) > conteggio_nuovi.get(c.get("Nome Rosa"), 0)
-                ]
+                merged_players_map = {}
+                # Inizia popolando con i dati esistenti
+                for p_old in calciatori_esistenti:
+                    k = get_player_key(p_old)
+                    if k:
+                        merged_players_map[k] = dict(p_old)
 
-                # Se ci sono squadre dove la vecchia rosa era più numerosa, ripristina la vecchia rosa per quella squadra
-                squadre_ripristinate = set(c.get("Nome Rosa") for c in calciatori_da_preservare if c.get("Nome Rosa") in squadre_online)
-                if squadre_ripristinate:
-                    print(f"ℹ️ Preservate rose precedenti più complete per: {', '.join(squadre_ripristinate)}")
-                    database_totale_calciatori = [c for c in database_totale_calciatori if c.get("Nome Rosa") not in squadre_ripristinate]
-                    database_totale_calciatori.extend([c for c in calciatori_esistenti if c.get("Nome Rosa") in squadre_ripristinate])
+                # Sovrascrivi o aggiungi con tutti i calciatori dello scraping appena effettuato
+                aggiornati = 0
+                aggiunti = 0
+                for p_new in database_totale_calciatori:
+                    k = get_player_key(p_new)
+                    if not k:
+                        continue
+                    if k in merged_players_map:
+                        old_p = merged_players_map[k]
+                        updated_p = dict(old_p)
+                        # Sovrascrive tutte le statistiche e informazioni nuove, preservando eventuali dati precedenti se vuoti
+                        for f_k, f_v in p_new.items():
+                            val_str = str(f_v).strip() if f_v is not None else ""
+                            if val_str != "" and val_str.lower() not in ["none", "nan"]:
+                                updated_p[f_k] = f_v
+                            elif f_k in ['Presenze', 'Reti', 'Ammonizioni', 'Espulsioni']:
+                                updated_p[f_k] = f_v
+                            elif f_k not in updated_p:
+                                updated_p[f_k] = f_v
+                        merged_players_map[k] = updated_p
+                        aggiornati += 1
+                    else:
+                        merged_players_map[k] = dict(p_new)
+                        aggiunti += 1
 
-                # Aggiungi eventuali squadre non presenti nello scraping online
-                squadre_non_online = [c for c in calciatori_esistenti if c.get("Nome Rosa") not in squadre_online]
-                if squadre_non_online:
-                    database_totale_calciatori.extend(squadre_non_online)
+                database_totale_calciatori = list(merged_players_map.values())
+                print(f" [✓] Calciatori consolidati: {len(database_totale_calciatori)} (aggiornati con nuovi dati: {aggiornati}, nuovi aggiunti: {aggiunti}, storici preservati: {len(calciatori_esistenti) - aggiornati})")
 
-                print(f" [✓] Totale calciatori consolidati nel database: {len(database_totale_calciatori)}")
+            # 2. Consolidamento Gare:
+            # - Se la gara nel nuovo scraping ha un risultato/è giocata: SOVRASCRIVI SEMPRE
+            # - Se la gara nel vecchio file era già giocata e online ha un glitch: NON PERDERE il risultato registrato
+            # - Preserva sempre tutte le 34 giornate (306 partite per girone)
+            def get_match_key(m):
+                giornata = int(m.get('Numero giornata') or 0)
+                casa = re.sub(r'[^a-z0-9]', '', clean_name(str(m.get('Squadra ospitante') or '')).lower())
+                trasf = re.sub(r'[^a-z0-9]', '', clean_name(str(m.get('Squadra ospite') or '')).lower())
+                return (giornata, casa, trasf)
 
-            # 2. Salvaguardia Gare
             for nome_girone in ["Girone A", "Girone B"]:
                 gare_online = dati_gironi_gare_classifica.get(nome_girone, {}).get("gare", [])
                 sheet_gare = f"{nome_girone} - Gare"
                 try:
                     df_gare_esistenti = pd.read_excel(file_excel, sheet_name=sheet_gare).fillna("")
                     gare_esistenti = df_gare_esistenti.to_dict('records')
-                    if len(gare_online) < len(gare_esistenti) and len(gare_esistenti) > 0:
-                        print(f"ℹ️ {nome_girone}: preservo il calendario completo precedente ({len(gare_esistenti)} gare esistenti vs {len(gare_online)} online).")
-                        # Aggiorna le gare esistenti con i nuovi risultati online
-                        map_online = {(g['Numero giornata'], g['Squadra ospitante']): g for g in gare_online}
-                        for g_es in gare_esistenti:
-                            key = (g_es['Numero giornata'], g_es['Squadra ospitante'])
-                            if key in map_online and map_online[key]['Giocata'] == 'Si':
-                                g_es['Giocata'] = 'Si'
-                                g_es['Reti squadra ospitante'] = map_online[key]['Reti squadra ospitante']
-                                g_es['Reti squadra ospite'] = map_online[key]['Reti squadra ospite']
-                        dati_gironi_gare_classifica.setdefault(nome_girone, {})["gare"] = gare_esistenti
-                except Exception:
-                    pass
+                    if len(gare_esistenti) > 0:
+                        merged_gare_map = {get_match_key(m): dict(m) for m in gare_esistenti}
+                        partite_aggiornate = 0
+
+                        for m_new in gare_online:
+                            k = get_match_key(m_new)
+                            is_new_played = str(m_new.get('Giocata') or '').strip().lower() == 'si'
+
+                            if k in merged_gare_map:
+                                old_m = merged_gare_map[k]
+                                is_old_played = str(old_m.get('Giocata') or '').strip().lower() == 'si'
+
+                                if is_new_played:
+                                    # Nuovo risultato disponibile: aggiorna sempre
+                                    merged_gare_map[k] = dict(m_new)
+                                    partite_aggiornate += 1
+                                else:
+                                    # Online non risulta ancora giocata: mantieni il vecchio risultato se già registrato
+                                    if not is_old_played:
+                                        merged_gare_map[k] = dict(m_new)
+                            else:
+                                merged_gare_map[k] = dict(m_new)
+
+                        dati_gironi_gare_classifica.setdefault(nome_girone, {})["gare"] = sorted(
+                            merged_gare_map.values(), key=lambda x: int(x.get('Numero giornata') or 0)
+                        )
+                        print(f" [✓] {nome_girone} - Gare consolidate: {len(merged_gare_map)} (risultati aggiornati online: {partite_aggiornate})")
+                except Exception as e_gare:
+                    print(f" ⚠️ Avviso consolidamento gare {nome_girone}: {e_gare}")
+
+            # 3. Consolidamento Classifiche:
+            # Sovrascrivi con la classifica online più recente, preservando quella vecchia se online ha fallito
+            for nome_girone in ["Girone A", "Girone B"]:
+                clas_online = dati_gironi_gare_classifica.get(nome_girone, {}).get("classifica", [])
+                sheet_clas = f"{nome_girone} - Classifica"
+                try:
+                    df_clas_esistente = pd.read_excel(file_excel, sheet_name=sheet_clas).fillna("")
+                    clas_esistente = df_clas_esistente.to_dict('records')
+                    if len(clas_online) >= 18:
+                        # Classifica online completa: usa quella aggiornata
+                        dati_gironi_gare_classifica.setdefault(nome_girone, {})["classifica"] = clas_online
+                    elif len(clas_esistente) >= len(clas_online):
+                        # Online parziale/vuota: preserva la classifica precedente
+                        print(f"ℹ️ {nome_girone}: preservo la classifica completa precedente ({len(clas_esistente)} squadre vs {len(clas_online)} online).")
+                        dati_gironi_gare_classifica.setdefault(nome_girone, {})["classifica"] = clas_esistente
+                except Exception as e_clas:
+                    print(f" ⚠️ Avviso consolidamento classifica {nome_girone}: {e_clas}")
 
         except Exception as err:
             print(f" ⚠️ Errore nel consolidamento con il database esistente: {err}")

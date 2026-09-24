@@ -168,6 +168,15 @@ async function seed() {
   }
   console.log(`\n   ✅ ${playerPayload.length} calciatori sincronizzati con successo.`);
 
+  function slugify(str) {
+    return String(str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+  }
+
   // 3. Inserimento Partite in blocchi da 150 (Deduplicate per ID)
   console.log('⏳ 3/7 Inserimento Partite in blocchi da 150...');
   const uniqueMatchesMap = new Map();
@@ -191,6 +200,19 @@ async function seed() {
     observations: m.observations || null,
   }));
 
+  // Rimozione difensiva di vecchie partite duplicate (es. vecchi ID basati su slug)
+  const validMatchIds = new Set(matchesPayload.map((m) => m.id));
+  const { data: existingMatches } = await supabase.from('matches').select('id');
+  if (existingMatches && existingMatches.length > 0) {
+    const obsoleteIds = existingMatches.map((m) => m.id).filter((id) => !validMatchIds.has(id));
+    if (obsoleteIds.length > 0) {
+      console.log(`   🧹 Rimozione di ${obsoleteIds.length} partite obsolete/duplicate da Supabase...`);
+      for (let i = 0; i < obsoleteIds.length; i += 100) {
+        await supabase.from('matches').delete().in('id', obsoleteIds.slice(i, i + 100));
+      }
+    }
+  }
+
   for (let i = 0; i < matchesPayload.length; i += CHUNK_SIZE) {
     const chunk = matchesPayload.slice(i, i + CHUNK_SIZE);
     const { error: mErr } = await supabase.from('matches').upsert(chunk, { onConflict: 'id' });
@@ -204,9 +226,12 @@ async function seed() {
 
   // 4. Inserimento Classifiche
   console.log('⏳ 4/7 Inserimento Classifiche...');
+  // Prima di inserire la nuova classifica, elimina TUTTI i record precedenti per evitare duplicati da posizioni cambiate
+  await supabase.from('standings').delete().in('girone', ['A', 'B']);
+
   const standingsPayload = [
     ...standingsA.map((s) => ({
-      id: `standing-A-${s.position}-${s.teamId || s.teamName}`,
+      id: `standing-A-${s.teamId || slugify(s.teamName)}`,
       girone: 'A',
       position: s.position,
       team_name: s.teamName,
@@ -221,7 +246,7 @@ async function seed() {
       goal_difference: s.goalDifference,
     })),
     ...standingsB.map((s) => ({
-      id: `standing-B-${s.position}-${s.teamId || s.teamName}`,
+      id: `standing-B-${s.teamId || slugify(s.teamName)}`,
       girone: 'B',
       position: s.position,
       team_name: s.teamName,

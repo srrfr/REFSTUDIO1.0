@@ -113,6 +113,7 @@ const standingsB = [];
 
   rows.forEach((r, idx) => {
     const teamName = String(r['Squadra'] || '').trim();
+    if (!teamName || targetArray.some((s) => s.teamName.toLowerCase() === teamName.toLowerCase())) return;
     const teamId = teamNameToId.get(teamName.toLowerCase()) || slugify(teamName);
     const played = parseInt(r['Partite giocate'] || 0, 10);
     const points = parseInt(r['Punti'] || 0, 10);
@@ -233,8 +234,11 @@ for (const g of ['A', 'B']) {
     const homeScore = isPlayed && r['Reti squadra ospitante'] !== undefined ? parseInt(r['Reti squadra ospitante'], 10) : undefined;
     const awayScore = isPlayed && r['Reti squadra ospite'] !== undefined ? parseInt(r['Reti squadra ospite'], 10) : undefined;
 
+    const matchId = `match-${g}-${matchDay}-${homeTeamId}-${awayTeamId}`;
+    if (matches.some((m) => m.id === matchId)) return;
+
     matches.push({
-      id: `match-${g}-${matchDay}-${homeTeamId}-${awayTeamId}`,
+      id: matchId,
       championshipId: `eccellenza-er-girone-${g.toLowerCase()}`,
       girone: g,
       matchDay: matchDay,
