@@ -2,14 +2,16 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Users, Search, Filter, Edit3, Check, X, FileText, Video, AlertCircle } from 'lucide-react';
+import { Users, Search, Filter, Edit3, Check, X, FileText, Video, AlertCircle, Camera } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
 import { Player, RefereeCustomTag, DisciplinaryStatus, RoleCategory } from '@/types/refstudio';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TagBadge } from '@/components/common/TagBadge';
+import { PlayerBadge } from '@/components/common/AvatarBadge';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
+import { AvatarUrlModal } from '@/components/modals/AvatarUrlModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 
 const AVAILABLE_TAGS: RefereeCustomTag[] = [
@@ -41,6 +43,19 @@ function PlayersContent() {
   // Modals
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+
+  const handleSaveAvatarUrl = (newUrl: string) => {
+    if (!selectedPlayer) return;
+    try {
+      const updated = DbService.updatePlayer(selectedPlayer.id, { photoUrl: newUrl });
+      setSelectedPlayer(updated);
+      setEditForm((prev) => ({ ...prev, photoUrl: newUrl }));
+      loadPlayers();
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const loadPlayers = useCallback(() => {
     const list = DbService.getPlayers();
@@ -62,7 +77,9 @@ function PlayersContent() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (isNoteModalOpen) {
+        if (isAvatarModalOpen) {
+          setIsAvatarModalOpen(false);
+        } else if (isNoteModalOpen) {
           setIsNoteModalOpen(false);
         } else if (isVideoModalOpen) {
           setIsVideoModalOpen(false);
@@ -74,7 +91,7 @@ function PlayersContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isNoteModalOpen, isVideoModalOpen, selectedPlayer]);
+  }, [isAvatarModalOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer]);
 
   const handleSelectPlayer = (player: Player) => {
     setSelectedPlayer(player);
@@ -239,9 +256,13 @@ function PlayersContent() {
             <div>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center font-black text-xs text-[#CCFF00]">
-                    {player.lastName.substring(0, 1)}
-                  </div>
+                  <PlayerBadge
+                    firstName={player.firstName}
+                    lastName={player.lastName}
+                    photoUrl={player.photoUrl}
+                    role={player.role}
+                    size="sm"
+                  />
                   <div>
                     <h3 className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
                       {player.firstName} {player.lastName}
@@ -298,8 +319,25 @@ function PlayersContent() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E2333] pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 flex items-center justify-center text-[#CCFF00] font-black text-lg shrink-0 shadow-[0_0_12px_rgba(204,255,0,0.2)]">
-                  {selectedPlayer.lastName.substring(0, 2).toUpperCase()}
+                <div className="relative group/playerlogo">
+                  <PlayerBadge
+                    firstName={selectedPlayer.firstName}
+                    lastName={selectedPlayer.lastName}
+                    photoUrl={selectedPlayer.photoUrl}
+                    role={selectedPlayer.role}
+                    size="xl"
+                    className="shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer"
+                    onClick={() => setIsAvatarModalOpen(true)}
+                    showEditOverlay={true}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsAvatarModalOpen(true)}
+                    className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow-md transition-all cursor-pointer"
+                    title="Modifica Foto Calciatore (URL)"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <div>
                   <h2 className="text-xl font-black text-white">
@@ -351,6 +389,31 @@ function PlayersContent() {
                 </button>
               </div>
             </div>
+
+            {/* Campo Modifica Foto Calciatore */}
+            {isEditing && (
+              <div className="p-4 rounded-2xl bg-[#12151E] border border-[#212638] space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block">
+                  Foto Calciatore (URL immagine web)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="url"
+                    value={editForm.photoUrl || ''}
+                    onChange={(e) => setEditForm({ ...editForm, photoUrl: e.target.value })}
+                    placeholder="https://esempio.com/foto-calciatore.jpg"
+                    className="flex-1 bg-[#181C28] border border-[#2B3245] rounded-xl p-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00]"
+                  />
+                  <PlayerBadge
+                    firstName={editForm.firstName || selectedPlayer.firstName}
+                    lastName={editForm.lastName || selectedPlayer.lastName}
+                    photoUrl={editForm.photoUrl}
+                    role={editForm.role || selectedPlayer.role}
+                    size="md"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Editable Information Fields */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -545,6 +608,17 @@ function PlayersContent() {
             onSave={(data) => {
               DbService.addVideo(data);
             }}
+          />
+
+          <AvatarUrlModal
+            isOpen={isAvatarModalOpen}
+            onClose={() => setIsAvatarModalOpen(false)}
+            type="player"
+            title={`${selectedPlayer.firstName} ${selectedPlayer.lastName}`}
+            subtitle={`${selectedPlayer.teamName} • ${selectedPlayer.role}`}
+            currentUrl={selectedPlayer.photoUrl}
+            role={selectedPlayer.role}
+            onSave={handleSaveAvatarUrl}
           />
         </>
       )}

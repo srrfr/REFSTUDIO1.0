@@ -17,9 +17,10 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { DbService } from '@/lib/repository/db-service';
-import { Match, StandingRow } from '@/types/refstudio';
+import { Match, StandingRow, Team } from '@/types/refstudio';
 import { PreparaGaraModal } from '@/components/modals/PreparaGaraModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
+import { TeamBadge } from '@/components/common/AvatarBadge';
 
 type ViewStep = 'CATEGORY' | 'GIRONE' | 'MATCHES';
 
@@ -77,6 +78,7 @@ export default function MatchesPage() {
   // Editing match modal
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [editMatchForm, setEditMatchForm] = useState<Partial<Match>>({});
+  const [teams, setTeams] = useState<Team[]>([]);
 
   // Prepara la Gara State
   const [isPreparaGaraOpen, setIsPreparaGaraOpen] = useState(false);
@@ -87,6 +89,21 @@ export default function MatchesPage() {
     return getFirstUpcomingDay(activeGirone, allMatches);
   }, [activeGirone, allMatches]);
 
+  // Map per i loghi delle squadre
+  const teamLogoMap = useMemo(() => {
+    const map = new Map<string, string>();
+    teams.forEach((t) => {
+      if (t.logoUrl) {
+        map.set(t.name.toLowerCase().trim(), t.logoUrl);
+        map.set(t.id, t.logoUrl);
+        if (t.normalizedName) {
+          map.set(t.normalizedName.toLowerCase().trim(), t.logoUrl);
+        }
+      }
+    });
+    return map;
+  }, [teams]);
+
   // Caricamento e sincronizzazione dati
   const refreshMatchesAndStandings = useCallback(() => {
     const all = DbService.getMatches();
@@ -95,6 +112,7 @@ export default function MatchesPage() {
     setDayMatches(m);
     const s = DbService.getStandings(activeGirone);
     setStandings(s);
+    setTeams(DbService.getTeams());
   }, [activeGirone, selectedDay]);
 
   // Sottoscrizione Realtime multi-dispositivo
@@ -110,6 +128,7 @@ export default function MatchesPage() {
     setDayMatches(m);
     const s = DbService.getStandings('A');
     setStandings(s);
+    setTeams(DbService.getTeams());
   }, []);
 
   // Aggiorna le partite mostrate e la classifica quando l'utente cambia girone o giornata
@@ -608,7 +627,12 @@ export default function MatchesPage() {
 
                     {/* Squadre & Risultato Immediato */}
                     <div className="py-3 flex items-center justify-between gap-3">
-                      <div className="flex-1 text-left">
+                      <div className="flex-1 text-left flex items-center gap-2.5">
+                        <TeamBadge
+                          name={match.homeTeamName}
+                          logoUrl={teamLogoMap.get(match.homeTeamId) || teamLogoMap.get(match.homeTeamName.toLowerCase().trim())}
+                          size="sm"
+                        />
                         <p className="font-bold text-sm md:text-base text-white group-hover:text-[#CCFF00] transition-colors line-clamp-1">
                           {match.homeTeamName}
                         </p>
@@ -620,10 +644,15 @@ export default function MatchesPage() {
                           : 'VS'}
                       </div>
 
-                      <div className="flex-1 text-right">
+                      <div className="flex-1 text-right flex items-center justify-end gap-2.5">
                         <p className="font-bold text-sm md:text-base text-white group-hover:text-[#CCFF00] transition-colors line-clamp-1">
                           {match.awayTeamName}
                         </p>
+                        <TeamBadge
+                          name={match.awayTeamName}
+                          logoUrl={teamLogoMap.get(match.awayTeamId) || teamLogoMap.get(match.awayTeamName.toLowerCase().trim())}
+                          size="sm"
+                        />
                       </div>
                     </div>
                   </div>
@@ -705,9 +734,16 @@ export default function MatchesPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 font-bold text-white group-hover:text-[#CCFF00] transition-colors">
-                      <Link href={`/squadre?q=${encodeURIComponent(row.teamName)}`} className="hover:underline">
-                        {row.teamName}
-                      </Link>
+                      <div className="flex items-center gap-2.5">
+                        <TeamBadge
+                          name={row.teamName}
+                          logoUrl={(row.teamId && teamLogoMap.get(row.teamId)) || teamLogoMap.get(row.teamName.toLowerCase().trim())}
+                          size="sm"
+                        />
+                        <Link href={`/squadre?q=${encodeURIComponent(row.teamName)}`} className="hover:underline">
+                          {row.teamName}
+                        </Link>
+                      </div>
                     </td>
                     <td className="py-3 px-3 text-center font-mono font-black text-sm text-[#CCFF00]">
                       {row.points}

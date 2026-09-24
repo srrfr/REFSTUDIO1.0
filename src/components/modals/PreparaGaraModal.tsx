@@ -24,12 +24,15 @@ import {
   CheckCircle2,
   ChevronRight,
   TrendingUp,
+  Camera,
 } from 'lucide-react';
 import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
+import { TeamBadge, PlayerBadge, CoachBadge } from '@/components/common/AvatarBadge';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
+import { AvatarUrlModal } from '@/components/modals/AvatarUrlModal';
 
 interface PreparaGaraModalProps {
   isOpen: boolean;
@@ -67,12 +70,61 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
   // Reload counter to refresh data when a note/video is added
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // Avatar / Logo URL Modal state
+  const [avatarModalState, setAvatarModalState] = useState<{
+    isOpen: boolean;
+    type: 'team' | 'player' | 'coach';
+    id: string;
+    title: string;
+    subtitle?: string;
+    currentUrl?: string;
+    role?: string;
+  }>({
+    isOpen: false,
+    type: 'team',
+    id: '',
+    title: '',
+  });
+
+  const handleOpenAvatarModal = (
+    type: 'team' | 'player' | 'coach',
+    id: string,
+    title: string,
+    currentUrl?: string,
+    subtitle?: string,
+    role?: string
+  ) => {
+    setAvatarModalState({
+      isOpen: true,
+      type,
+      id,
+      title,
+      currentUrl: currentUrl || '',
+      subtitle,
+      role,
+    });
+  };
+
+  const handleSaveAvatarUrl = (newUrl: string) => {
+    const { type, id } = avatarModalState;
+    if (type === 'team') {
+      DbService.updateTeam(id, { logoUrl: newUrl });
+    } else if (type === 'coach') {
+      DbService.updateTeam(id, { coachPhotoUrl: newUrl });
+    } else if (type === 'player') {
+      DbService.updatePlayer(id, { photoUrl: newUrl });
+    }
+    setRefreshKey((k) => k + 1);
+  };
+
   // Chiusura del dossier e sottomodali con tasto Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (isViewerOpen) {
+        if (avatarModalState.isOpen) {
+          setAvatarModalState((prev) => ({ ...prev, isOpen: false }));
+        } else if (isViewerOpen) {
           setIsViewerOpen(false);
         } else if (isNoteModalOpen) {
           setIsNoteModalOpen(false);
@@ -85,7 +137,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isViewerOpen, isNoteModalOpen, isVideoModalOpen, onClose]);
+  }, [isOpen, avatarModalState.isOpen, isViewerOpen, isNoteModalOpen, isVideoModalOpen, onClose]);
 
   // Memoized data resolution for both teams involved in this specific match
   const matchData = useMemo(() => {
@@ -261,12 +313,39 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
         {/* Team Identity Banner */}
         <div className="p-4 sm:p-5 rounded-2xl bg-[#11141D] border border-[#212638] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div
-              className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm text-black shadow-lg ${
-                isHome ? 'bg-[#CCFF00]' : 'bg-[#FF334B]'
-              }`}
-            >
-              {team.name.substring(0, 3).toUpperCase()}
+            <div className="relative group/teamlogo">
+              <TeamBadge
+                name={team.name}
+                logoUrl={team.logoUrl}
+                size="xl"
+                className={`cursor-pointer ${isHome ? 'shadow-[0_0_15px_rgba(204,255,0,0.3)]' : 'shadow-[0_0_15px_rgba(255,51,75,0.3)]'}`}
+                onClick={() =>
+                  handleOpenAvatarModal(
+                    'team',
+                    team.id,
+                    team.name,
+                    team.logoUrl,
+                    `Girone ${team.girone}`
+                  )
+                }
+                showEditOverlay={true}
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  handleOpenAvatarModal(
+                    'team',
+                    team.id,
+                    team.name,
+                    team.logoUrl,
+                    `Girone ${team.girone}`
+                  )
+                }
+                className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow transition-all cursor-pointer"
+                title="Modifica Logo Squadra (URL)"
+              >
+                <Camera className="w-3 h-3" />
+              </button>
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -278,10 +357,49 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                 </span>
               </div>
               <h3 className="text-xl font-black text-white mt-0.5">{team.name}</h3>
-              <p className="text-xs text-slate-400">
-                {team.stadium ? `Stadio: ${team.stadium}` : 'Campo di casa'} • {team.city || 'Emilia-Romagna'}
-                {team.coachName ? ` • Allenatore: ${team.coachName}` : ''}
-              </p>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400 mt-0.5">
+                <span>{team.stadium ? `Stadio: ${team.stadium}` : 'Campo di casa'} • {team.city || 'Emilia-Romagna'}</span>
+                {team.coachName && (
+                  <span className="inline-flex items-center gap-1.5 ml-1">
+                    • All:
+                    <div className="relative group/coachlogo inline-flex items-center">
+                      <CoachBadge
+                        coachName={team.coachName}
+                        coachPhotoUrl={team.coachPhotoUrl}
+                        size="sm"
+                        className="cursor-pointer"
+                        onClick={() =>
+                          handleOpenAvatarModal(
+                            'coach',
+                            team.id,
+                            team.coachName || 'Allenatore',
+                            team.coachPhotoUrl,
+                            team.name
+                          )
+                        }
+                        showEditOverlay={true}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          handleOpenAvatarModal(
+                            'coach',
+                            team.id,
+                            team.coachName || 'Allenatore',
+                            team.coachPhotoUrl,
+                            team.name
+                          )
+                        }
+                        className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow transition-all opacity-0 group-hover/coachlogo:opacity-100 cursor-pointer"
+                        title="Modifica Foto Allenatore (URL)"
+                      >
+                        <Camera className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                    <strong className="text-slate-300 font-semibold">{team.coachName}</strong>
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -615,8 +733,46 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
 
           <div className="p-4 border-t border-[#1C2130] max-h-72 overflow-y-auto divide-y divide-[#1C2130]">
             {players.map((p) => (
-              <div key={p.id} className="py-2 flex items-center justify-between text-xs">
+              <div key={p.id} className="py-2 flex items-center justify-between text-xs hover:bg-[#11141D]/50 px-2 rounded-lg transition-colors group/rosterrow">
                 <div className="flex items-center gap-2.5">
+                  <div className="relative group/playerlogo shrink-0">
+                    <PlayerBadge
+                      firstName={p.firstName}
+                      lastName={p.lastName}
+                      photoUrl={p.photoUrl}
+                      role={p.role}
+                      size="sm"
+                      className="cursor-pointer"
+                      onClick={() =>
+                        handleOpenAvatarModal(
+                          'player',
+                          p.id,
+                          `${p.firstName} ${p.lastName}`,
+                          p.photoUrl,
+                          `${team.name} • ${p.role}`,
+                          p.role
+                        )
+                      }
+                      showEditOverlay={true}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleOpenAvatarModal(
+                          'player',
+                          p.id,
+                          `${p.firstName} ${p.lastName}`,
+                          p.photoUrl,
+                          `${team.name} • ${p.role}`,
+                          p.role
+                        )
+                      }
+                      className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow transition-all opacity-0 group-hover/rosterrow:opacity-100 cursor-pointer"
+                      title="Modifica Foto Calciatore (URL)"
+                    >
+                      <Camera className="w-2.5 h-2.5" />
+                    </button>
+                  </div>
                   <RoleBadge role={p.role} />
                   <span className="font-bold text-white">
                     {p.firstName} {p.lastName}
@@ -755,9 +911,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#CCFF00] text-black font-black flex items-center justify-center text-xs">
-                      {homeTeam.name.substring(0, 3).toUpperCase()}
-                    </div>
+                    <TeamBadge name={homeTeam.name} logoUrl={homeTeam.logoUrl} size="md" />
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ospitante (Casa)</span>
                       <h4 className="text-base font-black text-white group-hover:text-[#CCFF00] transition-colors">{homeTeam.name}</h4>
@@ -800,9 +954,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-[#FF334B] text-black font-black flex items-center justify-center text-xs">
-                      {awayTeam.name.substring(0, 3).toUpperCase()}
-                    </div>
+                    <TeamBadge name={awayTeam.name} logoUrl={awayTeam.logoUrl} size="md" />
                     <div>
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Ospite (Trasferta)</span>
                       <h4 className="text-base font-black text-white group-hover:text-[#FF334B] transition-colors">{awayTeam.name}</h4>
@@ -1031,6 +1183,18 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
           setActiveViewerMedia(null);
         }}
         media={activeViewerMedia}
+      />
+
+      {/* Quick Avatar / Logo URL Modal */}
+      <AvatarUrlModal
+        isOpen={avatarModalState.isOpen}
+        onClose={() => setAvatarModalState((prev) => ({ ...prev, isOpen: false }))}
+        type={avatarModalState.type}
+        title={avatarModalState.title}
+        subtitle={avatarModalState.subtitle}
+        currentUrl={avatarModalState.currentUrl}
+        role={avatarModalState.role}
+        onSave={handleSaveAvatarUrl}
       />
     </div>
   );

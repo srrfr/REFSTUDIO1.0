@@ -33,16 +33,19 @@ import {
   Info,
   Filter,
   Layers,
+  Camera,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
 import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow } from '@/types/refstudio';
 import { RatingStars } from '@/components/common/RatingStars';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TagBadge } from '@/components/common/TagBadge';
+import { TeamBadge, PlayerBadge, CoachBadge } from '@/components/common/AvatarBadge';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
+import { AvatarUrlModal } from '@/components/modals/AvatarUrlModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 
 const AVAILABLE_TAGS: RefereeCustomTag[] = [
@@ -189,6 +192,67 @@ function SquadreContent() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
+  // Avatar / Logo URL Modal state
+  const [avatarModalState, setAvatarModalState] = useState<{
+    isOpen: boolean;
+    type: 'team' | 'player' | 'coach';
+    id: string;
+    title: string;
+    subtitle?: string;
+    currentUrl?: string;
+    role?: string;
+  }>({
+    isOpen: false,
+    type: 'team',
+    id: '',
+    title: '',
+  });
+
+  const handleOpenAvatarModal = (
+    type: 'team' | 'player' | 'coach',
+    id: string,
+    title: string,
+    currentUrl?: string,
+    subtitle?: string,
+    role?: string
+  ) => {
+    setAvatarModalState({
+      isOpen: true,
+      type,
+      id,
+      title,
+      currentUrl: currentUrl || '',
+      subtitle,
+      role,
+    });
+  };
+
+  const handleSaveAvatarUrl = (newUrl: string) => {
+    const { type, id } = avatarModalState;
+    if (type === 'team') {
+      const updated = DbService.updateTeam(id, { logoUrl: newUrl });
+      if (selectedTeam && selectedTeam.id === id) {
+        setSelectedTeam(updated);
+        setEditTeamForm((prev) => ({ ...prev, logoUrl: newUrl }));
+      }
+      loadAllData();
+    } else if (type === 'coach') {
+      const updated = DbService.updateTeam(id, { coachPhotoUrl: newUrl });
+      if (selectedTeam && selectedTeam.id === id) {
+        setSelectedTeam(updated);
+        setEditTeamForm((prev) => ({ ...prev, coachPhotoUrl: newUrl }));
+      }
+      loadAllData();
+    } else if (type === 'player') {
+      const updated = DbService.updatePlayer(id, { photoUrl: newUrl });
+      if (selectedPlayer && selectedPlayer.id === id) {
+        setSelectedPlayer(updated);
+        setEditPlayerForm((prev) => ({ ...prev, photoUrl: newUrl }));
+      }
+      setTeamRoster((prev) => prev.map((p) => (p.id === updated.id ? updated : p)));
+    }
+  };
+
   // Caricamento dati con dipendenze stabili: evita loop continui di re-render
   const loadAllData = useCallback(() => {
     const list = DbService.getTeams();
@@ -236,7 +300,9 @@ function SquadreContent() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (isViewerOpen) {
+        if (avatarModalState.isOpen) {
+          setAvatarModalState((prev) => ({ ...prev, isOpen: false }));
+        } else if (isViewerOpen) {
           setIsViewerOpen(false);
         } else if (isNoteModalOpen) {
           setIsNoteModalOpen(false);
@@ -251,7 +317,7 @@ function SquadreContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isViewerOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer, selectedTeam, handleClosePlayer, handleCloseTeam]);
+  }, [avatarModalState.isOpen, isViewerOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer, selectedTeam, handleClosePlayer, handleCloseTeam]);
 
   useEffect(() => {
     if (initialQ) {
@@ -902,9 +968,12 @@ function SquadreContent() {
                       {/* Squadra & Sede */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-[#141824] border border-[#242A3C] flex items-center justify-center font-black text-xs text-[#CCFF00] group-hover:scale-105 group-hover:border-[#CCFF00]/50 transition-all shrink-0">
-                            {team.name.substring(0, 2).toUpperCase()}
-                          </div>
+                          <TeamBadge
+                            name={team.name}
+                            logoUrl={team.logoUrl}
+                            size="md"
+                            className="group-hover:scale-105 group-hover:border-[#CCFF00]/50"
+                          />
                           <div>
                             <span className="font-bold text-white group-hover:text-[#CCFF00] transition-colors block text-sm">
                               {team.name}
@@ -1009,9 +1078,12 @@ function SquadreContent() {
                 <div>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-[#141824] border border-[#242A3C] flex items-center justify-center font-black text-sm text-[#CCFF00] group-hover:scale-105 group-hover:border-[#CCFF00]/50 transition-all">
-                        {team.name.substring(0, 2).toUpperCase()}
-                      </div>
+                      <TeamBadge
+                        name={team.name}
+                        logoUrl={team.logoUrl}
+                        size="lg"
+                        className="group-hover:scale-105 group-hover:border-[#CCFF00]/50"
+                      />
                       <div>
                         <div className="flex items-center gap-1.5">
                           <h3 className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors line-clamp-1">
@@ -1079,8 +1151,39 @@ function SquadreContent() {
             {/* Testata della Scheda */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E2333] pb-5 pt-1">
               <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-[#CCFF00] text-black font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.3)] shrink-0">
-                  {selectedTeam.name.substring(0, 3).toUpperCase()}
+                <div className="relative group/teamlogo">
+                  <TeamBadge
+                    name={selectedTeam.name}
+                    logoUrl={selectedTeam.logoUrl}
+                    size="xl"
+                    className="shadow-[0_0_15px_rgba(204,255,0,0.3)] cursor-pointer"
+                    onClick={() =>
+                      handleOpenAvatarModal(
+                        'team',
+                        selectedTeam.id,
+                        selectedTeam.name,
+                        selectedTeam.logoUrl,
+                        `Girone ${selectedTeam.girone}`
+                      )
+                    }
+                    showEditOverlay={true}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleOpenAvatarModal(
+                        'team',
+                        selectedTeam.id,
+                        selectedTeam.name,
+                        selectedTeam.logoUrl,
+                        `Girone ${selectedTeam.girone}`
+                      )
+                    }
+                    className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow-md transition-all cursor-pointer"
+                    title="Modifica Logo Squadra (URL)"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -1363,6 +1466,13 @@ function SquadreContent() {
                         className="p-3.5 flex items-center justify-between text-xs hover:bg-[#CCFF00]/10 cursor-pointer transition-colors group"
                       >
                         <div className="flex items-center gap-3">
+                          <PlayerBadge
+                            firstName={player.firstName}
+                            lastName={player.lastName}
+                            photoUrl={player.photoUrl}
+                            role={player.role}
+                            size="sm"
+                          />
                           <RoleBadge role={player.role} />
                           <div>
                             <span className="font-bold text-white group-hover:text-[#CCFF00] transition-colors">
@@ -1672,12 +1782,33 @@ function SquadreContent() {
                   </div>
 
                   {/* Impianto & Panchina */}
-                  <div className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2">
+                  <div className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2.5">
                     <span className="text-xs font-black uppercase tracking-wider text-slate-400 block">
-                      Impianto di Gioco & Staff
+                      Logo Club, Impianto & Staff Tecnico
                     </span>
                     {isEditingTeam ? (
-                      <div className="space-y-2 text-xs">
+                      <div className="space-y-3 text-xs">
+                        {/* Logo Squadra URL */}
+                        <div>
+                          <label className="text-slate-400 block mb-1 font-bold">
+                            Logo Squadra (URL immagine web)
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              value={editTeamForm.logoUrl || ''}
+                              onChange={(e) => setEditTeamForm({ ...editTeamForm, logoUrl: e.target.value })}
+                              placeholder="https://esempio.com/logo-squadra.png"
+                              className="flex-1 bg-[#0D0F16] border border-[#212638] rounded-xl p-2 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00]"
+                            />
+                            <TeamBadge
+                              name={editTeamForm.name || selectedTeam.name}
+                              logoUrl={editTeamForm.logoUrl}
+                              size="md"
+                            />
+                          </div>
+                        </div>
+
                         <div>
                           <label className="text-slate-400 block mb-1 font-bold">Nome Stadio</label>
                           <input
@@ -1687,8 +1818,9 @@ function SquadreContent() {
                             className="w-full bg-[#0D0F16] border border-[#212638] rounded-xl p-2 text-xs text-slate-200"
                           />
                         </div>
+
                         <div>
-                          <label className="text-slate-400 block mb-1 font-bold">Allenatore</label>
+                          <label className="text-slate-400 block mb-1 font-bold">Nome Allenatore</label>
                           <input
                             type="text"
                             value={editTeamForm.coachName || ''}
@@ -1696,12 +1828,70 @@ function SquadreContent() {
                             className="w-full bg-[#0D0F16] border border-[#212638] rounded-xl p-2 text-xs text-slate-200"
                           />
                         </div>
+
+                        {/* Foto Allenatore URL */}
+                        <div>
+                          <label className="text-slate-400 block mb-1 font-bold">
+                            Foto Allenatore (URL immagine web)
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              value={editTeamForm.coachPhotoUrl || ''}
+                              onChange={(e) => setEditTeamForm({ ...editTeamForm, coachPhotoUrl: e.target.value })}
+                              placeholder="https://esempio.com/foto-allenatore.jpg"
+                              className="flex-1 bg-[#0D0F16] border border-[#212638] rounded-xl p-2 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00]"
+                            />
+                            <CoachBadge
+                              coachName={editTeamForm.coachName || selectedTeam.coachName}
+                              coachPhotoUrl={editTeamForm.coachPhotoUrl}
+                              size="md"
+                            />
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <div className="text-xs text-slate-300 space-y-1.5 pt-1">
+                      <div className="text-xs text-slate-300 space-y-2 pt-1">
                         <p><span className="text-slate-500 font-bold">Stadio:</span> {selectedTeam.stadium || 'Non specificato'}</p>
                         <p><span className="text-slate-500 font-bold">Città:</span> {selectedTeam.city || 'Emilia-Romagna'}</p>
-                        <p><span className="text-slate-500 font-bold">Allenatore:</span> {selectedTeam.coachName || 'Non specificato'}</p>
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <span className="text-slate-500 font-bold">Allenatore:</span>
+                          <div className="relative group/coachlogo">
+                            <CoachBadge
+                              coachName={selectedTeam.coachName}
+                              coachPhotoUrl={selectedTeam.coachPhotoUrl}
+                              size="md"
+                              className="cursor-pointer"
+                              onClick={() =>
+                                handleOpenAvatarModal(
+                                  'coach',
+                                  selectedTeam.id,
+                                  selectedTeam.coachName || 'Allenatore',
+                                  selectedTeam.coachPhotoUrl,
+                                  selectedTeam.name
+                                )
+                              }
+                              showEditOverlay={true}
+                            />
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleOpenAvatarModal(
+                                  'coach',
+                                  selectedTeam.id,
+                                  selectedTeam.coachName || 'Allenatore',
+                                  selectedTeam.coachPhotoUrl,
+                                  selectedTeam.name
+                                )
+                              }
+                              className="absolute -bottom-1 -right-1 p-1 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow-md transition-all cursor-pointer"
+                              title="Modifica Foto Allenatore (URL)"
+                            >
+                              <Camera className="w-2.5 h-2.5" />
+                            </button>
+                          </div>
+                          <span className="font-semibold text-white">{selectedTeam.coachName || 'Non specificato'}</span>
+                        </div>
                         <p><span className="text-slate-500 font-bold">Atteggiamento panchina:</span> {selectedTeam.benchAttitude || 'Regolare'}</p>
                       </div>
                     )}
@@ -1742,8 +1932,43 @@ function SquadreContent() {
             {/* Player Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E2333] pb-5">
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 flex items-center justify-center text-[#CCFF00] font-black text-lg shadow-[0_0_12px_rgba(204,255,0,0.2)] shrink-0">
-                  {selectedPlayer.lastName.substring(0, 2).toUpperCase()}
+                <div className="relative group/playerlogo">
+                  <PlayerBadge
+                    firstName={selectedPlayer.firstName}
+                    lastName={selectedPlayer.lastName}
+                    photoUrl={selectedPlayer.photoUrl}
+                    role={selectedPlayer.role}
+                    size="xl"
+                    className="shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer"
+                    onClick={() =>
+                      handleOpenAvatarModal(
+                        'player',
+                        selectedPlayer.id,
+                        `${selectedPlayer.firstName} ${selectedPlayer.lastName}`,
+                        selectedPlayer.photoUrl,
+                        `${selectedPlayer.teamName} • ${selectedPlayer.role}`,
+                        selectedPlayer.role
+                      )
+                    }
+                    showEditOverlay={true}
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleOpenAvatarModal(
+                        'player',
+                        selectedPlayer.id,
+                        `${selectedPlayer.firstName} ${selectedPlayer.lastName}`,
+                        selectedPlayer.photoUrl,
+                        `${selectedPlayer.teamName} • ${selectedPlayer.role}`,
+                        selectedPlayer.role
+                      )
+                    }
+                    className="absolute -bottom-1 -right-1 p-1.5 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow-md transition-all cursor-pointer"
+                    title="Modifica Foto Calciatore (URL)"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 <div>
                   <h2 className="text-xl font-black text-white">
@@ -1798,6 +2023,31 @@ function SquadreContent() {
                 </button>
               </div>
             </div>
+
+            {/* In-place Player Photo URL input when editing */}
+            {isEditingPlayer && (
+              <div className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2">
+                <label className="text-xs font-black uppercase tracking-wider text-slate-400 block">
+                  Foto Calciatore (URL immagine web)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="url"
+                    value={editPlayerForm.photoUrl || ''}
+                    onChange={(e) => setEditPlayerForm({ ...editPlayerForm, photoUrl: e.target.value })}
+                    placeholder="https://esempio.com/foto-calciatore.jpg"
+                    className="flex-1 bg-[#0D0F16] border border-[#212638] rounded-xl p-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00]"
+                  />
+                  <PlayerBadge
+                    firstName={editPlayerForm.firstName || selectedPlayer.firstName}
+                    lastName={editPlayerForm.lastName || selectedPlayer.lastName}
+                    photoUrl={editPlayerForm.photoUrl}
+                    role={editPlayerForm.role || selectedPlayer.role}
+                    size="md"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Player Stats Grid */}
             <div className="grid grid-cols-4 gap-2.5 text-center text-xs">
@@ -2028,6 +2278,18 @@ function SquadreContent() {
           setActiveViewerMedia(null);
         }}
         media={activeViewerMedia}
+      />
+
+      {/* Quick Avatar / Logo URL Modal */}
+      <AvatarUrlModal
+        isOpen={avatarModalState.isOpen}
+        onClose={() => setAvatarModalState((prev) => ({ ...prev, isOpen: false }))}
+        type={avatarModalState.type}
+        title={avatarModalState.title}
+        subtitle={avatarModalState.subtitle}
+        currentUrl={avatarModalState.currentUrl}
+        role={avatarModalState.role}
+        onSave={handleSaveAvatarUrl}
       />
     </div>
   );

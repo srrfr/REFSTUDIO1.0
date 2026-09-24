@@ -44,6 +44,7 @@ export interface Team {
   benchAttitude?: string; // "Polemica", "Serena", "Rumorosa"
   coachAttitude?: string; // "Rispettoso", "Costantemente fuori dall'area tecnica"
   coachName?: string;
+  coachPhotoUrl?: string;
   managerName?: string;
   refereeNotes?: string;
   // Statistiche da classifica
@@ -69,6 +70,7 @@ export interface Player {
   girone: 'A' | 'B' | string;
   firstName: string;
   lastName: string;
+  photoUrl?: string;
   birthDate?: string; // "DD-MM-YYYY"
   age?: number;
   role: RoleCategory;

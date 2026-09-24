@@ -31,6 +31,7 @@ import { Team, Player, Match, Note, VideoClip } from '@/types/refstudio';
 import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { RatingStars } from '@/components/common/RatingStars';
+import { TeamBadge, PlayerBadge } from '@/components/common/AvatarBadge';
 import { PreparaGaraModal } from '@/components/modals/PreparaGaraModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
@@ -54,6 +55,7 @@ export default function DashboardPage() {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
   const [recentNotes, setRecentNotes] = useState<Note[]>([]);
   const [recentVideos, setRecentVideos] = useState<VideoClip[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
@@ -73,6 +75,7 @@ export default function DashboardPage() {
 
     // Teams
     const teams = DbService.getTeams();
+    setAllTeams(teams);
     setRecentTeams(teams.slice(0, 4));
 
     // Flagged players
@@ -105,6 +108,20 @@ export default function DashboardPage() {
   const featuredMatch = upcomingMatches[0] || null;
   const activeSpotlightPlayer =
     flaggedPlayers.find((p) => p.id === selectedPlayerId) || flaggedPlayers[0] || null;
+
+  const teamLogoMap = React.useMemo(() => {
+    const map = new Map<string, string>();
+    allTeams.forEach((t) => {
+      if (t.logoUrl) {
+        map.set(t.name.toLowerCase().trim(), t.logoUrl);
+        map.set(t.id, t.logoUrl);
+        if (t.normalizedName) {
+          map.set(t.normalizedName.toLowerCase().trim(), t.logoUrl);
+        }
+      }
+    });
+    return map;
+  }, [allTeams]);
 
   // Tactical Pitch coordinates according to role
   const getPitchMarkerStyle = (role?: string) => {
@@ -160,10 +177,13 @@ export default function DashboardPage() {
 
               {/* Teams & Score display */}
               <div className="flex items-center justify-between gap-2 py-2">
-                <div className="flex-1 text-center space-y-1">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#1B202D] border border-[#2B3245] flex items-center justify-center font-black text-xs text-[#CCFF00] shadow-sm">
-                    {featuredMatch.homeTeamName.substring(0, 3).toUpperCase()}
-                  </div>
+                <div className="flex-1 text-center space-y-1.5">
+                  <TeamBadge
+                    name={featuredMatch.homeTeamName}
+                    logoUrl={teamLogoMap.get(featuredMatch.homeTeamId) || teamLogoMap.get(featuredMatch.homeTeamName.toLowerCase().trim())}
+                    size="lg"
+                    className="mx-auto shadow-sm"
+                  />
                   <p className="font-extrabold text-xs text-white truncate max-w-[120px] mx-auto">
                     {featuredMatch.homeTeamName}
                   </p>
@@ -178,10 +198,13 @@ export default function DashboardPage() {
                   <p className="text-[9px] text-slate-400 font-mono mt-0.5">{featuredMatch.dateText}</p>
                 </div>
 
-                <div className="flex-1 text-center space-y-1">
-                  <div className="w-10 h-10 mx-auto rounded-xl bg-[#1B202D] border border-[#2B3245] flex items-center justify-center font-black text-xs text-[#CCFF00] shadow-sm">
-                    {featuredMatch.awayTeamName.substring(0, 3).toUpperCase()}
-                  </div>
+                <div className="flex-1 text-center space-y-1.5">
+                  <TeamBadge
+                    name={featuredMatch.awayTeamName}
+                    logoUrl={teamLogoMap.get(featuredMatch.awayTeamId) || teamLogoMap.get(featuredMatch.awayTeamName.toLowerCase().trim())}
+                    size="lg"
+                    className="mx-auto shadow-sm"
+                  />
                   <p className="font-extrabold text-xs text-white truncate max-w-[120px] mx-auto">
                     {featuredMatch.awayTeamName}
                   </p>
@@ -255,12 +278,14 @@ export default function DashboardPage() {
             <div className="lg:col-span-4 bg-[#12151E] border border-[#212638] rounded-2xl p-5 space-y-5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-2xl bg-[#1A1E2C] border border-[#2B3245] flex items-center justify-center text-white font-black text-lg relative shadow-inner">
-                    <span className="text-[#CCFF00]">
-                      {activeSpotlightPlayer.kitNumber ? `#${activeSpotlightPlayer.kitNumber}` : '#10'}
-                    </span>
-                    <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-[#CCFF00] border-2 border-[#12151E]" />
-                  </div>
+                  <PlayerBadge
+                    firstName={activeSpotlightPlayer.firstName}
+                    lastName={activeSpotlightPlayer.lastName}
+                    photoUrl={activeSpotlightPlayer.photoUrl}
+                    role={activeSpotlightPlayer.role}
+                    size="xl"
+                    className="shadow-md"
+                  />
                   <div>
                     <h3 className="text-base font-black text-white">
                       {activeSpotlightPlayer.firstName} {activeSpotlightPlayer.lastName}
@@ -440,7 +465,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="text-3xl font-black text-white">{stats.totalTeams}</div>
-          <p className="text-[11px] text-slate-400 mt-1">17 Girone A + 18 Girone B</p>
+          <p className="text-[11px] text-slate-400 mt-1">18 Girone A + 18 Girone B (36 club)</p>
         </div>
 
         <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
@@ -507,15 +532,25 @@ export default function DashboardPage() {
                 <span className="text-[11px] font-mono">{m.dateText}</span>
               </div>
 
-              <div className="flex items-center justify-between py-1">
-                <div className="flex-1 text-left">
-                  <p className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">{m.homeTeamName}</p>
+              <div className="flex items-center justify-between py-1 gap-2">
+                <div className="flex-1 text-left flex items-center gap-2">
+                  <TeamBadge
+                    name={m.homeTeamName}
+                    logoUrl={teamLogoMap.get(m.homeTeamId) || teamLogoMap.get(m.homeTeamName.toLowerCase().trim())}
+                    size="sm"
+                  />
+                  <p className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors truncate">{m.homeTeamName}</p>
                 </div>
-                <div className="px-3 py-1 bg-[#090A0E] border border-[#222838] rounded-lg text-xs font-mono font-black text-white">
+                <div className="px-3 py-1 bg-[#090A0E] border border-[#222838] rounded-lg text-xs font-mono font-black text-white shrink-0">
                   {m.played && m.homeScore !== undefined ? `${m.homeScore} - ${m.awayScore}` : 'VS'}
                 </div>
-                <div className="flex-1 text-right">
-                  <p className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">{m.awayTeamName}</p>
+                <div className="flex-1 text-right flex items-center justify-end gap-2">
+                  <p className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors truncate">{m.awayTeamName}</p>
+                  <TeamBadge
+                    name={m.awayTeamName}
+                    logoUrl={teamLogoMap.get(m.awayTeamId) || teamLogoMap.get(m.awayTeamName.toLowerCase().trim())}
+                    size="sm"
+                  />
                 </div>
               </div>
 
@@ -556,23 +591,26 @@ export default function DashboardPage() {
                 key={team.id}
                 className="p-3.5 rounded-xl bg-[#12151E] border border-[#212638] hover:border-[#CCFF00]/40 transition-all flex items-center justify-between group"
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
-                      {team.name}
-                    </span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#181C28] text-slate-300 font-bold border border-[#282E40]">
-                      Girone {team.girone}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-slate-400 font-semibold">Tecnica:</span>
-                      <RatingStars value={team.technicalLevel} type="technical" />
+                <div className="flex items-center gap-3">
+                  <TeamBadge name={team.name} logoUrl={team.logoUrl} size="md" />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
+                        {team.name}
+                      </span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#181C28] text-slate-300 font-bold border border-[#282E40]">
+                        Girone {team.girone}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] text-slate-400 font-semibold">Aggressività:</span>
-                      <RatingStars value={team.aggressionLevel} type="aggression" />
+                    <div className="flex items-center gap-4 mt-1.5 text-xs text-slate-400">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-slate-400 font-semibold">Tecnica:</span>
+                        <RatingStars value={team.technicalLevel} type="technical" />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-slate-400 font-semibold">Aggressività:</span>
+                        <RatingStars value={team.aggressionLevel} type="aggression" />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -606,23 +644,32 @@ export default function DashboardPage() {
                 key={player.id}
                 className="p-3.5 rounded-xl bg-[#12151E] border border-[#212638] hover:border-[#CCFF00]/40 transition-all flex items-center justify-between group"
               >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
-                      {player.firstName} {player.lastName}
-                    </span>
-                    <RoleBadge role={player.role} />
-                  </div>
-                  <p className="text-xs text-slate-400 mt-0.5">{player.teamName}</p>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {player.customTags.map((tag, idx) => (
-                      <TagBadge key={idx} tag={tag} size="sm" />
-                    ))}
-                    {player.yellowCards > 0 && (
-                      <span className="text-[10px] font-black px-1.5 py-0.5 bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 rounded">
-                        {player.yellowCards} Ammonizioni
+                <div className="flex items-center gap-3">
+                  <PlayerBadge
+                    firstName={player.firstName}
+                    lastName={player.lastName}
+                    photoUrl={player.photoUrl}
+                    role={player.role}
+                    size="md"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
+                        {player.firstName} {player.lastName}
                       </span>
-                    )}
+                      <RoleBadge role={player.role} />
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">{player.teamName}</p>
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {player.customTags.map((tag, idx) => (
+                        <TagBadge key={idx} tag={tag} size="sm" />
+                      ))}
+                      {player.yellowCards > 0 && (
+                        <span className="text-[10px] font-black px-1.5 py-0.5 bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 rounded">
+                          {player.yellowCards} Ammonizioni
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

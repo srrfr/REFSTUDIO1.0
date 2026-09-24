@@ -23,6 +23,7 @@ export class SupabaseService {
       benchAttitude: row.bench_attitude,
       coachAttitude: row.coach_attitude,
       coachName: row.coach_name,
+      coachPhotoUrl: row.coach_photo_url || row.stats?.coachPhotoUrl || '',
       managerName: row.manager_name,
       refereeNotes: row.referee_notes,
       stats: row.stats || undefined,
@@ -34,6 +35,16 @@ export class SupabaseService {
    * Converte una riga Supabase nel modello TypeScript Player
    */
   static mapPlayerFromRow(row: any): Player {
+    let photoUrl = row.photo_url || '';
+    let refNotes = row.referee_notes || '';
+    if (!photoUrl && refNotes.includes('[PHOTO_URL:')) {
+      const pMatch = refNotes.match(/\[PHOTO_URL:\s*([^\]]+)\]/);
+      if (pMatch) {
+        photoUrl = pMatch[1].trim();
+        refNotes = refNotes.replace(/\[PHOTO_URL:\s*[^\]]+\]\s*/, '').trim();
+      }
+    }
+
     return {
       id: row.id,
       teamId: row.team_id,
@@ -42,6 +53,7 @@ export class SupabaseService {
       girone: row.girone,
       firstName: row.first_name,
       lastName: row.last_name,
+      photoUrl: photoUrl || undefined,
       birthDate: row.birth_date,
       age: row.age,
       role: row.role || 'CEN',
@@ -54,7 +66,7 @@ export class SupabaseService {
       redCards: row.red_cards ?? 0,
       disciplinaryStatus: row.disciplinary_status || 'REGOLARE',
       customTags: row.custom_tags || [],
-      refereeNotes: row.referee_notes,
+      refereeNotes: refNotes,
       updatedAt: row.updated_at,
     };
   }
@@ -279,7 +291,7 @@ export class SupabaseService {
       normalized_name: team.normalizedName,
       girone: team.girone,
       city: team.city,
-      logo_url: team.logoUrl,
+      logo_url: team.logoUrl || null,
       stadium: team.stadium,
       stadium_address: team.stadiumAddress,
       pitch_surface: team.pitchSurface,
@@ -291,7 +303,10 @@ export class SupabaseService {
       coach_name: team.coachName,
       manager_name: team.managerName,
       referee_notes: team.refereeNotes,
-      stats: team.stats || {},
+      stats: {
+        ...(team.stats || {}),
+        coachPhotoUrl: team.coachPhotoUrl || undefined,
+      },
       updated_at: new Date().toISOString(),
     });
   }
@@ -299,6 +314,11 @@ export class SupabaseService {
   static async upsertPlayer(player: Player): Promise<void> {
     const supabase = getSupabaseClient();
     if (!supabase) return;
+
+    let combinedNotes = player.refereeNotes || '';
+    if (player.photoUrl) {
+      combinedNotes = `[PHOTO_URL: ${player.photoUrl.trim()}]\n${combinedNotes}`.trim();
+    }
 
     await supabase.from('players').upsert({
       id: player.id,
@@ -320,7 +340,7 @@ export class SupabaseService {
       red_cards: player.redCards,
       disciplinary_status: player.disciplinaryStatus,
       custom_tags: player.customTags,
-      referee_notes: player.refereeNotes,
+      referee_notes: combinedNotes || null,
       updated_at: new Date().toISOString(),
     });
   }
@@ -503,28 +523,34 @@ export class SupabaseService {
       // 2. Players (Deduplicazione rigorosa per ID per evitare errore PostgreSQL ON CONFLICT)
       const uniquePlayersMap = new Map<string, Player>();
       data.players.forEach((p) => uniquePlayersMap.set(p.id, p));
-      const playerPayload = Array.from(uniquePlayersMap.values()).map((p) => ({
-        id: p.id,
-        team_id: p.teamId,
-        team_name: p.teamName,
-        championship_id: p.championshipId || 'eccellenza-er',
-        girone: p.girone,
-        first_name: p.firstName,
-        last_name: p.lastName,
-        birth_date: p.birthDate,
-        age: p.age,
-        role: p.role,
-        kit_number: p.kitNumber,
-        height_cm: p.heightCm,
-        preferred_foot: p.preferredFoot,
-        goals: p.goals || 0,
-        appearances: p.appearances || 0,
-        yellow_cards: p.yellowCards || 0,
-        red_cards: p.redCards || 0,
-        disciplinary_status: p.disciplinaryStatus || 'REGOLARE',
-        custom_tags: p.customTags || [],
-        referee_notes: p.refereeNotes,
-      }));
+      const playerPayload = Array.from(uniquePlayersMap.values()).map((p) => {
+        let combinedNotes = p.refereeNotes || '';
+        if (p.photoUrl) {
+          combinedNotes = `[PHOTO_URL: ${p.photoUrl.trim()}]\n${combinedNotes}`.trim();
+        }
+        return {
+          id: p.id,
+          team_id: p.teamId,
+          team_name: p.teamName,
+          championship_id: p.championshipId || 'eccellenza-er',
+          girone: p.girone,
+          first_name: p.firstName,
+          last_name: p.lastName,
+          birth_date: p.birthDate,
+          age: p.age,
+          role: p.role,
+          kit_number: p.kitNumber,
+          height_cm: p.heightCm,
+          preferred_foot: p.preferredFoot,
+          goals: p.goals || 0,
+          appearances: p.appearances || 0,
+          yellow_cards: p.yellowCards || 0,
+          red_cards: p.redCards || 0,
+          disciplinary_status: p.disciplinaryStatus || 'REGOLARE',
+          custom_tags: p.customTags || [],
+          referee_notes: combinedNotes || null,
+        };
+      });
 
       for (let i = 0; i < playerPayload.length; i += 200) {
         const chunk = playerPayload.slice(i, i + 200);
