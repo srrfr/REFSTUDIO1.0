@@ -83,9 +83,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
 
           {isMobileView && (
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#141722] transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-[#141722] transition-colors cursor-pointer active:scale-95"
               title="Chiudi Menu"
+              aria-label="Chiudi Menu"
             >
               <X className="w-5 h-5" />
             </button>

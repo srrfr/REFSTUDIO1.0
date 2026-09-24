@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Shield,
@@ -135,6 +135,9 @@ function SquadreContent() {
 
   // Selected team state (apre la scheda dettagliata)
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const selectedTeamRef = useRef<Team | null>(null);
+  selectedTeamRef.current = selectedTeam;
+
   const [activeTeamTab, setActiveTeamTab] = useState<'FORMA' | 'ROSA' | 'NOTE' | 'VIDEO' | 'VALUTAZIONI'>('FORMA');
   const [teamRoster, setTeamRoster] = useState<Player[]>([]);
   const [teamNotes, setTeamNotes] = useState<Note[]>([]);
@@ -148,10 +151,26 @@ function SquadreContent() {
 
   // Selected Player from Roster state
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const selectedPlayerRef = useRef<Player | null>(null);
+  selectedPlayerRef.current = selectedPlayer;
+
   const [playerNotes, setPlayerNotes] = useState<Note[]>([]);
   const [playerVideos, setPlayerVideos] = useState<VideoClip[]>([]);
   const [isEditingPlayer, setIsEditingPlayer] = useState(false);
   const [editPlayerForm, setEditPlayerForm] = useState<Partial<Player>>({});
+
+  // Handlers robusti per chiusura schede e modali
+  const handleCloseTeam = useCallback(() => {
+    setSelectedTeam(null);
+    setSelectedPlayer(null);
+    setIsEditingTeam(false);
+    setIsEditingPlayer(false);
+  }, []);
+
+  const handleClosePlayer = useCallback(() => {
+    setSelectedPlayer(null);
+    setIsEditingPlayer(false);
+  }, []);
 
   // Note Modal state
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
@@ -170,6 +189,7 @@ function SquadreContent() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
+  // Caricamento dati con dipendenze stabili: evita loop continui di re-render
   const loadAllData = useCallback(() => {
     const list = DbService.getTeams();
     setTeams(list);
@@ -181,30 +201,57 @@ function SquadreContent() {
     const standingsB = DbService.getStandings('B');
     setAllStandings([...standingsA, ...standingsB]);
 
-    // Se c'è una squadra aperta nella scheda dettagliata, aggiorna i dati in tempo reale
-    if (selectedTeam) {
-      const freshTeam = DbService.getTeamById(selectedTeam.id);
-      if (freshTeam) setSelectedTeam(freshTeam);
-      setTeamRoster(DbService.getPlayers(selectedTeam.id));
-      setTeamNotes(DbService.getNotes('squadra', selectedTeam.id, user?.username));
-      setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+    // Se c'è una scheda squadra aperta, aggiorna i dati correlati senza forzare setState ridondanti
+    const currentTeam = selectedTeamRef.current;
+    if (currentTeam) {
+      const freshTeam = DbService.getTeamById(currentTeam.id);
+      if (freshTeam && JSON.stringify(freshTeam) !== JSON.stringify(currentTeam)) {
+        setSelectedTeam(freshTeam);
+      }
+      setTeamRoster(DbService.getPlayers(currentTeam.id));
+      setTeamNotes(DbService.getNotes('squadra', currentTeam.id, user?.username));
+      setTeamVideos(DbService.getVideos('squadra', currentTeam.id));
     }
 
-    // Se c'è un calciatore aperto nella modale, aggiorna i dati in tempo reale
-    if (selectedPlayer) {
-      const freshPlayer = DbService.getPlayerById(selectedPlayer.id);
-      if (freshPlayer) setSelectedPlayer(freshPlayer);
-      setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
-      setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id));
+    // Se c'è una scheda calciatore aperta, aggiorna i dati correlati
+    const currentPlayer = selectedPlayerRef.current;
+    if (currentPlayer) {
+      const freshPlayer = DbService.getPlayerById(currentPlayer.id);
+      if (freshPlayer && JSON.stringify(freshPlayer) !== JSON.stringify(currentPlayer)) {
+        setSelectedPlayer(freshPlayer);
+      }
+      setPlayerNotes(DbService.getNotes('giocatore', currentPlayer.id, user?.username));
+      setPlayerVideos(DbService.getVideos('giocatore', currentPlayer.id));
     }
-  }, [selectedTeam, selectedPlayer, user?.username]);
+  }, [user?.username]);
 
-  // Sottoscrizione Realtime multi-dispositivo
+  // Sottoscrizione Realtime multi-dispositivo (ora stabile e priva di cicli)
   useRealtimeSync(loadAllData);
 
   useEffect(() => {
     loadAllData();
   }, [loadAllData]);
+
+  // Chiusura automatica di tutte le schede e modali con il tasto Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isViewerOpen) {
+          setIsViewerOpen(false);
+        } else if (isNoteModalOpen) {
+          setIsNoteModalOpen(false);
+        } else if (isVideoModalOpen) {
+          setIsVideoModalOpen(false);
+        } else if (selectedPlayer) {
+          handleClosePlayer();
+        } else if (selectedTeam) {
+          handleCloseTeam();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isViewerOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer, selectedTeam, handleClosePlayer, handleCloseTeam]);
 
   useEffect(() => {
     if (initialQ) {
@@ -1019,19 +1066,20 @@ function SquadreContent() {
 
       {/* 3. SCHEDA DETTAGLIATA SQUADRA (MODALE A TUTTO SCHERMO / AMPIA) */}
       {selectedTeam && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-5 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-5 sm:p-7 text-slate-100 space-y-6">
-            <button
-              onClick={() => setSelectedTeam(null)}
-              className="absolute right-5 top-5 p-2 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-400 hover:text-white border border-[#212638] transition-all"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-5 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleCloseTeam();
+          }}
+        >
+          <div
+            className="relative w-full max-w-5xl max-h-[92vh] overflow-y-auto rounded-3xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-5 sm:p-7 text-slate-100 space-y-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Testata della Scheda */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E2333] pb-5 pt-1">
               <div className="flex items-center gap-3.5">
-                <div className="w-14 h-14 rounded-2xl bg-[#CCFF00] text-black font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.3)]">
+                <div className="w-14 h-14 rounded-2xl bg-[#CCFF00] text-black font-black text-xl flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.3)] shrink-0">
                   {selectedTeam.name.substring(0, 3).toUpperCase()}
                 </div>
                 <div>
@@ -1054,32 +1102,44 @@ function SquadreContent() {
                 </div>
               </div>
 
-              {/* Box Classifica Rapido */}
-              {standingsByTeam.get(selectedTeam.name.toLowerCase().trim()) && (
-                <div className="flex items-center gap-2 bg-[#11141D] p-2.5 rounded-2xl border border-[#212638] shrink-0">
-                  <div className="px-3 border-r border-[#1F2538] text-center">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Posizione</span>
-                    <span className="text-lg font-black text-[#CCFF00]">
-                      #{standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.position}
-                    </span>
+              {/* Box Classifica Rapido + Tasto Chiudi */}
+              <div className="flex items-center gap-2.5 self-end md:self-center shrink-0">
+                {standingsByTeam.get(selectedTeam.name.toLowerCase().trim()) && (
+                  <div className="flex items-center gap-2 bg-[#11141D] p-2.5 rounded-2xl border border-[#212638] shrink-0">
+                    <div className="px-3 border-r border-[#1F2538] text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Posizione</span>
+                      <span className="text-lg font-black text-[#CCFF00]">
+                        #{standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.position}
+                      </span>
+                    </div>
+                    <div className="px-3 border-r border-[#1F2538] text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Punti</span>
+                      <span className="text-lg font-black text-white">
+                        {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.points}
+                      </span>
+                    </div>
+                    <div className="px-3 text-center">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase block">Giocate (V-N-P)</span>
+                      <span className="text-xs font-mono font-bold text-slate-200">
+                        {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.played} (
+                        {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.won}-
+                        {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.drawn}-
+                        {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.lost})
+                      </span>
+                    </div>
                   </div>
-                  <div className="px-3 border-r border-[#1F2538] text-center">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Punti</span>
-                    <span className="text-lg font-black text-white">
-                      {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.points}
-                    </span>
-                  </div>
-                  <div className="px-3 text-center">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase block">Giocate (V-N-P)</span>
-                    <span className="text-xs font-mono font-bold text-slate-200">
-                      {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.played} (
-                      {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.won}-
-                      {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.drawn}-
-                      {standingsByTeam.get(selectedTeam.name.toLowerCase().trim())?.lost})
-                    </span>
-                  </div>
-                </div>
-              )}
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleCloseTeam}
+                  className="p-2.5 rounded-2xl bg-[#141824] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-[#212638] hover:border-rose-500/40 transition-all cursor-pointer shadow-md shrink-0 active:scale-95"
+                  title="Chiudi Scheda (Esc)"
+                  aria-label="Chiudi Scheda"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             {/* TAB DI NAVIGAZIONE INTERNA ALLA SCHEDA */}
@@ -1656,8 +1716,9 @@ function SquadreContent() {
                 Scheda informativa club RefStudio • Dati aggiornati
               </span>
               <button
-                onClick={() => setSelectedTeam(null)}
-                className="px-5 py-2.5 bg-[#141824] hover:bg-[#1E2435] text-xs font-bold text-slate-300 rounded-xl border border-[#212638] transition-all hover:text-white"
+                type="button"
+                onClick={handleCloseTeam}
+                className="px-5 py-2.5 bg-[#141824] hover:bg-[#1E2435] text-xs font-bold text-slate-300 rounded-xl border border-[#212638] transition-all hover:text-white cursor-pointer active:scale-95 shadow-sm"
               >
                 Chiudi Scheda
               </button>
@@ -1668,19 +1729,20 @@ function SquadreContent() {
 
       {/* 4. MODALE SINGOLO CALCIATORE (APRIBILE DALLA ROSA DELLA SQUADRA) */}
       {selectedPlayer && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-6 md:p-8 text-slate-100 space-y-6">
-            <button
-              onClick={() => setSelectedPlayer(null)}
-              className="absolute right-6 top-6 text-slate-400 hover:text-[#CCFF00] transition-colors"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) handleClosePlayer();
+          }}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-6 md:p-8 text-slate-100 space-y-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Player Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E2333] pb-5">
               <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 flex items-center justify-center text-[#CCFF00] font-black text-lg shadow-[0_0_12px_rgba(204,255,0,0.2)]">
+                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 flex items-center justify-center text-[#CCFF00] font-black text-lg shadow-[0_0_12px_rgba(204,255,0,0.2)] shrink-0">
                   {selectedPlayer.lastName.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
@@ -1693,31 +1755,47 @@ function SquadreContent() {
                 </div>
               </div>
 
-              {/* Player edit trigger */}
-              <div>
+              {/* Player edit trigger + Close button */}
+              <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
                 {isEditingPlayer ? (
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={handleSavePlayerEdit}
-                      className="flex items-center gap-1.5 px-4 py-2 bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs rounded-xl shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs rounded-xl shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all cursor-pointer"
                     >
                       <Check className="w-4 h-4" /> Salva Dati
                     </button>
                     <button
+                      type="button"
                       onClick={() => setIsEditingPlayer(false)}
-                      className="px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-300 text-xs font-bold rounded-xl border border-[#212638] transition-all"
+                      className="px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-300 text-xs font-bold rounded-xl border border-[#212638] transition-all cursor-pointer"
                     >
                       Annulla
                     </button>
                   </div>
                 ) : (
                   <button
-                    onClick={() => setIsEditingPlayer(true)}
-                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] font-bold text-xs rounded-xl transition-all"
+                    type="button"
+                    onClick={() => {
+                      setIsEditingPlayer(true);
+                      setEditPlayerForm(selectedPlayer);
+                    }}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] font-bold text-xs rounded-xl transition-all cursor-pointer"
                   >
-                    <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Dati & Tag
+                    <Edit3 className="w-3.5 h-3.5 text-[#CCFF00]" /> Modifica Dati & Tag
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleClosePlayer}
+                  className="p-2 rounded-xl bg-[#141824] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-[#212638] hover:border-rose-500/40 transition-all cursor-pointer shadow-sm shrink-0 active:scale-95"
+                  title="Chiudi Scheda Calciatore (Esc)"
+                  aria-label="Chiudi Scheda Calciatore"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
@@ -1904,8 +1982,9 @@ function SquadreContent() {
             {/* Footer Close */}
             <div className="pt-4 border-t border-[#1C2130] flex justify-end">
               <button
-                onClick={() => setSelectedPlayer(null)}
-                className="px-5 py-2.5 bg-[#141824] hover:bg-[#1E2435] text-xs font-bold text-slate-300 rounded-xl border border-[#212638] transition-all hover:text-white"
+                type="button"
+                onClick={handleClosePlayer}
+                className="px-5 py-2.5 bg-[#141824] hover:bg-[#1E2435] text-xs font-bold text-slate-300 rounded-xl border border-[#212638] transition-all hover:text-white cursor-pointer active:scale-95 shadow-sm"
               >
                 Chiudi Scheda Calciatore
               </button>

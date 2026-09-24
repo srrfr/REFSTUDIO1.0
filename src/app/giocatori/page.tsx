@@ -58,6 +58,24 @@ function PlayersContent() {
     loadPlayers();
   }, [loadPlayers]);
 
+  // Gestione tasto Escape per chiusura modale calciatore
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isNoteModalOpen) {
+          setIsNoteModalOpen(false);
+        } else if (isVideoModalOpen) {
+          setIsVideoModalOpen(false);
+        } else if (selectedPlayer) {
+          setSelectedPlayer(null);
+          setIsEditing(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isNoteModalOpen, isVideoModalOpen, selectedPlayer]);
+
   const handleSelectPlayer = (player: Player) => {
     setSelectedPlayer(player);
     setEditForm(player);
@@ -267,19 +285,20 @@ function PlayersContent() {
 
       {/* Player Detail & In-Place Admin Edit Modal */}
       {selectedPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-6 md:p-8 text-slate-100 space-y-6">
-            <button
-              onClick={() => setSelectedPlayer(null)}
-              className="absolute right-6 top-6 text-slate-400 hover:text-white"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSelectedPlayer(null);
+          }}
+        >
+          <div
+            className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-6 md:p-8 text-slate-100 space-y-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#1E2333] pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 flex items-center justify-center text-[#CCFF00] font-black text-lg">
+                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 flex items-center justify-center text-[#CCFF00] font-black text-lg shrink-0 shadow-[0_0_12px_rgba(204,255,0,0.2)]">
                   {selectedPlayer.lastName.substring(0, 2).toUpperCase()}
                 </div>
                 <div>
@@ -292,31 +311,44 @@ function PlayersContent() {
                 </div>
               </div>
 
-              {/* Edit Trigger */}
-              <div>
+              {/* Edit Trigger & Close Button */}
+              <div className="flex items-center gap-2 self-end md:self-center shrink-0">
                 {isEditing ? (
                   <div className="flex gap-2">
                     <button
+                      type="button"
                       onClick={handleSaveEdit}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg shadow-[0_0_12px_rgba(204,255,0,0.3)]"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg shadow-[0_0_12px_rgba(204,255,0,0.3)] transition-all cursor-pointer"
                     >
                       <Check className="w-4 h-4 text-black" /> Salva Modifiche
                     </button>
                     <button
+                      type="button"
                       onClick={() => setIsEditing(false)}
-                      className="px-3 py-1.5 bg-[#181C28] hover:bg-[#202534] text-slate-300 text-xs rounded-lg border border-[#282E40]"
+                      className="px-3 py-1.5 bg-[#181C28] hover:bg-[#202534] text-slate-300 text-xs rounded-lg border border-[#282E40] transition-all cursor-pointer"
                     >
                       Annulla
                     </button>
                   </div>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => setIsEditing(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#12151E] hover:bg-[#181C28] text-slate-200 border border-[#262C3D] font-bold text-xs rounded-lg"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#12151E] hover:bg-[#181C28] text-slate-200 border border-[#262C3D] font-bold text-xs rounded-lg transition-all cursor-pointer"
                   >
                     <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Dati & Tag
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={() => setSelectedPlayer(null)}
+                  className="p-2 rounded-xl bg-[#141824] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-[#212638] hover:border-rose-500/40 transition-all cursor-pointer active:scale-95 shadow-sm shrink-0"
+                  title="Chiudi (Esc)"
+                  aria-label="Chiudi"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
@@ -472,10 +504,11 @@ function PlayersContent() {
               </div>
 
               <button
+                type="button"
                 onClick={() => setSelectedPlayer(null)}
-                className="px-4 py-2 bg-[#181C28] hover:bg-[#202534] text-xs font-bold text-slate-300 border border-[#282E40] rounded-lg"
+                className="px-5 py-2 bg-[#181C28] hover:bg-[#202534] text-xs font-bold text-slate-300 border border-[#282E40] rounded-xl cursor-pointer active:scale-95 shadow-sm hover:text-white transition-all"
               >
-                Chiudi
+                Chiudi Scheda Calciatore
               </button>
             </div>
           </div>

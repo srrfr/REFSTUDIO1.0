@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Match, Team, Player, Note, VideoClip, StandingRow } from '@/types/refstudio';
 import { DbService } from '@/lib/repository/db-service';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -66,6 +66,26 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
 
   // Reload counter to refresh data when a note/video is added
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Chiusura del dossier e sottomodali con tasto Escape
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isViewerOpen) {
+          setIsViewerOpen(false);
+        } else if (isNoteModalOpen) {
+          setIsNoteModalOpen(false);
+        } else if (isVideoModalOpen) {
+          setIsVideoModalOpen(false);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isViewerOpen, isNoteModalOpen, isVideoModalOpen, onClose]);
 
   // Memoized data resolution for both teams involved in this specific match
   const matchData = useMemo(() => {
@@ -619,8 +639,16 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl my-4 rounded-3xl bg-[#0A0D15] border border-[#212638] shadow-2xl p-4 sm:p-7 text-slate-100 max-h-[94vh] overflow-y-auto flex flex-col justify-between space-y-5">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div
+        className="relative w-full max-w-5xl my-4 rounded-3xl bg-[#0A0D15] border border-[#212638] shadow-2xl p-4 sm:p-7 text-slate-100 max-h-[94vh] overflow-y-auto flex flex-col justify-between space-y-5"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Top Bar with Title and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2333] pb-4">
           <div className="flex items-center gap-3">
@@ -647,17 +675,20 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
 
           <div className="flex items-center gap-2 self-end sm:self-center">
             <button
+              type="button"
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-300 text-xs font-bold border border-[#212638] transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-300 text-xs font-bold border border-[#212638] transition-all cursor-pointer"
               title="Stampa Dossier"
             >
               <Printer className="w-4 h-4 text-slate-400" />
               <span className="hidden sm:inline">Stampa</span>
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2 rounded-xl bg-[#141824] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-[#212638] transition-all"
-              title="Chiudi (Esc)"
+              className="p-2 rounded-xl bg-[#141824] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-[#212638] hover:border-rose-500/40 transition-all cursor-pointer active:scale-95 shadow-sm"
+              title="Chiudi Dossier (Esc)"
+              aria-label="Chiudi Dossier Gara"
             >
               <X className="w-5 h-5" />
             </button>
@@ -949,8 +980,9 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
             REFSTUDIO • Modulo Operativo Preparazione Gara
           </span>
           <button
+            type="button"
             onClick={onClose}
-            className="px-5 py-2.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.3)] transition-all"
+            className="px-5 py-2.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.3)] transition-all cursor-pointer active:scale-95"
           >
             Chiudi Dossier Gara
           </button>
