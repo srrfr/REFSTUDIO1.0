@@ -7,11 +7,10 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { useRealtime } from '@/lib/supabase/realtime-context';
 
 interface HeaderProps {
-  onOpenAdminPin: () => void;
   onToggleMobileMenu?: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onOpenAdminPin, onToggleMobileMenu }) => {
+export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
   const router = useRouter();
   const { user, isAdmin, openLoginModal } = useAuth();
   const { isConfigured, isConnected, onlineRefereesCount, lastEvent, syncNow } = useRealtime();
@@ -137,24 +136,12 @@ export const Header: React.FC<HeaderProps> = ({ onOpenAdminPin, onToggleMobileMe
           </button>
         )}
 
-        {/* Admin Badge */}
-
-        {isAdmin ? (
-          <button
-            onClick={onOpenAdminPin}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#CCFF00]/15 border border-[#CCFF00]/40 text-[#CCFF00] text-xs font-black shadow-sm hover:bg-[#CCFF00]/25 transition-all"
-          >
+        {/* Admin Indicator (solo se admin @samueleromini) */}
+        {isAdmin && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#CCFF00]/15 border border-[#CCFF00]/30 text-[#CCFF00] text-xs font-black">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#CCFF00]" />
-            <span className="hidden sm:inline">Admin Attivo</span>
-          </button>
-        ) : (
-          <button
-            onClick={onOpenAdminPin}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#11141D] border border-[#212638] text-slate-300 text-xs font-semibold hover:bg-[#181C28] hover:border-slate-600 transition-all"
-          >
-            <Lock className="w-3.5 h-3.5 text-[#CCFF00]" />
-            <span className="hidden sm:inline">PIN Admin</span>
-          </button>
+            <span className="hidden sm:inline">Admin</span>
+          </div>
         )}
 
         {/* Referee Profile Card / Persistent Button to Profile */}

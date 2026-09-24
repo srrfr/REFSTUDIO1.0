@@ -153,18 +153,16 @@ export default function MatchesPage() {
                     </span>
                     <div className="flex items-center gap-2">
                       <span className="text-slate-400 text-[11px]">🏟️ {match.matchField || 'Campo federale'}</span>
-                      {isAdmin && (
-                        <button
-                          onClick={() => {
-                            setEditingMatch(match);
-                            setEditMatchForm(match);
-                          }}
-                          className="text-slate-400 hover:text-[#CCFF00] p-1"
-                          title="Modifica Risultato / Arbitro"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      )}
+                      <button
+                        onClick={() => {
+                          setEditingMatch(match);
+                          setEditMatchForm(match);
+                        }}
+                        className="text-slate-400 hover:text-[#CCFF00] p-1 transition-colors"
+                        title="Modifica Risultato / Arbitro"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
 

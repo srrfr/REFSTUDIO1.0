@@ -3,9 +3,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UserAccount } from '@/types/refstudio';
 import { DbService, DEFAULT_USERS } from '@/lib/repository/db-service';
-import { checkIsAdminSession, saveAdminSession, clearAdminSession, verifyAdminCode } from './admin-guard';
 
 const SESSION_USER_KEY = 'refstudio_auth_username_v1';
+
+// L'amministratore è esclusivamente lo user @samueleromini
+export function isSamueleRominiAdmin(user: UserAccount | null | undefined): boolean {
+  if (!user || !user.username) return false;
+  return user.username.toLowerCase().trim() === 'samueleromini';
+}
 
 interface AuthContextType {
   user: UserAccount | null;
@@ -16,8 +21,6 @@ interface AuthContextType {
   login: (username: string, pass: string) => Promise<{ success: boolean; message?: string }>;
   logout: () => void;
   updateProfile: (updates: Partial<UserAccount>) => Promise<boolean>;
-  elevateToAdmin: (pin: string) => { success: boolean; message?: string };
-  revokeAdmin: () => void;
   availableUsers: UserAccount[];
 }
 
@@ -25,9 +28,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserAccount | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [availableUsers, setAvailableUsers] = useState<UserAccount[]>(DEFAULT_USERS);
+
+  // isAdmin è true SOLO ED ESCLUSIVAMENTE per lo user @samueleromini
+  const isAdmin = Boolean(isSamueleRominiAdmin(user));
 
   // Caricamento profilo salvato
   useEffect(() => {
@@ -42,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         if (found) {
           setUser(found);
-          setIsAdmin(found.role === 'admin' || checkIsAdminSession());
           return;
         }
       }
@@ -51,7 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const defaultUser = profiles[0] || DEFAULT_USERS[0];
       setUser(defaultUser);
       localStorage.setItem(SESSION_USER_KEY, defaultUser.username);
-      setIsAdmin(defaultUser.role === 'admin' || checkIsAdminSession());
     } catch (err) {
       console.warn('Errore inizializzazione auth:', err);
       setUser(DEFAULT_USERS[0]);
@@ -69,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         );
         if (fresh) {
           setUser(fresh);
-          setIsAdmin(fresh.role === 'admin' || checkIsAdminSession());
         }
       }
     };
@@ -97,7 +99,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setUser(found);
-    setIsAdmin(found.role === 'admin' || checkIsAdminSession());
     if (typeof window !== 'undefined') {
       localStorage.setItem(SESSION_USER_KEY, found.username);
     }
@@ -107,8 +108,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    setIsAdmin(false);
-    clearAdminSession();
     if (typeof window !== 'undefined') {
       localStorage.removeItem(SESSION_USER_KEY);
     }
@@ -120,34 +119,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const updated = DbService.updateProfile(user.username, updates);
       setUser(updated);
-      setIsAdmin(updated.role === 'admin' || checkIsAdminSession());
       setAvailableUsers(DbService.getProfiles());
       return true;
     } catch (err) {
       console.error('Errore aggiornamento profilo:', err);
       return false;
-    }
-  };
-
-  const elevateToAdmin = (pin: string) => {
-    if (verifyAdminCode(pin)) {
-      setIsAdmin(true);
-      saveAdminSession();
-      if (user) {
-        const updated = DbService.updateProfile(user.username, { role: 'admin' });
-        setUser(updated);
-      }
-      return { success: true };
-    }
-    return { success: false, message: 'Codice PIN Amministratore non valido.' };
-  };
-
-  const revokeAdmin = () => {
-    setIsAdmin(false);
-    clearAdminSession();
-    if (user && user.username !== 'samueleromini') {
-      const updated = DbService.updateProfile(user.username, { role: 'arbitro' });
-      setUser(updated);
     }
   };
 
@@ -162,8 +138,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         logout,
         updateProfile,
-        elevateToAdmin,
-        revokeAdmin,
         availableUsers,
       }}
     >

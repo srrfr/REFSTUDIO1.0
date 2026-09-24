@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   RefreshCw,
   CheckCircle2,
@@ -28,7 +29,7 @@ import { DbService } from '@/lib/repository/db-service';
 import { ClientExcelParser } from '@/lib/data-provider/client-excel-parser';
 
 export default function AdminSyncPage() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { isConnected: isRealtimeConnected, onlineRefereesCount, lastEvent, syncNow } = useRealtime();
   const [loading, setLoading] = useState(false);
   const [syncResponse, setSyncResponse] = useState<any>(null);
@@ -186,6 +187,28 @@ export default function AdminSyncPage() {
     }
   };
 
+
+  if (!isAdmin) {
+    return (
+      <div className="py-24 px-4 text-center max-w-lg mx-auto space-y-4">
+        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500 mx-auto shadow-[0_0_25px_rgba(244,63,94,0.2)]">
+          <Shield className="w-8 h-8" />
+        </div>
+        <h1 className="text-2xl font-black text-white">Accesso Riservato</h1>
+        <p className="text-xs text-slate-400 leading-relaxed">
+          La sezione <strong>Data Provider Sync</strong> e l&apos;aggiornamento del database sono riservati esclusivamente all&apos;amministratore (<strong>@samueleromini</strong>).
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#141824] hover:bg-[#1E2435] text-xs font-bold text-[#CCFF00] rounded-xl border border-[#212638] transition-all"
+          >
+            Torna alla Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -639,16 +662,6 @@ export default function AdminSyncPage() {
           </div>
         </div>
       </div>
-
-      {/* Admin Notice */}
-      {!isAdmin && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3 text-amber-300 text-xs">
-          <Shield className="w-5 h-5 shrink-0 text-amber-400" />
-          <span>
-            <strong>Nota di Sicurezza:</strong> Per modificare le anagrafiche o forzare il sync, attiva i privilegi Amministratore digitando il PIN <code className="bg-black/60 px-1.5 py-0.5 rounded font-mono text-[#CCFF00] border border-amber-500/30">280899</code> dal pulsante in alto.
-          </span>
-        </div>
-      )}
     </div>
   );
 }

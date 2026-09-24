@@ -23,12 +23,11 @@ import {
 import { useAuth } from '@/lib/auth/auth-context';
 
 interface SidebarProps {
-  onOpenAdminPin: () => void;
   isOpen?: boolean;
   onClose?: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onOpenAdminPin, isOpen = false, onClose }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => {
   const pathname = usePathname();
   const { user, isAdmin } = useAuth();
   const [isInstalled, setIsInstalled] = React.useState(false);
@@ -42,7 +41,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAdminPin, isOpen = false
     }
   }, []);
 
-
   const navItems = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
     { label: 'Calciatori & Stats', href: '/giocatori', icon: Users },
@@ -50,7 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAdminPin, isOpen = false
     { label: 'Partite & Classifiche', href: '/partite', icon: Calendar },
     { label: 'Note & Video', href: '/note-video', icon: FileText },
     { label: 'Profilo Arbitro', href: '/profilo', icon: UserCheck },
-    { label: 'Data Provider Sync', href: '/admin/sync', icon: RefreshCw },
+    ...(isAdmin ? [{ label: 'Data Provider Sync', href: '/admin/sync', icon: RefreshCw }] : []),
   ];
 
   const renderContent = (isMobileView: boolean = false) => (
@@ -129,21 +127,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onOpenAdminPin, isOpen = false
               </span>
             )}
           </div>
-
-          <button
-            onClick={() => {
-              if (isMobileView) onClose?.();
-              onOpenAdminPin();
-            }}
-            className={`w-full text-xs font-black py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 transition-all ${
-              isAdmin
-                ? 'bg-[#CCFF00]/15 text-[#CCFF00] hover:bg-[#CCFF00]/25 border border-[#CCFF00]/40 shadow-sm'
-                : 'bg-[#181C28] hover:bg-[#202534] text-slate-200 border border-[#282E40]'
-            }`}
-          >
-            <Lock className="w-3.5 h-3.5 text-[#CCFF00]" />
-            {isAdmin ? 'Gestisci PIN Admin' : 'Sblocca Admin (PIN)'}
-          </button>
 
           {!isInstalled ? (
             <button

@@ -292,34 +292,32 @@ function PlayersContent() {
                 </div>
               </div>
 
-              {/* Admin Edit Trigger */}
-              {isAdmin && (
-                <div>
-                  {isEditing ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSaveEdit}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg shadow-[0_0_12px_rgba(204,255,0,0.3)]"
-                      >
-                        <Check className="w-4 h-4 text-black" /> Salva (Admin)
-                      </button>
-                      <button
-                        onClick={() => setIsEditing(false)}
-                        className="px-3 py-1.5 bg-[#181C28] hover:bg-[#202534] text-slate-300 text-xs rounded-lg border border-[#282E40]"
-                      >
-                        Annulla
-                      </button>
-                    </div>
-                  ) : (
+              {/* Edit Trigger */}
+              <div>
+                {isEditing ? (
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#12151E] hover:bg-[#181C28] text-slate-200 border border-[#262C3D] font-bold text-xs rounded-lg"
+                      onClick={handleSaveEdit}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg shadow-[0_0_12px_rgba(204,255,0,0.3)]"
                     >
-                      <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Dati & Tag
+                      <Check className="w-4 h-4 text-black" /> Salva Modifiche
                     </button>
-                  )}
-                </div>
-              )}
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="px-3 py-1.5 bg-[#181C28] hover:bg-[#202534] text-slate-300 text-xs rounded-lg border border-[#282E40]"
+                    >
+                      Annulla
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#12151E] hover:bg-[#181C28] text-slate-200 border border-[#262C3D] font-bold text-xs rounded-lg"
+                  >
+                    <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Dati & Tag
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Editable Information Fields */}

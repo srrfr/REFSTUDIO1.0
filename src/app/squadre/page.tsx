@@ -1230,33 +1230,31 @@ function SquadreContent() {
                     Valutazioni Arbitrali sul Club
                   </h4>
 
-                  {isAdmin && (
-                    <div>
-                      {isEditingTeam ? (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={handleSaveTeamEdit}
-                            className="flex items-center gap-1.5 px-4 py-2 bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs rounded-xl shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all"
-                          >
-                            <Check className="w-4 h-4" /> Salva Modifiche
-                          </button>
-                          <button
-                            onClick={() => setIsEditingTeam(false)}
-                            className="px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-300 border border-[#212638] font-bold text-xs rounded-xl transition-all"
-                          >
-                            Annulla
-                          </button>
-                        </div>
-                      ) : (
+                  <div>
+                    {isEditingTeam ? (
+                      <div className="flex gap-2">
                         <button
-                          onClick={() => setIsEditingTeam(true)}
-                          className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] font-bold text-xs rounded-xl transition-all"
+                          onClick={handleSaveTeamEdit}
+                          className="flex items-center gap-1.5 px-4 py-2 bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs rounded-xl shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all"
                         >
-                          <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Dati (Admin)
+                          <Check className="w-4 h-4" /> Salva Modifiche
                         </button>
-                      )}
-                    </div>
-                  )}
+                        <button
+                          onClick={() => setIsEditingTeam(false)}
+                          className="px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-300 border border-[#212638] font-bold text-xs rounded-xl transition-all"
+                        >
+                          Annulla
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setIsEditingTeam(true)}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] font-bold text-xs rounded-xl transition-all"
+                      >
+                        <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Scheda Club
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1382,34 +1380,32 @@ function SquadreContent() {
                 </div>
               </div>
 
-              {/* Admin edit trigger */}
-              {isAdmin && (
-                <div>
-                  {isEditingPlayer ? (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSavePlayerEdit}
-                        className="flex items-center gap-1.5 px-4 py-2 bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs rounded-xl shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all"
-                      >
-                        <Check className="w-4 h-4" /> Salva Dati
-                      </button>
-                      <button
-                        onClick={() => setIsEditingPlayer(false)}
-                        className="px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-300 text-xs font-bold rounded-xl border border-[#212638] transition-all"
-                      >
-                        Annulla
-                      </button>
-                    </div>
-                  ) : (
+              {/* Player edit trigger */}
+              <div>
+                {isEditingPlayer ? (
+                  <div className="flex gap-2">
                     <button
-                      onClick={() => setIsEditingPlayer(true)}
-                      className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] font-bold text-xs rounded-xl transition-all"
+                      onClick={handleSavePlayerEdit}
+                      className="flex items-center gap-1.5 px-4 py-2 bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs rounded-xl shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all"
                     >
-                      <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Dati (Admin)
+                      <Check className="w-4 h-4" /> Salva Dati
                     </button>
-                  )}
-                </div>
-              )}
+                    <button
+                      onClick={() => setIsEditingPlayer(false)}
+                      className="px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-300 text-xs font-bold rounded-xl border border-[#212638] transition-all"
+                    >
+                      Annulla
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingPlayer(true)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] font-bold text-xs rounded-xl transition-all"
+                  >
+                    <Edit3 className="w-4 h-4 text-[#CCFF00]" /> Modifica Dati & Tag
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Player Stats Grid */}
