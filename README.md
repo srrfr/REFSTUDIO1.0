@@ -18,7 +18,7 @@ Piattaforma web avanzata per direttori di gara, assistenti e osservatori arbitra
 ## 📁 Struttura Dati Excel di Default
 
 I file Excel sorgente configurati sono:
-1. `Eccellenza_Emilia_Romagna_Girone_A.xlsx` (17 squadre con fogli dedicati e rose complete)
+1. `Eccellenza_Emilia_Romagna_Girone_A.xlsx` (18 squadre con fogli dedicati e rose complete)
 2. `Eccellenza_Emilia_Romagna_Girone_B.xlsx` (18 squadre con fogli dedicati e rose complete)
 3. `Eccellenza_Emilia_Romagna_Gare_Classifica.xlsx` (Calendario 603 gare e classifiche aggiornate per Girone A e B)
 

@@ -639,7 +639,7 @@ export default function AdminSyncPage() {
               <FileSpreadsheet className="w-4 h-4 text-[#CCFF00]" />
               <span>Girone A Eccellenza</span>
             </div>
-            <p className="text-slate-400">17 Squadre • Rose complete</p>
+            <p className="text-slate-400">18 Squadre • Rose complete</p>
             <p className="text-[10px] text-slate-500 font-mono truncate">Eccellenza_Emilia_Romagna_Girone_A.xlsx</p>
           </div>
 

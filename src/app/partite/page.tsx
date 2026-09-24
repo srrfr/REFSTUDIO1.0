@@ -6,19 +6,14 @@ import {
   ClipboardCheck,
   Trophy,
   Edit3,
-  Check,
   X,
-  MapPin,
-  User,
-  FileText,
   ChevronLeft,
   ChevronRight,
   Shield,
   ArrowRight,
   Award,
   Layers,
-  Sparkles,
-  ArrowLeft,
+  Clock,
 } from 'lucide-react';
 import Link from 'next/link';
 import { DbService } from '@/lib/repository/db-service';
@@ -27,6 +22,14 @@ import { PreparaGaraModal } from '@/components/modals/PreparaGaraModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 
 type ViewStep = 'CATEGORY' | 'GIRONE' | 'MATCHES';
+
+// Estrae esclusivamente l'orario della gara (es. "17:30", "15:00", "18:00")
+// eliminando qualsiasi prefisso come "Giornata 1 17:30" o simili
+function extractMatchTime(dateText?: string): string {
+  if (!dateText) return '15:30';
+  const m = dateText.match(/(\d{1,2}:\d{2})/);
+  return m ? m[1] : dateText;
+}
 
 // Calcola la prima giornata senza risultati registrati (la prossima da disputare)
 function getFirstUpcomingDay(girone: 'A' | 'B', allMatches: Match[]): number {
@@ -48,7 +51,6 @@ function getFirstUpcomingDay(girone: 'A' | 'B', allMatches: Match[]): number {
     }
   }
 
-  // Se tutte le 34 giornate hanno risultati (fine campionato), ritorna l'ultima
   return 34;
 }
 
@@ -111,8 +113,7 @@ export default function MatchesPage() {
   }, []);
 
   // Aggiorna le partite mostrate e la classifica quando l'utente cambia girone o giornata
-  // NOTA BENE: Questo effetto NON tocca selectedDay, permettendo all'utente di selezionare
-  // qualsiasi giornata liberamente senza forzature!
+  // NOTA: Non reimposta selectedDay per permettere la libera navigazione tra tutte le giornate
   useEffect(() => {
     const m = DbService.getMatches(activeGirone, selectedDay);
     setDayMatches(m);
@@ -208,7 +209,7 @@ export default function MatchesPage() {
               </div>
 
               <p className="text-xs text-slate-300 leading-relaxed">
-                Massima divisione del calcio dilettantistico regionale. Comprende i Gironi A e B, calendari completi a 34 giornate, arbitri designati e statistiche squadre.
+                Massima divisione regionale. Gironi A e B da 18 squadre ciascuno, calendari a 34 giornate e statistiche club.
               </p>
 
               {/* Statistiche rapide */}
@@ -219,7 +220,7 @@ export default function MatchesPage() {
                 </div>
                 <div className="bg-[#141824] p-2 rounded-xl border border-[#212638]">
                   <span className="text-slate-400 block text-[10px]">Società:</span>
-                  <span className="font-mono font-bold text-[#CCFF00]">35 Squadre</span>
+                  <span className="font-mono font-bold text-[#CCFF00]">36 Squadre</span>
                 </div>
               </div>
             </div>
@@ -279,7 +280,7 @@ export default function MatchesPage() {
               </div>
 
               <p className="text-xs text-slate-400 leading-relaxed">
-                Campionati di Prima Categoria con schede informative e designazioni sezionali.
+                Campionati di Prima Categoria con schede informative e designazioni.
               </p>
             </div>
 
@@ -293,11 +294,11 @@ export default function MatchesPage() {
   }
 
   // =========================================================================
-  // STEP 2: SCHEDA SELEZIONE GIRONE
+  // STEP 2: SCHEDA SELEZIONE GIRONE (Snella, immediata: click su A o su B)
   // =========================================================================
   if (viewStep === 'GIRONE') {
     return (
-      <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
+      <div className="space-y-6 max-w-3xl mx-auto animate-in fade-in duration-200">
         {/* Barra di Navigazione a Ritroso */}
         <div className="flex items-center justify-between">
           <button
@@ -305,7 +306,7 @@ export default function MatchesPage() {
             className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0F16] hover:bg-[#141824] text-slate-300 hover:text-[#CCFF00] border border-[#1F2433] text-xs font-bold transition-all group shadow-sm"
           >
             <ChevronLeft className="w-4 h-4 text-[#CCFF00] group-hover:-translate-x-0.5 transition-transform" />
-            <span>← Torna a Selezione Categoria</span>
+            <span>← Torna a Categorie</span>
           </button>
 
           <span className="text-[10px] font-mono uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1 rounded-full border border-[#CCFF00]/30 font-bold">
@@ -313,128 +314,68 @@ export default function MatchesPage() {
           </span>
         </div>
 
-        {/* Intestazione Girone */}
-        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 sm:p-8 shadow-xl">
-          <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
-            <Award className="w-4 h-4 text-[#CCFF00]" />
-            <span>Categoria: <strong className="text-white">Eccellenza Emilia-Romagna</strong></span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide mt-2">
+        {/* Intestazione Rapida */}
+        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 text-center shadow-xl space-y-1">
+          <h1 className="text-2xl font-black text-white tracking-wide">
             Seleziona il Girone
           </h1>
-          <p className="text-sm text-slate-400 mt-2 max-w-2xl">
-            Scegli il girone di interesse per visualizzare il calendario delle gare (con posizionamento automatico sulla prossima giornata in programma) o consultare la classifica ufficiale aggiornata.
+          <p className="text-xs text-slate-400">
+            Eccellenza Emilia-Romagna • Clicca sul girone desiderato
           </p>
         </div>
 
-        {/* Griglia Selezione Girone A o B */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Card Girone A */}
-          <div
+        {/* Selezione Rapida A o B (senza informazioni superflue) */}
+        <div className="grid grid-cols-2 gap-4 sm:gap-6">
+          {/* Pulsante Girone A */}
+          <button
             onClick={() => handleSelectGirone('A')}
-            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-7 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.18)] transition-all cursor-pointer flex flex-col justify-between space-y-6"
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-10 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.22)] transition-all flex flex-col items-center justify-center space-y-4 active:scale-95 text-center cursor-pointer"
           >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
-                  <Shield className="w-7 h-7" />
-                </div>
-                <span className="text-xs font-mono font-black text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1 rounded-full border border-[#CCFF00]/30">
-                  17 Squadre
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-xl font-black text-white group-hover:text-[#CCFF00] transition-colors">
-                  Girone A (Emilia Ovest)
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Province: Piacenza, Parma, Reggio Emilia, Modena
-                </p>
-              </div>
-
-              <div className="space-y-2 pt-2 border-t border-[#1C2232] text-xs text-slate-300">
-                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
-                  <span className="text-slate-400">Giornate totali:</span>
-                  <span className="font-mono font-bold text-white">34 Giornate</span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
-                  <span className="text-slate-400">Partite totali:</span>
-                  <span className="font-mono font-bold text-white">306 Incontri</span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-400">Turno di riposo:</span>
-                  <span className="font-mono text-amber-400 font-bold">1 squadra a turno</span>
-                </div>
-              </div>
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-3xl sm:text-4xl font-black text-[#CCFF00] group-hover:scale-110 transition-transform shadow-inner">
+              A
             </div>
-
-            <div className="pt-4 border-t border-[#1C2232] flex items-center justify-between">
-              <span className="text-xs font-black text-[#CCFF00] group-hover:underline">
-                Visualizza Gare & Classifica Girone A
+            <div>
+              <span className="text-xl sm:text-2xl font-black text-white group-hover:text-[#CCFF00] transition-colors block">
+                Girone A
               </span>
-              <div className="w-9 h-9 rounded-full bg-[#CCFF00] text-black flex items-center justify-center group-hover:translate-x-1.5 transition-transform shadow-md">
-                <ArrowRight className="w-4 h-4 font-bold" />
-              </div>
+              <span className="text-xs font-mono text-slate-400 font-semibold mt-0.5 block">
+                18 Squadre
+              </span>
             </div>
-          </div>
+            <div className="w-full pt-3 border-t border-[#1C2232] flex items-center justify-center gap-1 text-xs font-bold text-[#CCFF00] group-hover:underline">
+              <span>Seleziona</span>
+              <ArrowRight className="w-3.5 h-3.5 font-bold group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
 
-          {/* Card Girone B */}
-          <div
+          {/* Pulsante Girone B */}
+          <button
             onClick={() => handleSelectGirone('B')}
-            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-7 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.18)] transition-all cursor-pointer flex flex-col justify-between space-y-6"
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-10 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.22)] transition-all flex flex-col items-center justify-center space-y-4 active:scale-95 text-center cursor-pointer"
           >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="w-14 h-14 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
-                  <Shield className="w-7 h-7" />
-                </div>
-                <span className="text-xs font-mono font-black text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1 rounded-full border border-[#CCFF00]/30">
-                  18 Squadre
-                </span>
-              </div>
-
-              <div>
-                <h3 className="text-xl font-black text-white group-hover:text-[#CCFF00] transition-colors">
-                  Girone B (Emilia Est & Romagna)
-                </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  Province: Bologna, Ferrara, Ravenna, Forlì-Cesena, Rimini
-                </p>
-              </div>
-
-              <div className="space-y-2 pt-2 border-t border-[#1C2232] text-xs text-slate-300">
-                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
-                  <span className="text-slate-400">Giornate totali:</span>
-                  <span className="font-mono font-bold text-white">34 Giornate</span>
-                </div>
-                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
-                  <span className="text-slate-400">Partite totali:</span>
-                  <span className="font-mono font-bold text-white">306 Incontri</span>
-                </div>
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-400">Formula girone:</span>
-                  <span className="font-mono text-emerald-400 font-bold">9 partite per giornata</span>
-                </div>
-              </div>
+            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-3xl sm:text-4xl font-black text-[#CCFF00] group-hover:scale-110 transition-transform shadow-inner">
+              B
             </div>
-
-            <div className="pt-4 border-t border-[#1C2232] flex items-center justify-between">
-              <span className="text-xs font-black text-[#CCFF00] group-hover:underline">
-                Visualizza Gare & Classifica Girone B
+            <div>
+              <span className="text-xl sm:text-2xl font-black text-white group-hover:text-[#CCFF00] transition-colors block">
+                Girone B
               </span>
-              <div className="w-9 h-9 rounded-full bg-[#CCFF00] text-black flex items-center justify-center group-hover:translate-x-1.5 transition-transform shadow-md">
-                <ArrowRight className="w-4 h-4 font-bold" />
-              </div>
+              <span className="text-xs font-mono text-slate-400 font-semibold mt-0.5 block">
+                18 Squadre
+              </span>
             </div>
-          </div>
+            <div className="w-full pt-3 border-t border-[#1C2232] flex items-center justify-center gap-1 text-xs font-bold text-[#CCFF00] group-hover:underline">
+              <span>Seleziona</span>
+              <ArrowRight className="w-3.5 h-3.5 font-bold group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
         </div>
       </div>
     );
   }
 
   // =========================================================================
-  // STEP 3: SCHEDA GARE & CLASSIFICA DEL GIRONE SELEZIONATO
+  // STEP 3: SCHEDA GARE & CLASSIFICA (Schermata snella, orario gara pulito)
   // =========================================================================
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
@@ -468,6 +409,7 @@ export default function MatchesPage() {
               <span className="font-semibold text-slate-300">Eccellenza</span>
               <span className="text-slate-600">/</span>
               <span className="font-black text-[#CCFF00]">Girone {activeGirone}</span>
+              <span className="text-slate-500 font-mono text-[11px]">(18 Squadre)</span>
             </div>
           </div>
 
@@ -506,7 +448,7 @@ export default function MatchesPage() {
               </h1>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Visualizza gli incontri, prepara la gara per ogni match o consulta la classifica ufficiale aggiornata.
+              Visualizza le partite, prepara la gara per ogni incontro o consulta la classifica ufficiale.
             </p>
           </div>
 
@@ -632,50 +574,47 @@ export default function MatchesPage() {
             </div>
           </div>
 
-          {/* Griglia Partite della Giornata Selezionata */}
+          {/* Griglia Partite della Giornata Selezionata (SCHERMATA SNELLA) */}
           {dayMatches.length === 0 ? (
             <div className="p-12 text-center bg-[#0D0F16] border border-dashed border-[#212638] rounded-2xl text-slate-500 text-xs">
               Nessun incontro programmato per questa giornata nel calendario ufficiale.
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {dayMatches.map((match) => (
                 <div
                   key={match.id}
-                  className="rounded-2xl bg-[#0D0F16] border border-[#1F2433] p-5 hover:border-[#CCFF00]/40 transition-all flex flex-col justify-between space-y-4 group shadow-md"
+                  className="rounded-2xl bg-[#0D0F16] border border-[#1F2433] p-4 hover:border-[#CCFF00]/40 transition-all flex flex-col justify-between space-y-3 group shadow-md"
                 >
                   <div>
-                    {/* Header Card: Data, Campo, Modifica */}
-                    <div className="flex items-center justify-between text-xs text-slate-400 border-b border-[#1A1F2C] pb-2.5">
-                      <span className="font-bold text-[#CCFF00] text-[11px] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20 font-mono">
-                        {match.dateText || `Giornata ${match.matchDay}`}
+                    {/* Header Card Snella: Solo Orario della gara e icona Modifica */}
+                    <div className="flex items-center justify-between text-xs border-b border-[#1A1F2C] pb-2">
+                      <span className="font-mono font-bold text-[#CCFF00] text-xs bg-[#CCFF00]/10 px-2.5 py-1 rounded-lg border border-[#CCFF00]/25 flex items-center gap-1.5 shadow-sm">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{extractMatchTime(match.dateText)}</span>
                       </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 text-[11px] truncate max-w-[170px]">
-                          🏟️ {match.matchField || 'Campo federale'}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setEditingMatch(match);
-                            setEditMatchForm(match);
-                          }}
-                          className="text-slate-400 hover:text-[#CCFF00] p-1 transition-colors"
-                          title="Modifica Risultato / Arbitro"
-                        >
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+
+                      <button
+                        onClick={() => {
+                          setEditingMatch(match);
+                          setEditMatchForm(match);
+                        }}
+                        className="text-slate-400 hover:text-[#CCFF00] p-1.5 rounded-lg hover:bg-[#141824] transition-colors"
+                        title="Modifica Risultato"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
 
-                    {/* Squadre & Risultato */}
-                    <div className="py-4 flex items-center justify-between gap-3">
+                    {/* Squadre & Risultato Immediato */}
+                    <div className="py-3 flex items-center justify-between gap-3">
                       <div className="flex-1 text-left">
                         <p className="font-bold text-sm md:text-base text-white group-hover:text-[#CCFF00] transition-colors line-clamp-1">
                           {match.homeTeamName}
                         </p>
                       </div>
 
-                      <div className="px-4 py-1.5 bg-[#11141D] rounded-xl border border-[#212638] font-mono font-black text-sm text-[#CCFF00] shrink-0 shadow-inner">
+                      <div className="px-3.5 py-1 bg-[#11141D] rounded-xl border border-[#212638] font-mono font-black text-sm text-[#CCFF00] shrink-0 shadow-inner">
                         {match.played && match.homeScore !== undefined
                           ? `${match.homeScore} - ${match.awayScore}`
                           : 'VS'}
@@ -687,24 +626,10 @@ export default function MatchesPage() {
                         </p>
                       </div>
                     </div>
-
-                    {/* Arbitro & Note Osservazioni */}
-                    <div className="text-xs text-slate-400 space-y-1">
-                      <p className="flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5 text-slate-500" />
-                        <span>Arbitro: <strong className="text-slate-200">{match.refereeName || 'Da designare'}</strong></span>
-                      </p>
-                      {match.observations && (
-                        <p className="flex items-center gap-1.5 text-slate-400 italic">
-                          <FileText className="w-3.5 h-3.5 text-slate-500" />
-                          <span className="line-clamp-1">{match.observations}</span>
-                        </p>
-                      )}
-                    </div>
                   </div>
 
-                  {/* Pulsante Prepara la Gara */}
-                  <div className="pt-3 border-t border-[#1A1F2C] flex items-center justify-between">
+                  {/* Footer Card Snello: Stato & Pulsante Prepara la Gara */}
+                  <div className="pt-2.5 border-t border-[#1A1F2C] flex items-center justify-between">
                     <span className="text-[11px] text-slate-500 font-mono">
                       {match.played ? 'Partita disputata' : 'In programma'}
                     </span>
@@ -732,7 +657,7 @@ export default function MatchesPage() {
                   Classifica Ufficiale • Eccellenza Girone {activeGirone}
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Aggiornata in tempo reale alle gare disputate fino alla giornata {Math.max(1, upcomingDayForGirone - 1)}
+                  18 Squadre • Aggiornata in tempo reale alle gare disputate fino alla giornata {Math.max(1, upcomingDayForGirone - 1)}
                 </p>
               </div>
             </div>
@@ -879,6 +804,19 @@ export default function MatchesPage() {
                     className="w-full bg-[#181C28] border border-[#2B3245] rounded-xl p-2.5 text-slate-200 font-mono font-bold"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1 font-bold">Orario Partita</label>
+                <input
+                  type="text"
+                  value={editMatchForm.dateText || ''}
+                  onChange={(e) =>
+                    setEditMatchForm({ ...editMatchForm, dateText: e.target.value })
+                  }
+                  placeholder="Es. 15:30"
+                  className="w-full bg-[#181C28] border border-[#2B3245] rounded-xl p-2.5 text-slate-200"
+                />
               </div>
 
               <div>
