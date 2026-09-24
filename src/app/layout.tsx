@@ -8,7 +8,7 @@ import { PwaInstallPrompt } from '@/components/pwa/PwaInstallPrompt';
 export const metadata: Metadata = {
   title: 'RefStudio - Gestionale Professionale per Arbitri di Calcio',
   description:
-    'Piattaforma avanzata per arbitri di calcio: analisi squadre, calciatori, note disciplinari, video e briefing AI.',
+    'Piattaforma avanzata per arbitri di calcio: analisi squadre, calciatori, note disciplinari, video e preparazione della gara.',
   applicationName: 'RefStudio',
   appleWebApp: {
     capable: true,

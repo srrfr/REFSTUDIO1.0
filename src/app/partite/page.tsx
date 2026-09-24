@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Calendar, Sparkles, Trophy, Edit3, Check, X, MapPin, User, FileText } from 'lucide-react';
+import { Calendar, ClipboardCheck, Trophy, Edit3, Check, X, MapPin, User, FileText } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
-import { Match, StandingRow, PreMatchBriefing } from '@/types/refstudio';
+import { Match, StandingRow } from '@/types/refstudio';
 import { useAuth } from '@/lib/auth/auth-context';
-import { AiBriefingModal } from '@/components/modals/AiBriefingModal';
+import { PreparaGaraModal } from '@/components/modals/PreparaGaraModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 
 export default function MatchesPage() {
@@ -20,10 +20,9 @@ export default function MatchesPage() {
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [editMatchForm, setEditMatchForm] = useState<Partial<Match>>({});
 
-  // AI Briefing
-  const [isAiBriefingOpen, setIsAiBriefingOpen] = useState(false);
-  const [currentBriefing, setCurrentBriefing] = useState<PreMatchBriefing | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  // Prepara la Gara State
+  const [isPreparaGaraOpen, setIsPreparaGaraOpen] = useState(false);
+  const [preparaGaraMatch, setPreparaGaraMatch] = useState<Match | null>(null);
 
   const loadData = React.useCallback(() => {
     const m = DbService.getMatches(activeGirone, selectedDay);
@@ -39,26 +38,9 @@ export default function MatchesPage() {
     loadData();
   }, [loadData]);
 
-  const handleOpenAiBriefing = async (match: Match) => {
-    setIsAiLoading(true);
-    setIsAiBriefingOpen(true);
-    setCurrentBriefing(null);
-
-    try {
-      const res = await fetch('/api/ai/briefing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: match.id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCurrentBriefing(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to generate briefing:', err);
-    } finally {
-      setIsAiLoading(false);
-    }
+  const handleOpenPreparaGara = (match: Match) => {
+    setPreparaGaraMatch(match);
+    setIsPreparaGaraOpen(true);
   };
 
   const handleSaveMatchEdit = () => {
@@ -84,7 +66,7 @@ export default function MatchesPage() {
             Calendario & Classifica Eccellenza
           </h1>
           <p className="text-xs text-slate-400">
-            Consultazione gare, designazioni arbitrali, referti e briefing Gemini AI
+            Consultazione gare, designazioni arbitrali, referti e preparazione della gara
           </p>
         </div>
 
@@ -218,17 +200,17 @@ export default function MatchesPage() {
                   </div>
                 </div>
 
-                {/* AI Briefing Button */}
+                {/* Prepara la Gara Button */}
                 <div className="pt-3 border-t border-[#1A1F2C] flex items-center justify-between">
                   <span className="text-[11px] text-slate-500 font-mono">
                     {match.played ? 'Partita disputata' : 'In programma'}
                   </span>
                   <button
-                    onClick={() => handleOpenAiBriefing(match)}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#CCFF00]/15 hover:bg-[#CCFF00]/25 text-[#CCFF00] border border-[#CCFF00]/30 text-xs font-bold transition-all shadow-sm"
+                    onClick={() => handleOpenPreparaGara(match)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black transition-all shadow-[0_0_12px_rgba(204,255,0,0.25)] active:scale-95"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-[#CCFF00]" />
-                    Briefing AI Gemini
+                    <ClipboardCheck className="w-3.5 h-3.5 text-black" />
+                    Prepara la Gara
                   </button>
                 </div>
               </div>
@@ -416,12 +398,14 @@ export default function MatchesPage() {
         </div>
       )}
 
-      {/* AI Briefing Modal */}
-      <AiBriefingModal
-        isOpen={isAiBriefingOpen}
-        onClose={() => setIsAiBriefingOpen(false)}
-        briefing={currentBriefing}
-        loading={isAiLoading}
+      {/* Scheda Prepara la Gara Modal */}
+      <PreparaGaraModal
+        isOpen={isPreparaGaraOpen}
+        onClose={() => {
+          setIsPreparaGaraOpen(false);
+          setPreparaGaraMatch(null);
+        }}
+        match={preparaGaraMatch}
       />
     </div>
   );

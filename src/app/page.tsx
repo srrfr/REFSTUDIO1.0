@@ -24,13 +24,14 @@ import {
   Eye,
   Globe,
   Lock,
+  ClipboardCheck,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
-import { Team, Player, Match, Note, VideoClip, PreMatchBriefing } from '@/types/refstudio';
+import { Team, Player, Match, Note, VideoClip } from '@/types/refstudio';
 import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { RatingStars } from '@/components/common/RatingStars';
-import { AiBriefingModal } from '@/components/modals/AiBriefingModal';
+import { PreparaGaraModal } from '@/components/modals/PreparaGaraModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -56,10 +57,9 @@ export default function DashboardPage() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
-  // AI Briefing State
-  const [isAiBriefingOpen, setIsAiBriefingOpen] = useState(false);
-  const [currentBriefing, setCurrentBriefing] = useState<PreMatchBriefing | null>(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
+  // Prepara la Gara State
+  const [isPreparaGaraOpen, setIsPreparaGaraOpen] = useState(false);
+  const [preparaGaraMatch, setPreparaGaraMatch] = useState<Match | null>(null);
 
   const { user } = useAuth();
 
@@ -97,26 +97,9 @@ export default function DashboardPage() {
     loadDashboardData();
   }, [loadDashboardData]);
 
-  const handleGenerateBriefing = async (match: Match) => {
-    setIsAiLoading(true);
-    setIsAiBriefingOpen(true);
-    setCurrentBriefing(null);
-
-    try {
-      const res = await fetch('/api/ai/briefing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ matchId: match.id }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setCurrentBriefing(data.data);
-      }
-    } catch (err) {
-      console.error('Failed to generate briefing:', err);
-    } finally {
-      setIsAiLoading(false);
-    }
+  const handleOpenPreparaGara = (match: Match) => {
+    setPreparaGaraMatch(match);
+    setIsPreparaGaraOpen(true);
   };
 
   const featuredMatch = upcomingMatches[0] || null;
@@ -205,17 +188,17 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {/* Action Button: AI Gemini Briefing */}
+              {/* Action Button: Prepara la Gara */}
               <div className="pt-2 border-t border-[#1C2130] flex items-center justify-between gap-3">
                 <span className="text-[11px] text-slate-400 truncate max-w-[180px]">
                   🏟️ {featuredMatch.matchField || 'Campo da designare'}
                 </span>
                 <button
-                  onClick={() => handleGenerateBriefing(featuredMatch)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs transition-all shadow-[0_0_18px_rgba(204,255,0,0.35)] active:scale-95"
+                  onClick={() => handleOpenPreparaGara(featuredMatch)}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs transition-all shadow-[0_0_18px_rgba(204,255,0,0.35)] active:scale-95"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-black fill-black" />
-                  Briefing AI Gemini
+                  <ClipboardCheck className="w-4 h-4 text-black" />
+                  Prepara la Gara
                 </button>
               </div>
             </div>
@@ -494,13 +477,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* 4. UPCOMING MATCHES & AI BRIEFING LAUNCHER */}
+      {/* 4. UPCOMING MATCHES & PREPARA LA GARA LAUNCHER */}
       <div className="bg-[#0D0F16] border border-[#1F2433] rounded-2xl p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <Calendar className="w-5 h-5 text-[#CCFF00]" />
             <h2 className="text-base font-black text-white uppercase tracking-wide">
-              Calendario Prossimi Incontri & Briefing
+              Calendario Prossimi Incontri & Prepara la Gara
             </h2>
           </div>
           <Link
@@ -541,11 +524,11 @@ export default function DashboardPage() {
                   🏟️ {m.matchField || 'Campo da designare'}
                 </span>
                 <button
-                  onClick={() => handleGenerateBriefing(m)}
+                  onClick={() => handleOpenPreparaGara(m)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] border border-[#CCFF00]/30 text-xs font-bold transition-all shadow-sm"
                 >
-                  <Sparkles className="w-3 h-3 text-[#CCFF00]" />
-                  Briefing AI
+                  <ClipboardCheck className="w-3.5 h-3.5 text-[#CCFF00]" />
+                  Prepara la Gara
                 </button>
               </div>
             </div>
@@ -776,12 +759,14 @@ export default function DashboardPage() {
         media={activeViewerMedia}
       />
 
-      {/* Gemini AI Briefing Modal */}
-      <AiBriefingModal
-        isOpen={isAiBriefingOpen}
-        onClose={() => setIsAiBriefingOpen(false)}
-        briefing={currentBriefing}
-        loading={isAiLoading}
+      {/* Scheda Prepara la Gara Modal */}
+      <PreparaGaraModal
+        isOpen={isPreparaGaraOpen}
+        onClose={() => {
+          setIsPreparaGaraOpen(false);
+          setPreparaGaraMatch(null);
+        }}
+        match={preparaGaraMatch}
       />
     </div>
   );

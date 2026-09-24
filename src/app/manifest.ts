@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'RefStudio - Gestionale Arbitri',
     short_name: 'RefStudio',
     description:
-      'Piattaforma avanzata per arbitri di calcio: analisi squadre, calciatori, note disciplinari, video e briefing AI.',
+      'Piattaforma avanzata per arbitri di calcio: analisi squadre, calciatori, note disciplinari, video e preparazione della gara.',
     start_url: '/',
     id: '/',
     scope: '/',
