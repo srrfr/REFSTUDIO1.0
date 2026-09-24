@@ -41,9 +41,9 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'maskable',
       },
       {
-        src: '/icons/icon.svg',
-        sizes: '512x512',
-        type: 'image/svg+xml',
+        src: '/logo_big.png',
+        sizes: '2000x2000',
+        type: 'image/png',
         purpose: 'any',
       },
     ],

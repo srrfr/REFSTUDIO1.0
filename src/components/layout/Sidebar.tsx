@@ -61,8 +61,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
             onClick={() => isMobileView && onClose?.()}
             className="flex items-center gap-3 group"
           >
-            <div className="w-10 h-10 rounded-xl bg-[#CCFF00] flex items-center justify-center text-black font-black shadow-[0_0_20px_rgba(204,255,0,0.4)] group-hover:scale-105 transition-transform">
-              <Award className="w-6 h-6 text-black" strokeWidth={2.5} />
+            <div className="w-10 h-10 rounded-xl bg-black/90 border border-[#CCFF00]/40 flex items-center justify-center p-1 shadow-[0_0_18px_rgba(204,255,0,0.35)] group-hover:scale-105 transition-transform overflow-hidden shrink-0">
+              <img
+                src="/logo_small.png"
+                alt="RefStudio Logo"
+                className="w-full h-full object-contain"
+              />
             </div>
             <div>
               <div className="flex items-center gap-1.5">

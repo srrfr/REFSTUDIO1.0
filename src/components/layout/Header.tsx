@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Search, User, Lock, CheckCircle2, Cloud, RefreshCw, Zap, Menu, Download } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -65,6 +66,13 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileMenu }) => {
         >
           <Menu className="w-5 h-5" />
         </button>
+
+        {/* Logo piccolo visibile su mobile in alto a sinistra */}
+        <Link href="/" className="lg:hidden flex items-center shrink-0 group">
+          <div className="w-8 h-8 rounded-lg bg-black/90 border border-[#CCFF00]/40 flex items-center justify-center p-0.5 shadow-[0_0_10px_rgba(204,255,0,0.25)] group-hover:scale-105 transition-transform overflow-hidden">
+            <img src="/logo_small.png" alt="RefStudio Logo" className="w-full h-full object-contain" />
+          </div>
+        </Link>
 
         <form onSubmit={handleSearch} className="relative flex-1 min-w-[120px] max-w-[200px] sm:max-w-xs md:w-80">
           <input

@@ -20,12 +20,14 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
+      { url: '/favicon.png', sizes: '32x32', type: 'image/png' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/logo_big.png', sizes: '2000x2000', type: 'image/png' },
     ],
     apple: [
       { url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/logo_big.png', sizes: '2000x2000', type: 'image/png' },
     ],
     shortcut: ['/icons/icon-192x192.png'],
   },
