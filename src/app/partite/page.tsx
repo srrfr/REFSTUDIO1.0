@@ -13,19 +13,20 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
-  Layers,
-  Sparkles,
   Shield,
   ArrowRight,
-  Clock,
-  Activity,
   Award,
+  Layers,
+  Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import { DbService } from '@/lib/repository/db-service';
 import { Match, StandingRow } from '@/types/refstudio';
 import { PreparaGaraModal } from '@/components/modals/PreparaGaraModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
+
+type ViewStep = 'CATEGORY' | 'GIRONE' | 'MATCHES';
 
 // Calcola la prima giornata senza risultati registrati (la prossima da disputare)
 function getFirstUpcomingDay(girone: 'A' | 'B', allMatches: Match[]): number {
@@ -52,16 +53,20 @@ function getFirstUpcomingDay(girone: 'A' | 'B', allMatches: Match[]): number {
 }
 
 export default function MatchesPage() {
-  // Step 1: Selezione Categoria (al momento Eccellenza)
-  const [selectedCategory, setSelectedCategory] = useState<'eccellenza'>('eccellenza');
+  // Step di Navigazione:
+  // 1: 'CATEGORY' -> Selezione Categoria (al momento Eccellenza)
+  // 2: 'GIRONE'   -> Selezione Girone (A o B)
+  // 3: 'MATCHES'  -> Visualizzazione Gare & Classifiche
+  const [viewStep, setViewStep] = useState<ViewStep>('CATEGORY');
 
-  // Step 2: Selezione Girone (A o B)
+  // Parametri di selezione
+  const [selectedCategory, setSelectedCategory] = useState<'eccellenza'>('eccellenza');
   const [activeGirone, setActiveGirone] = useState<'A' | 'B'>('A');
 
-  // Step 3: Tab Visione (Gare vs Classifica)
+  // Tab di visualizzazione (Gare vs Classifica) all'interno dello step MATCHES
   const [activeTab, setActiveTab] = useState<'CALENDARIO' | 'CLASSIFICA'>('CALENDARIO');
 
-  // Giornata selezionata (predefinita: la prima senza risultati, ovvero la prossima)
+  // Giornata selezionata nel carosello
   const [selectedDay, setSelectedDay] = useState<number>(1);
   const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [dayMatches, setDayMatches] = useState<Match[]>([]);
@@ -80,32 +85,61 @@ export default function MatchesPage() {
     return getFirstUpcomingDay(activeGirone, allMatches);
   }, [activeGirone, allMatches]);
 
-  // Caricamento dati
-  const loadData = useCallback(() => {
+  // Caricamento e sincronizzazione dati
+  const refreshMatchesAndStandings = useCallback(() => {
     const all = DbService.getMatches();
     setAllMatches(all);
-
     const m = DbService.getMatches(activeGirone, selectedDay);
     setDayMatches(m);
-
     const s = DbService.getStandings(activeGirone);
     setStandings(s);
   }, [activeGirone, selectedDay]);
 
   // Sottoscrizione Realtime multi-dispositivo
-  useRealtimeSync(loadData);
+  useRealtimeSync(refreshMatchesAndStandings);
 
+  // Inizializzazione dati all'avvio
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    const all = DbService.getMatches();
+    setAllMatches(all);
+    const initialDay = getFirstUpcomingDay('A', all);
+    setSelectedDay(initialDay);
+    const m = DbService.getMatches('A', initialDay);
+    setDayMatches(m);
+    const s = DbService.getStandings('A');
+    setStandings(s);
+  }, []);
 
-  // Quando cambia il girone o allMatches viene caricato, imposta la giornata automaticamente alla prossima
+  // Aggiorna le partite mostrate e la classifica quando l'utente cambia girone o giornata
+  // NOTA BENE: Questo effetto NON tocca selectedDay, permettendo all'utente di selezionare
+  // qualsiasi giornata liberamente senza forzature!
   useEffect(() => {
-    if (allMatches.length > 0) {
-      const nextDay = getFirstUpcomingDay(activeGirone, allMatches);
-      setSelectedDay(nextDay);
-    }
-  }, [activeGirone, allMatches]);
+    const m = DbService.getMatches(activeGirone, selectedDay);
+    setDayMatches(m);
+    const s = DbService.getStandings(activeGirone);
+    setStandings(s);
+  }, [activeGirone, selectedDay]);
+
+  // Handlers di navigazione Step
+  const handleSelectCategory = (cat: 'eccellenza') => {
+    setSelectedCategory(cat);
+    setViewStep('GIRONE');
+  };
+
+  const handleSelectGirone = (girone: 'A' | 'B') => {
+    setActiveGirone(girone);
+    const matches = allMatches.length > 0 ? allMatches : DbService.getMatches();
+    const nextDay = getFirstUpcomingDay(girone, matches);
+    setSelectedDay(nextDay);
+    setViewStep('MATCHES');
+  };
+
+  const handleQuickSwitchGirone = (girone: 'A' | 'B') => {
+    if (girone === activeGirone) return;
+    setActiveGirone(girone);
+    const nextDay = getFirstUpcomingDay(girone, allMatches);
+    setSelectedDay(nextDay);
+  };
 
   const handleOpenPreparaGara = (match: Match) => {
     setPreparaGaraMatch(match);
@@ -117,7 +151,7 @@ export default function MatchesPage() {
     try {
       DbService.updateMatch(editingMatch.id, editMatchForm);
       setEditingMatch(null);
-      loadData();
+      refreshMatchesAndStandings();
     } catch (err) {
       console.error(err);
     }
@@ -125,25 +159,358 @@ export default function MatchesPage() {
 
   const daysList = Array.from({ length: 34 }, (_, i) => i + 1);
 
+  // =========================================================================
+  // STEP 1: SCHEDA SELEZIONE CATEGORIA
+  // =========================================================================
+  if (viewStep === 'CATEGORY') {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
+        {/* Intestazione Fase 1 */}
+        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 sm:p-8 shadow-xl">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-2.5 py-0.5 rounded-full border border-[#CCFF00]/30 font-bold">
+              Passo 1 di 3 • Selezione Competizione
+            </span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-3">
+            <Award className="w-8 h-8 text-[#CCFF00]" />
+            Seleziona la Categoria
+          </h1>
+          <p className="text-sm text-slate-400 mt-2 max-w-2xl">
+            Scegli il campionato di riferimento per accedere alla scelta del girone, consultare il calendario gare con la prossima giornata in evidenza e la classifica ufficiale.
+          </p>
+        </div>
+
+        {/* Griglia Categorie */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* Categoria 1: Eccellenza (ATTIVA) */}
+          <div
+            onClick={() => handleSelectCategory('eccellenza')}
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#CCFF00]/40 hover:border-[#CCFF00] p-6 shadow-[0_0_25px_rgba(204,255,0,0.08)] hover:shadow-[0_0_35px_rgba(204,255,0,0.2)] transition-all cursor-pointer flex flex-col justify-between"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Award className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-mono font-black uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  Attiva Ora
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-white group-hover:text-[#CCFF00] transition-colors">
+                  Eccellenza
+                </h3>
+                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                  CRER • Emilia-Romagna (FIGC - LND)
+                </p>
+              </div>
+
+              <p className="text-xs text-slate-300 leading-relaxed">
+                Massima divisione del calcio dilettantistico regionale. Comprende i Gironi A e B, calendari completi a 34 giornate, arbitri designati e statistiche squadre.
+              </p>
+
+              {/* Statistiche rapide */}
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#1C2232] text-[11px]">
+                <div className="bg-[#141824] p-2 rounded-xl border border-[#212638]">
+                  <span className="text-slate-400 block text-[10px]">Gironi:</span>
+                  <span className="font-mono font-bold text-white">Girone A & B</span>
+                </div>
+                <div className="bg-[#141824] p-2 rounded-xl border border-[#212638]">
+                  <span className="text-slate-400 block text-[10px]">Società:</span>
+                  <span className="font-mono font-bold text-[#CCFF00]">35 Squadre</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#1C2232] flex items-center justify-between">
+              <span className="text-xs font-black text-[#CCFF00] group-hover:underline">
+                Seleziona Categoria
+              </span>
+              <div className="w-8 h-8 rounded-full bg-[#CCFF00] text-black flex items-center justify-center group-hover:translate-x-1 transition-transform">
+                <ArrowRight className="w-4 h-4 font-bold" />
+              </div>
+            </div>
+          </div>
+
+          {/* Categoria 2: Promozione (PROSSIMAMENTE) */}
+          <div className="rounded-3xl bg-[#0D0F16]/60 border border-[#1A1F2C] p-6 opacity-60 flex flex-col justify-between cursor-not-allowed">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-[#141824] border border-[#212638] flex items-center justify-center text-slate-500">
+                  <Shield className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700">
+                  In Arrivo
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-300">Promozione</h3>
+                <p className="text-xs text-slate-500">Campionato Regionale</p>
+              </div>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Gestione dei gironi regionali di Promozione. La sincronizzazione dei calendari sarà abilitata nei prossimi aggiornamenti.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#1A1F2C] text-xs text-slate-500 font-mono">
+              Disponibile a breve
+            </div>
+          </div>
+
+          {/* Categoria 3: Prima Categoria (PROSSIMAMENTE) */}
+          <div className="rounded-3xl bg-[#0D0F16]/60 border border-[#1A1F2C] p-6 opacity-60 flex flex-col justify-between cursor-not-allowed">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-12 h-12 rounded-2xl bg-[#141824] border border-[#212638] flex items-center justify-center text-slate-500">
+                  <Layers className="w-6 h-6" />
+                </div>
+                <span className="text-[10px] font-mono uppercase text-slate-400 bg-slate-800/60 px-2 py-0.5 rounded-full border border-slate-700">
+                  In Arrivo
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-slate-300">Prima Categoria</h3>
+                <p className="text-xs text-slate-500">Campionati Provinciali / Regionali</p>
+              </div>
+
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Campionati di Prima Categoria con schede informative e designazioni sezionali.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[#1A1F2C] text-xs text-slate-500 font-mono">
+              Disponibile a breve
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STEP 2: SCHEDA SELEZIONE GIRONE
+  // =========================================================================
+  if (viewStep === 'GIRONE') {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
+        {/* Barra di Navigazione a Ritroso */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setViewStep('CATEGORY')}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0D0F16] hover:bg-[#141824] text-slate-300 hover:text-[#CCFF00] border border-[#1F2433] text-xs font-bold transition-all group shadow-sm"
+          >
+            <ChevronLeft className="w-4 h-4 text-[#CCFF00] group-hover:-translate-x-0.5 transition-transform" />
+            <span>← Torna a Selezione Categoria</span>
+          </button>
+
+          <span className="text-[10px] font-mono uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1 rounded-full border border-[#CCFF00]/30 font-bold">
+            Passo 2 di 3 • Selezione Girone
+          </span>
+        </div>
+
+        {/* Intestazione Girone */}
+        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 sm:p-8 shadow-xl">
+          <div className="flex items-center gap-2 text-xs text-slate-400 mb-1">
+            <Award className="w-4 h-4 text-[#CCFF00]" />
+            <span>Categoria: <strong className="text-white">Eccellenza Emilia-Romagna</strong></span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide mt-2">
+            Seleziona il Girone
+          </h1>
+          <p className="text-sm text-slate-400 mt-2 max-w-2xl">
+            Scegli il girone di interesse per visualizzare il calendario delle gare (con posizionamento automatico sulla prossima giornata in programma) o consultare la classifica ufficiale aggiornata.
+          </p>
+        </div>
+
+        {/* Griglia Selezione Girone A o B */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card Girone A */}
+          <div
+            onClick={() => handleSelectGirone('A')}
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-7 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.18)] transition-all cursor-pointer flex flex-col justify-between space-y-6"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-14 h-14 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Shield className="w-7 h-7" />
+                </div>
+                <span className="text-xs font-mono font-black text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1 rounded-full border border-[#CCFF00]/30">
+                  17 Squadre
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-white group-hover:text-[#CCFF00] transition-colors">
+                  Girone A (Emilia Ovest)
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Province: Piacenza, Parma, Reggio Emilia, Modena
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-[#1C2232] text-xs text-slate-300">
+                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
+                  <span className="text-slate-400">Giornate totali:</span>
+                  <span className="font-mono font-bold text-white">34 Giornate</span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
+                  <span className="text-slate-400">Partite totali:</span>
+                  <span className="font-mono font-bold text-white">306 Incontri</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-slate-400">Turno di riposo:</span>
+                  <span className="font-mono text-amber-400 font-bold">1 squadra a turno</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#1C2232] flex items-center justify-between">
+              <span className="text-xs font-black text-[#CCFF00] group-hover:underline">
+                Visualizza Gare & Classifica Girone A
+              </span>
+              <div className="w-9 h-9 rounded-full bg-[#CCFF00] text-black flex items-center justify-center group-hover:translate-x-1.5 transition-transform shadow-md">
+                <ArrowRight className="w-4 h-4 font-bold" />
+              </div>
+            </div>
+          </div>
+
+          {/* Card Girone B */}
+          <div
+            onClick={() => handleSelectGirone('B')}
+            className="group relative rounded-3xl bg-gradient-to-b from-[#121622] to-[#0D0F16] border-2 border-[#212638] hover:border-[#CCFF00] p-6 sm:p-7 shadow-xl hover:shadow-[0_0_35px_rgba(204,255,0,0.18)] transition-all cursor-pointer flex flex-col justify-between space-y-6"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-14 h-14 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Shield className="w-7 h-7" />
+                </div>
+                <span className="text-xs font-mono font-black text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1 rounded-full border border-[#CCFF00]/30">
+                  18 Squadre
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-white group-hover:text-[#CCFF00] transition-colors">
+                  Girone B (Emilia Est & Romagna)
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Province: Bologna, Ferrara, Ravenna, Forlì-Cesena, Rimini
+                </p>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-[#1C2232] text-xs text-slate-300">
+                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
+                  <span className="text-slate-400">Giornate totali:</span>
+                  <span className="font-mono font-bold text-white">34 Giornate</span>
+                </div>
+                <div className="flex items-center justify-between py-1 border-b border-[#181D2A]">
+                  <span className="text-slate-400">Partite totali:</span>
+                  <span className="font-mono font-bold text-white">306 Incontri</span>
+                </div>
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-slate-400">Formula girone:</span>
+                  <span className="font-mono text-emerald-400 font-bold">9 partite per giornata</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#1C2232] flex items-center justify-between">
+              <span className="text-xs font-black text-[#CCFF00] group-hover:underline">
+                Visualizza Gare & Classifica Girone B
+              </span>
+              <div className="w-9 h-9 rounded-full bg-[#CCFF00] text-black flex items-center justify-center group-hover:translate-x-1.5 transition-transform shadow-md">
+                <ArrowRight className="w-4 h-4 font-bold" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // =========================================================================
+  // STEP 3: SCHEDA GARE & CLASSIFICA DEL GIRONE SELEZIONATO
+  // =========================================================================
   return (
-    <div className="space-y-6">
-      {/* 1. SELEZIONE GERARCHICA: CATEGORIA -> GIRONE -> TAB GARE/CLASSIFICA */}
-      <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-5 sm:p-6 shadow-xl space-y-5">
-        {/* Titolo Principale */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#1A1F2C] pb-4">
+    <div className="space-y-6 animate-in fade-in duration-200">
+      {/* BARRA SUPERIORE: NAVIGAZIONE A RITROSO, BREADCRUMB & SWITCH TAB */}
+      <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+        {/* Riga Navigazione Indietro & Switch Rapido */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1A1F2C] pb-4">
+          <div className="flex items-center gap-2">
+            {/* Piccolo pulsante per muoversi a ritroso alla selezione del girone */}
+            <button
+              onClick={() => setViewStep('GIRONE')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-200 hover:text-[#CCFF00] border border-[#212638] text-xs font-bold transition-all shadow-sm group"
+              title="Torna alla selezione del Girone"
+            >
+              <ChevronLeft className="w-4 h-4 text-[#CCFF00] group-hover:-translate-x-0.5 transition-transform" />
+              <span>Cambia Girone</span>
+            </button>
+
+            {/* Pulsante rapido per tornare a Categoria */}
+            <button
+              onClick={() => setViewStep('CATEGORY')}
+              className="px-2.5 py-1.5 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-[#141824] transition-colors"
+              title="Torna alla selezione Categoria"
+            >
+              ← Categoria
+            </button>
+
+            {/* Breadcrumb info */}
+            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 ml-2">
+              <span className="text-slate-600">•</span>
+              <span className="font-semibold text-slate-300">Eccellenza</span>
+              <span className="text-slate-600">/</span>
+              <span className="font-black text-[#CCFF00]">Girone {activeGirone}</span>
+            </div>
+          </div>
+
+          {/* Switch rapido tra Girone A e B senza dover tornare indietro */}
+          <div className="flex items-center gap-1 bg-[#11141D] border border-[#212638] p-1 rounded-xl">
+            <button
+              onClick={() => handleQuickSwitchGirone('A')}
+              className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                activeGirone === 'A'
+                  ? 'bg-[#CCFF00] text-black shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Girone A
+            </button>
+            <button
+              onClick={() => handleQuickSwitchGirone('B')}
+              className={`px-3 py-1 rounded-lg text-xs font-black transition-all ${
+                activeGirone === 'B'
+                  ? 'bg-[#CCFF00] text-black shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Girone B
+            </button>
+          </div>
+        </div>
+
+        {/* Riga Titolo & Tab Switcher (Calendario Gare vs Classifica) */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-1">
           <div>
             <div className="flex items-center gap-2.5">
               <Calendar className="w-6 h-6 text-[#CCFF00]" />
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-wide">
-                Gare & Classifiche Ufficiali
+                Eccellenza • Girone {activeGirone}
               </h1>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Imposta la categoria e il girone per consultare il calendario, preparare la gara o verificare la classifica.
+              Visualizza gli incontri, prepara la gara per ogni match o consulta la classifica ufficiale aggiornata.
             </p>
           </div>
 
-          {/* Tab Switcher Rapido: Calendario Gare vs Classifica */}
+          {/* Tab Switcher */}
           <div className="flex rounded-2xl bg-[#11141D] border border-[#212638] p-1 shrink-0 self-start md:self-auto">
             <button
               onClick={() => setActiveTab('CALENDARIO')}
@@ -169,90 +536,13 @@ export default function MatchesPage() {
             </button>
           </div>
         </div>
-
-        {/* CONTROLLI STEP 1 & STEP 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
-          {/* STEP 1: Selezione Categoria */}
-          <div className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#181C28] border border-[#293044] text-[#CCFF00] text-[9px] flex items-center justify-center font-mono">1</span>
-                Seleziona Categoria
-              </span>
-              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                Attiva
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setSelectedCategory('eccellenza')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black transition-all ${
-                  selectedCategory === 'eccellenza'
-                    ? 'bg-[#181C28] text-[#CCFF00] border border-[#CCFF00]/40 shadow-sm'
-                    : 'bg-[#0D0F16] text-slate-400 border border-[#212638]'
-                }`}
-              >
-                <Award className="w-4 h-4 text-[#CCFF00]" />
-                <span>Eccellenza (Emilia-Romagna)</span>
-              </button>
-
-              <div
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-slate-500 bg-[#0A0C10] border border-[#1A1F2C] cursor-not-allowed opacity-60"
-                title="Promozione disponibile nei prossimi aggiornamenti"
-              >
-                <span>Promozione</span>
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 uppercase font-mono">Presto</span>
-              </div>
-            </div>
-          </div>
-
-          {/* STEP 2: Selezione Girone */}
-          <div className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <span className="w-4 h-4 rounded-full bg-[#181C28] border border-[#293044] text-[#CCFF00] text-[9px] flex items-center justify-center font-mono">2</span>
-                Seleziona Girone
-              </span>
-              <span className="text-[10px] text-slate-400">
-                {activeGirone === 'A' ? '17 Squadre (Reggio, Parma, Piacenza, Modena)' : '18 Squadre (Bologna, Romagna, Ferrara)'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                onClick={() => setActiveGirone('A')}
-                className={`py-2 px-3.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
-                  activeGirone === 'A'
-                    ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.3)]'
-                    : 'bg-[#141824] text-slate-300 hover:text-white border border-[#212638] hover:border-slate-600'
-                }`}
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Girone A (17 Club)</span>
-              </button>
-
-              <button
-                onClick={() => setActiveGirone('B')}
-                className={`py-2 px-3.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
-                  activeGirone === 'B'
-                    ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.3)]'
-                    : 'bg-[#141824] text-slate-300 hover:text-white border border-[#212638] hover:border-slate-600'
-                }`}
-              >
-                <Shield className="w-3.5 h-3.5" />
-                <span>Girone B (18 Club)</span>
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* 2. CONTENUTO TAB: CALENDARIO GARE vs CLASSIFICA */}
+      {/* CONTENUTO IN BASE AL TAB: GARE vs CLASSIFICA */}
       {activeTab === 'CALENDARIO' ? (
         <div className="space-y-6 animate-in fade-in duration-200">
-          {/* Barra Giornate con Evidenza della Prossima Giornata */}
-          <div className="bg-[#0D0F16] border border-[#1F2433] rounded-2xl p-4 space-y-3">
+          {/* Barra Selezione Giornata con Evidenza della Prossima Giornata */}
+          <div className="bg-[#0D0F16] border border-[#1F2433] rounded-2xl p-4 space-y-3 shadow-md">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-white uppercase tracking-wider">
@@ -262,19 +552,19 @@ export default function MatchesPage() {
                   Giornata {selectedDay} di 34
                 </span>
                 {selectedDay === upcomingDayForGirone && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <span className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Prossima in Programma
                   </span>
                 )}
               </div>
 
-              {/* Bottoni Navigazione Veloce Precedente / Successiva e Salto a Prossima */}
+              {/* Bottoni Navigazione Veloce Precedente / Successiva e Salto Rapido */}
               <div className="flex items-center gap-2">
                 {selectedDay !== upcomingDayForGirone && (
                   <button
                     onClick={() => setSelectedDay(upcomingDayForGirone)}
-                    className="text-[11px] font-bold text-[#CCFF00] hover:underline flex items-center gap-1 bg-[#141824] border border-[#212638] px-2.5 py-1 rounded-lg"
+                    className="text-[11px] font-bold text-[#CCFF00] hover:underline flex items-center gap-1 bg-[#141824] border border-[#212638] px-2.5 py-1 rounded-lg transition-colors"
                   >
                     Salta alla Prossima (G{upcomingDayForGirone}) →
                   </button>
@@ -432,7 +722,7 @@ export default function MatchesPage() {
           )}
         </div>
       ) : (
-        /* 3. TAB CLASSIFICA UFFICIALE */
+        /* TAB CLASSIFICA UFFICIALE */
         <div className="rounded-3xl bg-[#0D0F16] border border-[#1F2433] overflow-hidden shadow-xl animate-in fade-in duration-200">
           <div className="p-5 border-b border-[#1F2433] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
