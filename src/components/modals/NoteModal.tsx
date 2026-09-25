@@ -52,17 +52,28 @@ export const NoteModal: React.FC<NoteModalProps> = ({
   const [error, setError] = useState('');
 
   // Verifica se l'utente corrente è il proprietario della nota in caso di modifica
-  const isOwner = !existingNote || !existingNote.authorId || (user && existingNote.authorId.toLowerCase() === user.username.toLowerCase());
+  const isOwner = Boolean(
+    !existingNote ||
+    !existingNote.authorId ||
+    (user?.username && existingNote.authorId.toLowerCase().trim() === user.username.toLowerCase().trim()) ||
+    user?.role === 'admin'
+  );
 
   useEffect(() => {
     if (existingNote) {
-      setTargetType(existingNote.targetType);
-      setTargetId(existingNote.targetId);
-      setTargetName(existingNote.targetName);
-      setContent(existingNote.content);
+      setTargetType(existingNote.targetType || initialTargetType);
+      setTargetId(existingNote.targetId || initialTargetId);
+      setTargetName(existingNote.targetName || initialTargetName);
+      setContent(existingNote.content || '');
       setPriority(existingNote.priority || 'NORMAL');
       setIsPublic(existingNote.isPublic !== false);
-      setAttachments(existingNote.attachments || []);
+      const rawAtts = existingNote.attachments || [];
+      const cleanAtts = Array.isArray(rawAtts)
+        ? rawAtts
+            .map((a: any) => (typeof a === 'string' ? a : a?.url || ''))
+            .filter((url: string) => typeof url === 'string' && url.trim().length > 0)
+        : [];
+      setAttachments(cleanAtts);
     } else {
       setTargetType(initialTargetType);
       setTargetId(initialTargetId);
@@ -74,6 +85,18 @@ export const NoteModal: React.FC<NoteModalProps> = ({
     }
     setError('');
   }, [existingNote, isOpen, initialTargetType, initialTargetId, initialTargetName]);
+
+  // Chiudi con tasto Escape (deve trovarsi PRIMA di qualsiasi early return per rispettare le Rules of Hooks)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -120,18 +143,6 @@ export const NoteModal: React.FC<NoteModalProps> = ({
     onClose();
   };
 
-  // Chiudi con tasto Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-3 sm:p-4 animate-in fade-in duration-200"
@@ -170,37 +181,48 @@ export const NoteModal: React.FC<NoteModalProps> = ({
         </div>
 
         {/* Author info */}
-        <div className="mb-4 p-3 rounded-2xl bg-[#11141D] border border-[#212638] flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-full bg-[#181C28] border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] text-xs font-black overflow-hidden shadow-sm">
-              {existingNote?.authorAvatar || user?.avatarUrl ? (
-                <img
-                  src={existingNote?.authorAvatar || user?.avatarUrl}
-                  alt={existingNote?.authorName || user?.displayName || 'Autore'}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span>{(existingNote?.authorName || user?.displayName || 'A').charAt(0)}</span>
-              )}
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white">
-                  {existingNote?.authorName || user?.displayName || 'Arbitro'}
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
-                  {existingNote?.authorRole || user?.refereeRole || 'AE'}
-                </span>
+        {(() => {
+          const authorName = existingNote?.authorName || user?.displayName || 'Arbitro';
+          const authorRole = existingNote?.authorRole || user?.refereeRole || 'AE';
+          const authorSection = existingNote?.authorSection || user?.sectionAia || 'Sezione AIA';
+          const authorUsername = existingNote?.authorId || user?.username || 'samueleromini';
+          const authorAvatar = existingNote?.authorAvatar || user?.avatarUrl || '';
+          const authorInitial = (typeof authorName === 'string' && authorName.trim() ? authorName.trim().charAt(0) : 'A').toUpperCase();
+
+          return (
+            <div className="mb-4 p-3 rounded-2xl bg-[#11141D] border border-[#212638] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-[#181C28] border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] text-xs font-black overflow-hidden shadow-sm">
+                  {authorAvatar ? (
+                    <img
+                      src={authorAvatar}
+                      alt={authorName}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span>{authorInitial}</span>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-white">
+                      {authorName}
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
+                      {authorRole}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 block">
+                    {authorSection} • Proprietario nota
+                  </span>
+                </div>
               </div>
-              <span className="text-[10px] text-slate-400 block">
-                {existingNote?.authorSection || user?.sectionAia || 'Sezione AIA'} • Proprietario nota
+              <span className="text-[10px] font-mono text-slate-500">
+                @{authorUsername}
               </span>
             </div>
-          </div>
-          <span className="text-[10px] font-mono text-slate-500">
-            @{existingNote?.authorId || user?.username || 'user'}
-          </span>
-        </div>
+          );
+        })()}
 
         {!isOwner && (
           <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
@@ -367,8 +389,10 @@ export const NoteModal: React.FC<NoteModalProps> = ({
             {attachments.length > 0 && (
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {attachments.map((att, i) => {
-                  const isImg = att.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i);
-                  const isVid = att.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i) || att.includes('/videos/');
+                  const attStr = typeof att === 'string' ? att : (att as any)?.url || '';
+                  const isImg = Boolean(attStr.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i));
+                  const isVid = Boolean(attStr.match(/\.(mp4|webm|mov|mkv)(\?.*)?$/i) || attStr.includes('/videos/'));
+                  const fileName = (attStr.split('/').pop() || '').split('?')[0] || `Allegato ${i + 1}`;
 
                   return (
                     <div
@@ -377,7 +401,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
                     >
                       <div className="w-10 h-10 rounded-lg bg-black/60 border border-[#282F42] overflow-hidden flex items-center justify-center flex-shrink-0">
                         {isImg ? (
-                          <img src={att} alt="Allegato" className="w-full h-full object-cover" />
+                          <img src={attStr} alt="Allegato" className="w-full h-full object-cover" />
                         ) : isVid ? (
                           <Film className="w-4 h-4 text-[#FF334B]" />
                         ) : (
@@ -386,8 +410,8 @@ export const NoteModal: React.FC<NoteModalProps> = ({
                       </div>
 
                       <div className="min-w-0 flex-1">
-                        <span className="block text-[11px] font-bold text-white truncate">
-                          {att.split('/').pop()?.split('?')[0] || `Allegato ${i + 1}`}
+                        <span className="block text-[11px] font-bold text-white truncate" title={fileName}>
+                          {fileName}
                         </span>
                         <span className="text-[9px] font-mono text-slate-400">
                           {isImg ? 'Immagine' : isVid ? 'Video' : 'File'}

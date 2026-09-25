@@ -596,6 +596,7 @@ function PlayersContent() {
                 authorAvatar: user?.avatarUrl || '',
                 authorSection: user?.sectionAia || '',
               });
+              setIsNoteModalOpen(false);
             }}
           />
 

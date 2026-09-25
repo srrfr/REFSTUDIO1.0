@@ -68,6 +68,18 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     }
   }, [isOpen, initialTargetType, initialTargetId, initialTargetName, initialUploadedMedia]);
 
+  // Chiudi con tasto Escape (deve trovarsi PRIMA di qualsiasi early return per rispettare le Rules of Hooks)
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const handleMediaUploaded = (result: UploadResult) => {
@@ -138,18 +150,6 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     setTimestampMark('');
     onClose();
   };
-
-  // Chiudi con tasto Escape
-  useEffect(() => {
-    if (!isOpen) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   return (
     <div
