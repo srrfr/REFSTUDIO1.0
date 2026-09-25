@@ -33,6 +33,7 @@ export const MediaDropzone: React.FC<MediaDropzoneProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ url: string; type: 'image' | 'video'; name: string; size?: number } | null>(
     currentPreviewUrl
@@ -99,44 +100,153 @@ export const MediaDropzone: React.FC<MediaDropzoneProps> = ({
       });
 
       setIsUploading(true);
+      setUploadProgress(0);
 
       try {
-        const formData = new FormData();
-        formData.append('file', file);
+        let uploadedResult: UploadResult | null = null;
 
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        // TENTATIVO 1: Upload diretto su Cloud Storage con Signed URL (Bypass totale limiti serverless proxy 413)
+        try {
+          const signRes = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'get-signed-url',
+              fileName: file.name,
+              mimeType: file.type,
+              fileSize: file.size,
+            }),
+          });
 
-        const data = await res.json();
+          const signContentType = signRes.headers.get('content-type') || '';
+          if (signRes.ok && signContentType.includes('application/json')) {
+            const signData = await signRes.json();
+            if (signData.success && signData.signedUrl) {
+              uploadedResult = await new Promise<UploadResult>((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open('PUT', signData.signedUrl, true);
+                const ct = file.type || (isVid ? 'video/mp4' : 'image/jpeg');
+                xhr.setRequestHeader('Content-Type', ct);
 
-        if (!res.ok || !data.success) {
-          throw new Error(data.message || 'Errore durante il caricamento del file');
+                if (xhr.upload) {
+                  xhr.upload.onprogress = (evt) => {
+                    if (evt.lengthComputable && evt.total > 0) {
+                      const pct = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
+                      setUploadProgress(pct);
+                    }
+                  };
+                }
+
+                xhr.onload = () => {
+                  if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve({
+                      url: signData.publicUrl,
+                      localUrl: signData.publicUrl,
+                      cloudUrl: signData.publicUrl,
+                      fileName: signData.safeFileName,
+                      originalName: signData.originalName || file.name,
+                      fileSize: file.size,
+                      mediaType: signData.mediaType || (isVid ? 'video' : 'image'),
+                      mimeType: signData.mimeType || file.type,
+                    });
+                  } else {
+                    reject(new Error(`Direct upload failed with status ${xhr.status}`));
+                  }
+                };
+
+                xhr.onerror = () => reject(new Error('Errore di connessione durante upload diretto.'));
+                xhr.ontimeout = () => reject(new Error('Timeout durante upload diretto.'));
+                xhr.send(file);
+              });
+            }
+          }
+        } catch (directErr) {
+          console.warn('Tentativo Signed URL non riuscito, fallback su multipart standard:', directErr);
         }
 
-        onUploaded({
-          url: data.url,
-          localUrl: data.localUrl,
-          cloudUrl: data.cloudUrl,
-          fileName: data.fileName,
-          originalName: data.originalName,
-          fileSize: data.fileSize,
-          mediaType: data.mediaType,
-          mimeType: data.mimeType,
-        });
+        // TENTATIVO 2 (FALLBACK): Upload multipart tramite /api/upload con gestione sicura degli errori
+        if (!uploadedResult) {
+          setUploadProgress(0);
+          const formData = new FormData();
+          formData.append('file', file);
+
+          uploadedResult = await new Promise<UploadResult>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/api/upload', true);
+
+            if (xhr.upload) {
+              xhr.upload.onprogress = (evt) => {
+                if (evt.lengthComputable && evt.total > 0) {
+                  const pct = Math.min(100, Math.round((evt.loaded / evt.total) * 100));
+                  setUploadProgress(pct);
+                }
+              };
+            }
+
+            xhr.onload = () => {
+              const resStatus = xhr.status;
+              const resText = xhr.responseText || '';
+
+              if (resStatus === 413 || resText.toLowerCase().includes('request entity too large')) {
+                reject(
+                  new Error(
+                    'Il file video supera le dimensioni massime consentite dal server (413 Request Entity Too Large). Comprimi il video o riduci la risoluzione.'
+                  )
+                );
+                return;
+              }
+
+              let data: any = null;
+              try {
+                data = JSON.parse(resText);
+              } catch {
+                reject(
+                  new Error(
+                    `Errore del server durante il caricamento (${resStatus}): ${
+                      resText.slice(0, 120) || 'Risposta non valida dal server'
+                    }`
+                  )
+                );
+                return;
+              }
+
+              if (resStatus >= 200 && resStatus < 300 && data && data.success) {
+                resolve({
+                  url: data.url,
+                  localUrl: data.localUrl || data.url,
+                  cloudUrl: data.cloudUrl,
+                  fileName: data.fileName,
+                  originalName: data.originalName,
+                  fileSize: data.fileSize,
+                  mediaType: data.mediaType,
+                  mimeType: data.mimeType,
+                });
+              } else {
+                reject(new Error(data?.message || 'Errore durante il caricamento del file'));
+              }
+            };
+
+            xhr.onerror = () => reject(new Error('Errore di connessione di rete durante l\'upload.'));
+            xhr.ontimeout = () => reject(new Error('Timeout durante l\'upload.'));
+            xhr.send(formData);
+          });
+        }
+
+        const finalResult: UploadResult = uploadedResult!;
+        onUploaded(finalResult);
 
         setPreview({
-          url: data.url,
-          type: data.mediaType,
-          name: data.originalName,
-          size: data.fileSize,
+          url: finalResult.url,
+          type: finalResult.mediaType,
+          name: finalResult.originalName,
+          size: finalResult.fileSize,
         });
       } catch (err: any) {
         console.error('Upload failed:', err);
         setUploadError(err.message || 'Errore di connessione durante l\'upload.');
       } finally {
         setIsUploading(false);
+        setUploadProgress(null);
       }
     },
     [accept, onUploaded]
@@ -213,7 +323,7 @@ export const MediaDropzone: React.FC<MediaDropzoneProps> = ({
                 </span>
                 {isUploading ? (
                   <span className="flex items-center gap-1 text-[10px] font-black text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Caricamento...
+                    <Loader2 className="w-3 h-3 animate-spin" /> Caricamento{uploadProgress !== null ? ` ${uploadProgress}%` : '...'}
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-[10px] font-black text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded-full border border-[#CCFF00]/25">
@@ -264,9 +374,19 @@ export const MediaDropzone: React.FC<MediaDropzoneProps> = ({
           {isUploading ? (
             <div className="flex flex-col items-center gap-3">
               <Loader2 className="w-8 h-8 text-[#CCFF00] animate-spin" />
-              <div className="space-y-1">
-                <p className="text-xs font-bold text-white">Caricamento in corso...</p>
-                <p className="text-[11px] text-slate-400">Elaborazione e ottimizzazione file multimediale</p>
+              <div className="space-y-1.5 flex flex-col items-center">
+                <p className="text-xs font-bold text-white">
+                  Caricamento in corso{uploadProgress !== null ? `: ${uploadProgress}%` : '...'}
+                </p>
+                {uploadProgress !== null && (
+                  <div className="w-48 max-w-full h-1.5 bg-[#1F2433] rounded-full overflow-hidden border border-white/5">
+                    <div
+                      className="h-full bg-gradient-to-r from-[#CCFF00] to-[#88CC00] transition-all duration-150 rounded-full"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-400">Trasferimento diretto e sicuro su Cloud Storage</p>
               </div>
             </div>
           ) : (
