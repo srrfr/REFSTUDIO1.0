@@ -34,6 +34,10 @@ import {
   Filter,
   Layers,
   Camera,
+  Play,
+  Clock,
+  Film,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
 import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow } from '@/types/refstudio';
@@ -285,7 +289,7 @@ function SquadreContent() {
         setSelectedPlayer(freshPlayer);
       }
       setPlayerNotes(DbService.getNotes('giocatore', currentPlayer.id, user?.username));
-      setPlayerVideos(DbService.getVideos('giocatore', currentPlayer.id));
+      setPlayerVideos(DbService.getVideos('giocatore', currentPlayer.id, `${currentPlayer.firstName} ${currentPlayer.lastName}`));
     }
   }, [user?.username]);
 
@@ -391,13 +395,45 @@ function SquadreContent() {
     }
   };
 
+  const getYoutubeVideoId = (url?: string): string | null => {
+    if (!url) return null;
+    try {
+      if (url.includes('watch?v=')) {
+        return url.split('watch?v=')[1].split('&')[0];
+      } else if (url.includes('youtu.be/')) {
+        return url.split('youtu.be/')[1].split('?')[0];
+      } else if (url.includes('embed/')) {
+        return url.split('embed/')[1].split('?')[0];
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  };
+
+  const handleAddVideoForPlayer = (player: Player) => {
+    setVideoModalTargetType('giocatore');
+    setVideoModalTargetId(player.id);
+    setVideoModalTargetName(`${player.firstName} ${player.lastName} (${player.teamName})`);
+    setIsVideoModalOpen(true);
+  };
+
+  const handleDeletePlayerVideo = (videoId: string) => {
+    if (confirm('Sei sicuro di voler eliminare questa nota video?')) {
+      DbService.deleteVideo(videoId);
+      if (selectedPlayer) {
+        setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+      }
+    }
+  };
+
   // Apertura modale singolo calciatore dalla rosa
   const handleOpenPlayerFromRoster = (player: Player) => {
     setSelectedPlayer(player);
     setEditPlayerForm(player);
     setIsEditingPlayer(false);
     setPlayerNotes(DbService.getNotes('giocatore', player.id, user?.username));
-    setPlayerVideos(DbService.getVideos('giocatore', player.id));
+    setPlayerVideos(DbService.getVideos('giocatore', player.id, `${player.firstName} ${player.lastName}`));
   };
 
   const handleSavePlayerEdit = () => {
@@ -2229,8 +2265,186 @@ function SquadreContent() {
               )}
             </div>
 
-            {/* Footer Close */}
-            <div className="pt-4 border-t border-[#1C2130] flex justify-end">
+            {/* Note Video & Clip Episodi sul Calciatore */}
+            <div className="p-5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-black text-white flex items-center gap-2">
+                    <Video className="w-4 h-4 text-[#FF334B]" />
+                    Note Video & Clip Episodi ({playerVideos.length})
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Analisi video, falli, condotta e situazioni di gioco relative al calciatore
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleAddVideoForPlayer(selectedPlayer)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1A1F2E] hover:bg-[#252C40] text-white border border-[#2D364D] hover:border-[#FF334B]/40 font-black text-xs shadow-sm transition-all cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4 text-[#FF334B]" /> Aggiungi Nota Video
+                </button>
+              </div>
+
+              {playerVideos.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {playerVideos.map((vid) => {
+                    const ytId = getYoutubeVideoId(vid.externalUrl);
+                    const isImg =
+                      vid.mediaType === 'image' ||
+                      Boolean(vid.externalUrl && vid.externalUrl.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i));
+                    const isDirectVideo = !ytId && !isImg && Boolean(vid.externalUrl);
+
+                    const handleCardPlay = () => {
+                      if (vid.externalUrl) {
+                        setActiveViewerMedia({
+                          url: vid.externalUrl,
+                          title: vid.title,
+                          subtitle: `${selectedPlayer.firstName} ${selectedPlayer.lastName} • ${vid.targetName}`,
+                          description: vid.description,
+                          timestampMark: vid.timestampMark,
+                          mediaType: isImg ? 'image' : 'video',
+                        });
+                        setIsViewerOpen(true);
+                      }
+                    };
+
+                    return (
+                      <div
+                        key={vid.id}
+                        className="rounded-xl bg-[#0D0F16] border border-[#212638] overflow-hidden hover:border-[#FF334B]/40 transition-all flex flex-col justify-between group shadow-md"
+                      >
+                        {/* Video Thumbnail / Preview Header */}
+                        <div
+                          onClick={handleCardPlay}
+                          className="relative w-full aspect-video bg-black cursor-pointer overflow-hidden group/thumb"
+                        >
+                          {ytId ? (
+                            <img
+                              src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                              alt={vid.title}
+                              className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                            />
+                          ) : isImg ? (
+                            <img
+                              src={vid.externalUrl}
+                              alt={vid.title}
+                              className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                            />
+                          ) : isDirectVideo ? (
+                            <video
+                              src={vid.externalUrl}
+                              className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
+                              preload="metadata"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-[#141824] text-slate-600">
+                              <Film className="w-10 h-10" />
+                            </div>
+                          )}
+
+                          {/* Glowing play overlay on hover */}
+                          <div className="absolute inset-0 bg-black/40 group-hover/thumb:bg-black/20 flex items-center justify-center transition-colors">
+                            <div className="w-10 h-10 rounded-full bg-[#CCFF00]/90 text-black flex items-center justify-center shadow-[0_0_15px_rgba(204,255,0,0.5)] group-hover/thumb:scale-110 transition-transform">
+                              <Play className="w-4 h-4 fill-black ml-0.5" />
+                            </div>
+                          </div>
+
+                          {/* Source / Format Badge */}
+                          <div className="absolute top-2 left-2 flex items-center gap-1">
+                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-white border border-white/20 flex items-center gap-1">
+                              {isImg ? (
+                                <ImageIcon className="w-2.5 h-2.5 text-[#CCFF00]" />
+                              ) : ytId ? (
+                                <span className="text-[#FF334B]">YouTube</span>
+                              ) : (
+                                <Film className="w-2.5 h-2.5 text-[#CCFF00]" />
+                              )}
+                              <span>{isImg ? 'Foto' : ytId ? 'Clip' : 'Video Locale'}</span>
+                            </span>
+                          </div>
+
+                          {/* Minute / Timestamp Badge */}
+                          {vid.timestampMark && (
+                            <div className="absolute bottom-2 right-2">
+                              <span className="flex items-center gap-1 text-[9px] font-mono font-black text-black bg-[#CCFF00] px-2 py-0.5 rounded-full shadow-md">
+                                <Clock className="w-2.5 h-2.5" /> Min. {vid.timestampMark}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Video Info */}
+                        <div className="p-3 space-y-2 flex-1 flex flex-col justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-start justify-between gap-2">
+                              <h5 className="font-bold text-xs text-white line-clamp-1 group-hover:text-[#CCFF00] transition-colors">
+                                {vid.title}
+                              </h5>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeletePlayerVideo(vid.id);
+                                }}
+                                className="text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-[#141824] transition-colors shrink-0"
+                                title="Elimina Nota Video"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                            {vid.description && (
+                              <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                                {vid.description}
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex items-center justify-between pt-2 border-t border-[#1C2130] text-[10px] text-slate-500">
+                            <span className="font-mono">
+                              {new Date(vid.createdAt).toLocaleDateString('it-IT')}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleCardPlay}
+                              className="text-[#CCFF00] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                            >
+                              <Play className="w-3 h-3 fill-[#CCFF00]" /> Guarda
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="py-6 text-center text-slate-500 text-xs italic bg-[#0D0F16] rounded-xl border border-dashed border-[#212638]">
+                  Nessuna nota video presente per questo calciatore. Clicca &quot;Aggiungi Nota Video&quot; per caricare o collegare una clip.
+                </div>
+              )}
+            </div>
+
+            {/* Footer Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[#1C2130]">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleAddNoteForPlayer(selectedPlayer)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#12151E] hover:bg-[#181C28] text-xs font-bold text-slate-200 border border-[#242B3C] transition-colors cursor-pointer"
+                >
+                  <FileText className="w-4 h-4 text-[#CCFF00]" />
+                  Aggiungi Nota Calciatore
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleAddVideoForPlayer(selectedPlayer)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#12151E] hover:bg-[#181C28] text-xs font-bold text-slate-200 border border-[#242B3C] transition-colors cursor-pointer"
+                >
+                  <Video className="w-4 h-4 text-[#FF334B]" />
+                  Aggiungi Clip Episodio
+                </button>
+              </div>
+
               <button
                 type="button"
                 onClick={handleClosePlayer}
@@ -2266,6 +2480,12 @@ function SquadreContent() {
         initialTargetName={videoModalTargetName}
         onSave={(data) => {
           DbService.addVideo(data);
+          if (selectedPlayer && data.targetType === 'giocatore') {
+            setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+          }
+          if (selectedTeam && data.targetType === 'squadra') {
+            setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+          }
           setIsVideoModalOpen(false);
         }}
       />

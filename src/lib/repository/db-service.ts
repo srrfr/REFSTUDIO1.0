@@ -147,6 +147,20 @@ const defaultInitialVideos: VideoClip[] = [
     timestampMark: '03:15',
     createdAt: new Date(Date.now() - 3600000 * 48).toISOString(),
   },
+  {
+    id: 'vid-1790239097495-ytun',
+    authorId: 'samueleromini',
+    targetType: 'giocatore',
+    targetId: '7279022',
+    targetName: 'Manuel Ricci (Ars Et Labor Ferrara)',
+    videoSource: 'YOUTUBE',
+    externalUrl: 'https://www.youtube.com/watch?v=ZoVHlwtFNLI&t=46s',
+    title: 'Gestione del calciatore',
+    description: 'Calciatore estremamente fumantino e provocatorio, in questo CDA AE lo richiama insieme al suo avversario per delle trattenute e delle parole di troppo tra i due. Ricci, nonostante la presenza di AE insulta il calciatore davanti a se costingendo AE ad alzare i toni e ad imporsi con decisione.',
+    timestampMark: '35:27',
+    createdAt: '2026-09-24T08:38:17.519Z',
+    updatedAt: '2026-09-24T08:38:17.519Z',
+  },
 ];
 
 const defaultInitialDesignations: MatchDesignation[] = [];
@@ -1128,11 +1142,26 @@ export class DbService {
     return this.getProfiles().filter((p) => p.status === 'PENDING' || p.isApproved === false);
   }
 
-  static getVideos(targetType?: string, targetId?: string): VideoClip[] {
+  static getVideos(targetType?: string, targetId?: string, targetName?: string): VideoClip[] {
     this.ensureLoaded();
-    let list = inMemoryData.videos;
-    if (targetType) list = list.filter((v) => v.targetType === targetType);
-    if (targetId) list = list.filter((v) => v.targetId === targetId);
+    let list = inMemoryData.videos || [];
+    if (targetType) {
+      const cleanType = targetType.toLowerCase().trim();
+      list = list.filter((v) => v.targetType && v.targetType.toLowerCase().trim() === cleanType);
+    }
+    if (targetId) {
+      const cleanId = String(targetId).toLowerCase().trim();
+      const cleanName = targetName ? targetName.toLowerCase().trim() : '';
+      list = list.filter((v) => {
+        if (v.targetId && String(v.targetId).toLowerCase().trim() === cleanId) {
+          return true;
+        }
+        if (cleanName && v.targetName && (v.targetName.toLowerCase().includes(cleanName) || cleanName.includes(v.targetName.toLowerCase()))) {
+          return true;
+        }
+        return false;
+      });
+    }
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
