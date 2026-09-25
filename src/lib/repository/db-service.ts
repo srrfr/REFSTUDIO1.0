@@ -1,4 +1,4 @@
-import { Team, Player, Match, StandingRow, Note, VideoClip, UserAccount } from '@/types/refstudio';
+import { Team, Player, Match, StandingRow, Note, VideoClip, UserAccount, MatchDesignation, RefereePersonalStats, DesignationRole } from '@/types/refstudio';
 import defaultDataset from '@/data/dataset.json';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseService } from '@/lib/supabase/supabase-service';
@@ -72,6 +72,7 @@ export interface DatabaseState {
   notes: Note[];
   videos: VideoClip[];
   profiles: UserAccount[];
+  designations?: MatchDesignation[];
 }
 
 const defaultInitialNotes: Note[] = [
@@ -138,6 +139,41 @@ const defaultInitialVideos: VideoClip[] = [
   },
 ];
 
+const defaultInitialDesignations: MatchDesignation[] = [
+  {
+    id: 'des-1',
+    matchId: 'match-A-5-1281681-1000471', // Ars Et Labor Ferrara vs Vianese Calcio (Giornata 5, in programma)
+    userId: 'samueleromini',
+    role: 'AE',
+    assistant1: 'Luca Ghirardi (AIA Parma)',
+    assistant2: 'Karim Palombo (AIA Ravenna)',
+    observer: 'Riccardo Samaritani (AIA Ferrara)',
+    customDateText: 'Domenica ore 15:30',
+    customField: 'Stadio Paolo Mazza, Ferrara',
+    notes: 'Scontro al vertice della 5ª giornata. Massima soglia di concentrazione sulle seconde palle e partenze veloci.',
+    designatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  },
+  {
+    id: 'des-2',
+    matchId: 'match-A-1-68499-1000471', // Medolla San Felice vs Vianese Calcio (Giornata 1, disputata 0 - 1)
+    userId: 'samueleromini',
+    role: 'AE',
+    assistant1: 'Simone Clemente (AIA Forlì)',
+    assistant2: 'Collaboratore Sezionale',
+    observer: 'Delegato Tecnico CRA ER',
+    customDateText: 'Giornata 1',
+    customField: 'Campo Federale',
+    yellowCardsGiven: 4,
+    redCardsGiven: 0,
+    penaltiesAwarded: 0,
+    refereeScore: 8.45,
+    diariaEuro: 75,
+    travelKm: 92,
+    notes: 'Gara diretta con autorità e linearità. Ottima accettazione dei provvedimenti disciplinari da ambo le panchine.',
+    designatedAt: new Date(Date.now() - 3600000 * 24 * 14).toISOString(),
+  },
+];
+
 let inMemoryData: DatabaseState = {
   teams: [...(defaultDataset.teams as unknown as Team[])],
   players: [...(defaultDataset.players as unknown as Player[])],
@@ -153,6 +189,7 @@ let inMemoryData: DatabaseState = {
   profiles: (defaultDataset as any).profiles && (defaultDataset as any).profiles.length > 0
     ? [...((defaultDataset as any).profiles as UserAccount[])]
     : [...DEFAULT_USERS],
+  designations: [...defaultInitialDesignations],
 };
 
 let hasInitializedSupabase = false;
@@ -187,7 +224,13 @@ export class DbService {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && Array.isArray(parsed.teams) && parsed.teams.length > 0) {
-            inMemoryData = parsed;
+            inMemoryData = {
+              ...inMemoryData,
+              ...parsed,
+              designations: parsed.designations && Array.isArray(parsed.designations) && parsed.designations.length > 0
+                ? parsed.designations
+                : (inMemoryData.designations || [...defaultInitialDesignations]),
+            };
           }
         } else {
           // Salva lo stato iniziale in LocalStorage
@@ -493,6 +536,291 @@ export class DbService {
     return inMemoryData.matches[idx];
   }
 
+  // =========================================================================
+  // METODI DESIGNAZIONI ARBITRALI
+  // =========================================================================
+
+  static getDesignations(userId?: string): MatchDesignation[] {
+    this.ensureLoaded();
+    const list = inMemoryData.designations || [];
+    if (!userId) return list;
+    return list.filter((d) => d.userId.toLowerCase() === userId.toLowerCase());
+  }
+
+  static getDesignatedMatches(userId?: string): { match: Match; designation: MatchDesignation }[] {
+    this.ensureLoaded();
+    const designations = this.getDesignations(userId);
+    const matchesMap = new Map<string, Match>();
+    inMemoryData.matches.forEach((m) => matchesMap.set(m.id, m));
+
+    const result: { match: Match; designation: MatchDesignation }[] = [];
+    designations.forEach((des) => {
+      const match = matchesMap.get(des.matchId);
+      if (match) {
+        result.push({ match, designation: des });
+      }
+    });
+
+    // Ordina: prima le gare in programma (giornata crescente), poi quelle disputate (giornata decrescente)
+    return result.sort((a, b) => {
+      if (a.match.played !== b.match.played) {
+        return a.match.played ? 1 : -1;
+      }
+      return a.match.played
+        ? (b.match.matchDay || 0) - (a.match.matchDay || 0)
+        : (a.match.matchDay || 0) - (b.match.matchDay || 0);
+    });
+  }
+
+  static isMatchDesignated(matchId: string, userId?: string): boolean {
+    this.ensureLoaded();
+    const designations = this.getDesignations(userId);
+    return designations.some((d) => d.matchId === matchId);
+  }
+
+  static getMatchDesignation(matchId: string, userId?: string): MatchDesignation | undefined {
+    this.ensureLoaded();
+    const designations = this.getDesignations(userId);
+    return designations.find((d) => d.matchId === matchId);
+  }
+
+  static setMatchDesignation(
+    matchId: string,
+    userId: string,
+    data: Partial<MatchDesignation>
+  ): MatchDesignation {
+    this.ensureLoaded();
+    if (!inMemoryData.designations) {
+      inMemoryData.designations = [];
+    }
+
+    const matchIdx = inMemoryData.matches.findIndex((m) => m.id === matchId);
+    if (matchIdx === -1) throw new Error('Partita non trovata');
+
+    const desIdx = inMemoryData.designations.findIndex(
+      (d) => d.matchId === matchId && d.userId.toLowerCase() === userId.toLowerCase()
+    );
+
+    const now = new Date().toISOString();
+    let designation: MatchDesignation;
+
+    if (desIdx >= 0) {
+      designation = {
+        ...inMemoryData.designations[desIdx],
+        ...data,
+        updatedAt: now,
+      };
+      inMemoryData.designations[desIdx] = designation;
+    } else {
+      designation = {
+        id: `des-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        matchId,
+        userId,
+        role: data.role || 'AE',
+        assistant1: data.assistant1 || '',
+        assistant2: data.assistant2 || '',
+        observer: data.observer || '',
+        customDateText: data.customDateText || inMemoryData.matches[matchIdx].dateText,
+        customField: data.customField || inMemoryData.matches[matchIdx].matchField,
+        notes: data.notes || '',
+        yellowCardsGiven: data.yellowCardsGiven,
+        redCardsGiven: data.redCardsGiven,
+        penaltiesAwarded: data.penaltiesAwarded,
+        refereeScore: data.refereeScore,
+        diariaEuro: data.diariaEuro,
+        travelKm: data.travelKm,
+        designatedAt: now,
+        updatedAt: now,
+        ...data,
+      };
+      inMemoryData.designations.unshift(designation);
+    }
+
+    // Aggiorna anche il match corrispondente
+    const profile = inMemoryData.profiles.find((p) => p.username === userId);
+    inMemoryData.matches[matchIdx] = {
+      ...inMemoryData.matches[matchIdx],
+      designatedRefereeId: userId,
+      refereeRole: designation.role,
+      refereeName: profile?.displayName || inMemoryData.matches[matchIdx].refereeName || 'Samuele Romini',
+      assistant1: designation.assistant1,
+      assistant2: designation.assistant2,
+      observer: designation.observer,
+      designationNotes: designation.notes,
+      updatedAt: now,
+    };
+
+    this.persist();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { matchId, userId } }));
+    }
+
+    return designation;
+  }
+
+  static removeMatchDesignation(matchId: string, userId?: string): boolean {
+    this.ensureLoaded();
+    if (!inMemoryData.designations) return false;
+
+    const lenBefore = inMemoryData.designations.length;
+    inMemoryData.designations = inMemoryData.designations.filter((d) => {
+      if (userId) {
+        return !(d.matchId === matchId && d.userId.toLowerCase() === userId.toLowerCase());
+      }
+      return d.matchId !== matchId;
+    });
+
+    const removed = inMemoryData.designations.length < lenBefore;
+
+    const matchIdx = inMemoryData.matches.findIndex((m) => m.id === matchId);
+    if (matchIdx >= 0) {
+      if (!userId || inMemoryData.matches[matchIdx].designatedRefereeId?.toLowerCase() === userId.toLowerCase()) {
+        inMemoryData.matches[matchIdx] = {
+          ...inMemoryData.matches[matchIdx],
+          designatedRefereeId: undefined,
+          refereeRole: undefined,
+          designationNotes: undefined,
+          assistant1: undefined,
+          assistant2: undefined,
+          observer: undefined,
+        };
+      }
+    }
+
+    if (removed) {
+      this.persist();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { matchId, userId } }));
+      }
+    }
+
+    return removed;
+  }
+
+  static getNextOrLatestDesignatedMatch(userId: string = 'samueleromini'): {
+    match: Match;
+    isUpcoming: boolean;
+    designation: MatchDesignation;
+  } | null {
+    this.ensureLoaded();
+    const designatedList = this.getDesignatedMatches(userId);
+    if (designatedList.length === 0) return null;
+
+    // 1. Prossima partita non ancora giocata (upcoming), ordinata per giornata crescente
+    const upcoming = designatedList
+      .filter((d) => !d.match.played)
+      .sort((a, b) => (a.match.matchDay || 0) - (b.match.matchDay || 0));
+
+    if (upcoming.length > 0) {
+      return {
+        match: upcoming[0].match,
+        isUpcoming: true,
+        designation: upcoming[0].designation,
+      };
+    }
+
+    // 2. Se non ci sono gare future, restituisce l'ultima disputata (giornata decrescente)
+    const played = designatedList
+      .filter((d) => d.match.played)
+      .sort((a, b) => (b.match.matchDay || 0) - (a.match.matchDay || 0));
+
+    if (played.length > 0) {
+      return {
+        match: played[0].match,
+        isUpcoming: false,
+        designation: played[0].designation,
+      };
+    }
+
+    return null;
+  }
+
+  static getRefereePersonalStats(userId: string = 'samueleromini'): RefereePersonalStats {
+    this.ensureLoaded();
+    const designatedList = this.getDesignatedMatches(userId);
+
+    const totalDesignations = designatedList.length;
+    const playedMatches = designatedList.filter((d) => d.match.played).length;
+    const upcomingMatches = totalDesignations - playedMatches;
+
+    const roleCounts = {
+      ae: designatedList.filter((d) => d.designation.role === 'AE' || !d.designation.role).length,
+      aa: designatedList.filter(
+        (d) => d.designation.role === 'AA' || d.designation.role === 'AA1' || d.designation.role === 'AA2'
+      ).length,
+      oa: designatedList.filter((d) => d.designation.role === 'OA').length,
+    };
+
+    let totalYellowCards = 0;
+    let totalRedCards = 0;
+    let totalGoals = 0;
+    let totalPenalties = 0;
+    let totalScores = 0;
+    let scoreCount = 0;
+    const teamCounts = new Map<string, number>();
+
+    designatedList.forEach((d) => {
+      const m = d.match;
+      const des = d.designation;
+
+      if (des.yellowCardsGiven !== undefined) {
+        totalYellowCards += des.yellowCardsGiven;
+      } else if (m.played) {
+        totalYellowCards += 4;
+      }
+
+      if (des.redCardsGiven !== undefined) {
+        totalRedCards += des.redCardsGiven;
+      }
+
+      if (des.penaltiesAwarded !== undefined) {
+        totalPenalties += des.penaltiesAwarded;
+      }
+
+      if (des.refereeScore) {
+        totalScores += des.refereeScore;
+        scoreCount++;
+      }
+
+      if (m.played && m.homeScore !== undefined && m.awayScore !== undefined) {
+        totalGoals += m.homeScore + m.awayScore;
+      }
+
+      if (m.homeTeamName) {
+        teamCounts.set(m.homeTeamName, (teamCounts.get(m.homeTeamName) || 0) + 1);
+      }
+      if (m.awayTeamName) {
+        teamCounts.set(m.awayTeamName, (teamCounts.get(m.awayTeamName) || 0) + 1);
+      }
+    });
+
+    const avgCardsPerMatch = playedMatches > 0 ? Number((totalYellowCards / playedMatches).toFixed(1)) : 0;
+    const avgGoalsPerMatch = playedMatches > 0 ? Number((totalGoals / playedMatches).toFixed(1)) : 0;
+    const avgRefereeScore = scoreCount > 0 ? Number((totalScores / scoreCount).toFixed(2)) : undefined;
+
+    const mostFrequentTeams = Array.from(teamCounts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      totalDesignations,
+      playedMatches,
+      upcomingMatches,
+      roleCounts,
+      totalYellowCards,
+      totalRedCards,
+      avgCardsPerMatch,
+      totalGoals,
+      avgGoalsPerMatch,
+      totalPenalties,
+      avgRefereeScore,
+      teamsOfficiatedCount: teamCounts.size,
+      mostFrequentTeams,
+    };
+  }
+
   static getStandings(girone: 'A' | 'B'): StandingRow[] {
     this.ensureLoaded();
     const raw = girone === 'A' ? inMemoryData.standingsA : inMemoryData.standingsB;
@@ -757,6 +1085,7 @@ export class DbService {
       profiles: (defaultDataset as any).profiles && (defaultDataset as any).profiles.length > 0
         ? [...((defaultDataset as any).profiles as UserAccount[])]
         : [...DEFAULT_USERS],
+      designations: [...defaultInitialDesignations],
     };
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);

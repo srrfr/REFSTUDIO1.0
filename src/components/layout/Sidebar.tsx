@@ -43,6 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
 
   const navItems = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { label: 'Le mie Designazioni', href: '/designazioni', icon: Award },
     { label: 'Calciatori & Stats', href: '/giocatori', icon: Users },
     { label: 'Squadre & Rose', href: '/squadre', icon: Shield },
     { label: 'Partite & Classifiche', href: '/partite', icon: Calendar },

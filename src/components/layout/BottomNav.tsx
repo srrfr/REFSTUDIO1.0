@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
 import Link from 'next/link';
@@ -9,6 +9,7 @@ import {
   Users,
   FileText,
   UserCheck,
+  Award,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 
@@ -18,9 +19,9 @@ export const BottomNav: React.FC = () => {
 
   const navItems = [
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
+    { label: 'Designazioni', href: '/designazioni', icon: Award },
     { label: 'Squadre', href: '/squadre', icon: Shield },
     { label: 'Calciatori', href: '/giocatori', icon: Users },
-    { label: 'Note & Video', href: '/note-video', icon: FileText },
     { label: 'Profilo', href: '/profilo', icon: UserCheck },
   ];
 

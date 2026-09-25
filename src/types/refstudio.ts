@@ -89,6 +89,51 @@ export interface Player {
   updatedAt?: string;
 }
 
+export type DesignationRole = 'AE' | 'AA1' | 'AA2' | 'OA';
+
+export interface MatchDesignation {
+  id: string; // e.g. "des-1" o `${userId}-${matchId}`
+  matchId: string;
+  userId: string; // username arbitro, es. "samueleromini"
+  role: DesignationRole | RefereeRole | string;
+  assistant1?: string;
+  assistant2?: string;
+  observer?: string;
+  customDateText?: string;
+  customTime?: string;
+  customField?: string;
+  notes?: string;
+  // Statistiche post-gara arbitro
+  yellowCardsGiven?: number;
+  redCardsGiven?: number;
+  penaltiesAwarded?: number;
+  refereeScore?: number; // Voto OA ricevuto (es. 8.40)
+  diariaEuro?: number;
+  travelKm?: number;
+  designatedAt?: string;
+  updatedAt?: string;
+}
+
+export interface RefereePersonalStats {
+  totalDesignations: number;
+  playedMatches: number;
+  upcomingMatches: number;
+  roleCounts: {
+    ae: number;
+    aa: number;
+    oa: number;
+  };
+  totalYellowCards: number;
+  totalRedCards: number;
+  avgCardsPerMatch: number;
+  totalGoals: number;
+  avgGoalsPerMatch: number;
+  totalPenalties: number;
+  avgRefereeScore?: number;
+  teamsOfficiatedCount: number;
+  mostFrequentTeams: { name: string; count: number }[];
+}
+
 export interface Match {
   id: string; // "girone-a-giornata-1-home-away"
   championshipId: string;
@@ -107,6 +152,13 @@ export interface Match {
   matchField?: string;
   observations?: string;
   updatedAt?: string;
+  // Campi designazione arbitrale
+  designatedRefereeId?: string; // username dell'arbitro assegnato
+  refereeRole?: DesignationRole | RefereeRole | string;
+  designationNotes?: string;
+  assistant1?: string;
+  assistant2?: string;
+  observer?: string;
 }
 
 export interface StandingRow {

@@ -25,9 +25,10 @@ import {
   Globe,
   Lock,
   ClipboardCheck,
+  Star,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
-import { Team, Player, Match, Note, VideoClip } from '@/types/refstudio';
+import { Team, Player, Match, Note, VideoClip, MatchDesignation, RefereePersonalStats } from '@/types/refstudio';
 import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { RatingStars } from '@/components/common/RatingStars';
@@ -49,6 +50,14 @@ export default function DashboardPage() {
     highRiskPlayers: 0,
   });
 
+  const [designatedMatchInfo, setDesignatedMatchInfo] = useState<{
+    match: Match;
+    isUpcoming: boolean;
+    designation: MatchDesignation;
+  } | null>(null);
+  const [refereeStats, setRefereeStats] = useState<RefereePersonalStats | null>(null);
+  const [kpiViewMode, setKpiViewMode] = useState<'PERSONAL' | 'LEAGUE'>('PERSONAL');
+
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
   const [recentTeams, setRecentTeams] = useState<Team[]>([]);
   const [flaggedPlayers, setFlaggedPlayers] = useState<Player[]>([]);
@@ -66,8 +75,17 @@ export default function DashboardPage() {
   const { user } = useAuth();
 
   const loadDashboardData = React.useCallback(() => {
-    // Load summary
+    const currentUserId = user?.username || 'samueleromini';
+
+    // Load general summary
     setStats(DbService.getStatsSummary());
+
+    // Load referee personal designations & stats
+    const desResult = DbService.getNextOrLatestDesignatedMatch(currentUserId);
+    setDesignatedMatchInfo(desResult);
+
+    const refStats = DbService.getRefereePersonalStats(currentUserId);
+    setRefereeStats(refStats);
 
     // Matches
     const matches = DbService.getMatches(undefined, 1);
@@ -98,6 +116,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboardData();
+
+    const handleDesignationsUpdated = () => {
+      loadDashboardData();
+    };
+
+    window.addEventListener('refstudio-designations-update', handleDesignationsUpdated);
+    return () => {
+      window.removeEventListener('refstudio-designations-update', handleDesignationsUpdated);
+    };
   }, [loadDashboardData]);
 
   const handleOpenPreparaGara = (match: Match) => {
@@ -162,17 +189,132 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          {/* Right: Featured Match Live Score HUD Card */}
-          {featuredMatch ? (
+          {/* Right: Featured Designated Match Live Score HUD Card */}
+          {designatedMatchInfo ? (
+            <div className="w-full lg:w-[460px] shrink-0 bg-[#12151F] border border-[#23293A] rounded-2xl p-5 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono text-[11px] uppercase tracking-wider font-bold text-slate-400">
+                  Girone {designatedMatchInfo.match.girone} • Giornata {designatedMatchInfo.match.matchDay}
+                </span>
+                {designatedMatchInfo.isUpcoming ? (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 text-[10px] font-black uppercase tracking-wide">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-ping" />
+                    PROSSIMA GARA DESIGNATA
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-black uppercase tracking-wide">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    ULTIMA GARA DIRETTA
+                  </span>
+                )}
+              </div>
+
+              {/* Designated Role Banner */}
+              <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-[#0B0D14] border border-[#1C2130] text-xs">
+                <div className="flex items-center gap-2">
+                  <Award className="w-3.5 h-3.5 text-[#CCFF00]" />
+                  <span className="text-slate-400">Tuo Ruolo:</span>
+                  <span className="font-black text-[#CCFF00]">
+                    {designatedMatchInfo.designation.role === 'AE'
+                      ? 'AE • Arbitro Effettivo'
+                      : designatedMatchInfo.designation.role === 'AA1'
+                      ? 'AA1 • 1° Assistente'
+                      : designatedMatchInfo.designation.role === 'AA2'
+                      ? 'AA2 • 2° Assistente'
+                      : designatedMatchInfo.designation.role === 'OA'
+                      ? 'OA • Osservatore'
+                      : designatedMatchInfo.designation.role}
+                  </span>
+                </div>
+                {designatedMatchInfo.designation.refereeScore ? (
+                  <span className="text-yellow-400 font-bold font-mono">
+                    ⭐ Voto OA: {designatedMatchInfo.designation.refereeScore}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400 font-mono">Designazione Ufficiale</span>
+                )}
+              </div>
+
+              {/* Teams & Score display */}
+              <div className="flex items-center justify-between gap-2 py-1">
+                <div className="flex-1 text-center space-y-1.5">
+                  <TeamBadge
+                    name={designatedMatchInfo.match.homeTeamName}
+                    logoUrl={
+                      teamLogoMap.get(designatedMatchInfo.match.homeTeamId) ||
+                      teamLogoMap.get(designatedMatchInfo.match.homeTeamName.toLowerCase().trim())
+                    }
+                    size="lg"
+                    className="mx-auto shadow-sm"
+                  />
+                  <p className="font-extrabold text-xs text-white truncate max-w-[120px] mx-auto">
+                    {designatedMatchInfo.match.homeTeamName}
+                  </p>
+                </div>
+
+                <div className="text-center px-4 py-1.5 rounded-xl bg-[#090A0E] border border-[#1E2333]">
+                  <span className="font-black text-2xl tracking-widest text-[#CCFF00]">
+                    {designatedMatchInfo.match.played && designatedMatchInfo.match.homeScore !== undefined
+                      ? `${designatedMatchInfo.match.homeScore} : ${designatedMatchInfo.match.awayScore}`
+                      : 'VS'}
+                  </span>
+                  <p className="text-[9px] text-slate-400 font-mono mt-0.5">
+                    {designatedMatchInfo.designation.customDateText || designatedMatchInfo.match.dateText}
+                  </p>
+                </div>
+
+                <div className="flex-1 text-center space-y-1.5">
+                  <TeamBadge
+                    name={designatedMatchInfo.match.awayTeamName}
+                    logoUrl={
+                      teamLogoMap.get(designatedMatchInfo.match.awayTeamId) ||
+                      teamLogoMap.get(designatedMatchInfo.match.awayTeamName.toLowerCase().trim())
+                    }
+                    size="lg"
+                    className="mx-auto shadow-sm"
+                  />
+                  <p className="font-extrabold text-xs text-white truncate max-w-[120px] mx-auto">
+                    {designatedMatchInfo.match.awayTeamName}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="pt-2 border-t border-[#1C2130] flex items-center justify-between gap-3">
+                <span className="text-[11px] text-slate-400 truncate max-w-[170px]">
+                  🏟️ {designatedMatchInfo.designation.customField || designatedMatchInfo.match.matchField || 'Campo federale'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href="/designazioni"
+                    className="text-[11px] font-bold text-slate-400 hover:text-[#CCFF00] transition-colors"
+                  >
+                    Tutte ({refereeStats?.totalDesignations || 0})
+                  </Link>
+                  <button
+                    onClick={() => handleOpenPreparaGara(designatedMatchInfo.match)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs transition-all shadow-[0_0_18px_rgba(204,255,0,0.35)] active:scale-95 cursor-pointer"
+                  >
+                    <ClipboardCheck className="w-4 h-4 text-black" />
+                    {designatedMatchInfo.isUpcoming ? 'Prepara la Gara' : 'Dossier Gara'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : featuredMatch ? (
+            /* Fallback when no match is designated yet */
             <div className="w-full lg:w-[440px] shrink-0 bg-[#12151F] border border-[#23293A] rounded-2xl p-5 shadow-2xl space-y-4">
               <div className="flex items-center justify-between text-xs">
                 <span className="font-mono text-[11px] uppercase tracking-wider font-bold text-slate-400">
                   Girone {featuredMatch.girone} • Giornata {featuredMatch.matchDay}
                 </span>
-                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 text-[10px] font-black uppercase tracking-wide">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#CCFF00] animate-ping" />
-                  MATCH IN EVIDENZA
-                </span>
+                <Link
+                  href="/designazioni"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 text-[10px] font-black uppercase tracking-wide hover:bg-[#CCFF00]/25 transition-colors"
+                >
+                  <Award className="w-3 h-3 text-[#CCFF00]" />
+                  + INDICA DESIGNAZIONE
+                </Link>
               </div>
 
               {/* Teams & Score display */}
@@ -455,51 +597,153 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* 3. PRIMARY LEAGUE KPI GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Squadre</span>
-            <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
-              <Shield className="w-4 h-4" />
-            </div>
+      {/* 3. PRIMARY KPI GRID: PERSONAL REFEREE STATS (DEFAULT) OR LEAGUE TOTALS */}
+      <div className="space-y-3">
+        {/* Toggle between Personal Referee Stats & League Generic Stats */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 p-1 bg-[#0A0C10] border border-[#1E2333] rounded-xl">
+            <button
+              onClick={() => setKpiViewMode('PERSONAL')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                kpiViewMode === 'PERSONAL'
+                  ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.3)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5" />
+              <span>Le mie Statistiche Arbitrali</span>
+            </button>
+            <button
+              onClick={() => setKpiViewMode('LEAGUE')}
+              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                kpiViewMode === 'LEAGUE'
+                  ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.3)]'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Statistiche Campionato</span>
+            </button>
           </div>
-          <div className="text-3xl font-black text-white">{stats.totalTeams}</div>
-          <p className="text-[11px] text-slate-400 mt-1">18 Girone A + 18 Girone B (36 club)</p>
+
+          <Link
+            href="/designazioni"
+            className="text-xs font-bold text-[#CCFF00] hover:underline flex items-center gap-1.5"
+          >
+            Gestisci designazioni <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Calciatori</span>
-            <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
-              <Users className="w-4 h-4" />
+        {kpiViewMode === 'PERSONAL' && refereeStats ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Card 1: Gare Designate */}
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Le mie Gare</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Award className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white">{refereeStats.totalDesignations}</div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {refereeStats.playedMatches} disputate • {refereeStats.upcomingMatches} in programma
+              </p>
             </div>
-          </div>
-          <div className="text-3xl font-black text-white">{stats.totalPlayers}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Rose complete sincronizzate</p>
-        </div>
 
-        <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Gare Campionato</span>
-            <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
-              <Calendar className="w-4 h-4" />
+            {/* Card 2: Ruoli Arbitrali */}
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Ruoli Svolti</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white">{refereeStats.roleCounts.ae} da AE</div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {refereeStats.roleCounts.aa} Assistente • {refereeStats.roleCounts.oa} Osservatore
+              </p>
             </div>
-          </div>
-          <div className="text-3xl font-black text-white">{stats.totalMatches}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Calendario gare 2024/2025</p>
-        </div>
 
-        <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
-          <div className="flex items-center justify-between text-slate-400 mb-2">
-            <span className="text-xs font-extrabold uppercase tracking-wider">Note & Video</span>
-            <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
-              <FileText className="w-4 h-4" />
+            {/* Card 3: Disciplina */}
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Media Cartellini</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-yellow-400 group-hover:scale-110 transition-transform">
+                  <Flame className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white">
+                {refereeStats.avgCardsPerMatch} <span className="text-xs font-bold text-yellow-400">🟨 / gara</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                Totale {refereeStats.totalYellowCards} gialli • {refereeStats.totalRedCards} rossi
+              </p>
+            </div>
+
+            {/* Card 4: Voto OA Medio */}
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Voto Medio OA</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-amber-400 group-hover:scale-110 transition-transform">
+                  <Star className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white flex items-center gap-1.5">
+                <span>{refereeStats.avgRefereeScore ? refereeStats.avgRefereeScore.toFixed(2) : '8.40'}</span>
+                <span className="text-xs font-bold text-yellow-400">⭐</span>
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">
+                {refereeStats.teamsOfficiatedCount} squadre diverse arbitrate
+              </p>
             </div>
           </div>
-          <div className="text-3xl font-black text-white">{stats.totalNotes + stats.totalVideos}</div>
-          <p className="text-[11px] text-slate-400 mt-1">{stats.totalNotes} note + {stats.totalVideos} clip didattiche</p>
-        </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Squadre</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Shield className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white">{stats.totalTeams}</div>
+              <p className="text-[11px] text-slate-400 mt-1">18 Girone A + 18 Girone B (36 club)</p>
+            </div>
+
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Calciatori</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white">{stats.totalPlayers}</div>
+              <p className="text-[11px] text-slate-400 mt-1">Rose complete sincronizzate</p>
+            </div>
+
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Gare Campionato</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <Calendar className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white">{stats.totalMatches}</div>
+              <p className="text-[11px] text-slate-400 mt-1">Calendario gare 2024/2025</p>
+            </div>
+
+            <div className="bg-[#0D0F16] border border-[#1F2433] hover:border-[#CCFF00]/40 rounded-2xl p-5 transition-all group">
+              <div className="flex items-center justify-between text-slate-400 mb-2">
+                <span className="text-xs font-extrabold uppercase tracking-wider">Note & Video</span>
+                <div className="w-8 h-8 rounded-lg bg-[#141824] border border-[#242A3C] flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
+                  <FileText className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-3xl font-black text-white">{stats.totalNotes + stats.totalVideos}</div>
+              <p className="text-[11px] text-slate-400 mt-1">{stats.totalNotes} note + {stats.totalVideos} clip didattiche</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 4. UPCOMING MATCHES & PREPARA LA GARA LAUNCHER */}
