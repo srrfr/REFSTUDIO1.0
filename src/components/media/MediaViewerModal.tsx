@@ -232,7 +232,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in duration-200 select-none overflow-hidden"
+      className="fixed inset-0 z-[80] flex flex-col bg-black/95 backdrop-blur-xl animate-in fade-in duration-200 select-none overflow-hidden"
     >
       {/* Top Header Bar */}
       <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 bg-[#0A0D15]/90 border-b border-[#1E2436] z-10">
