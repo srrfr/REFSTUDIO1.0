@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Users, Search, Filter, Edit3, Check, X, FileText, Video, AlertCircle, Camera } from 'lucide-react';
+import { Users, Search, Filter, Edit3, Check, X, FileText, Video, AlertCircle, Camera, Plus, Trash2, Lock, Globe, Paperclip } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
-import { Player, RefereeCustomTag, DisciplinaryStatus, RoleCategory } from '@/types/refstudio';
+import { Player, RefereeCustomTag, DisciplinaryStatus, RoleCategory, Note, VideoClip } from '@/types/refstudio';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TagBadge } from '@/components/common/TagBadge';
 import { PlayerBadge } from '@/components/common/AvatarBadge';
@@ -12,6 +12,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
 import { AvatarUrlModal } from '@/components/modals/AvatarUrlModal';
+import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 
 const AVAILABLE_TAGS: RefereeCustomTag[] = [
@@ -40,10 +41,17 @@ function PlayersContent() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Partial<Player>>({});
 
+  // Dynamic player notes and videos
+  const [playerNotes, setPlayerNotes] = useState<Note[]>([]);
+  const [playerVideos, setPlayerVideos] = useState<VideoClip[]>([]);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+
   // Modals
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
+  const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
   const handleSaveAvatarUrl = (newUrl: string) => {
     if (!selectedPlayer) return;
@@ -67,11 +75,40 @@ function PlayersContent() {
     });
   }, []);
 
-  useRealtimeSync(loadPlayers);
+  const loadPlayerNotes = useCallback(() => {
+    if (selectedPlayer) {
+      setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
+      setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id));
+    } else {
+      setPlayerNotes([]);
+      setPlayerVideos([]);
+    }
+  }, [selectedPlayer, user?.username]);
+
+  useRealtimeSync(() => {
+    loadPlayers();
+    loadPlayerNotes();
+  });
 
   useEffect(() => {
     loadPlayers();
   }, [loadPlayers]);
+
+  useEffect(() => {
+    loadPlayerNotes();
+  }, [loadPlayerNotes]);
+
+  // Conteggio note per ogni calciatore per la visualizzazione nella griglia
+  const notesCountByPlayer = useMemo(() => {
+    const allNotes = DbService.getNotes('giocatore', undefined, user?.username);
+    const map = new Map<string, number>();
+    allNotes.forEach((n) => {
+      if (n.targetId) {
+        map.set(n.targetId, (map.get(n.targetId) || 0) + 1);
+      }
+    });
+    return map;
+  }, [players, user?.username, playerNotes]);
 
   // Gestione tasto Escape per chiusura modale calciatore
   useEffect(() => {
@@ -79,8 +116,12 @@ function PlayersContent() {
       if (e.key === 'Escape') {
         if (isAvatarModalOpen) {
           setIsAvatarModalOpen(false);
+        } else if (isViewerOpen) {
+          setIsViewerOpen(false);
+          setActiveViewerMedia(null);
         } else if (isNoteModalOpen) {
           setIsNoteModalOpen(false);
+          setEditingNote(null);
         } else if (isVideoModalOpen) {
           setIsVideoModalOpen(false);
         } else if (selectedPlayer) {
@@ -91,12 +132,63 @@ function PlayersContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isAvatarModalOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer]);
+  }, [isAvatarModalOpen, isViewerOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer]);
 
   const handleSelectPlayer = (player: Player) => {
     setSelectedPlayer(player);
     setEditForm(player);
     setIsEditing(false);
+    setEditingNote(null);
+    setPlayerNotes(DbService.getNotes('giocatore', player.id, user?.username));
+    setPlayerVideos(DbService.getVideos('giocatore', player.id));
+  };
+
+  const handleAddNote = () => {
+    setEditingNote(null);
+    setIsNoteModalOpen(true);
+  };
+
+  const handleEditNote = (note: Note) => {
+    setEditingNote(note);
+    setIsNoteModalOpen(true);
+  };
+
+  const handleDeleteNote = (noteId: string) => {
+    if (confirm('Sei sicuro di voler eliminare questa nota arbitrale?')) {
+      try {
+        DbService.deleteNote(noteId, user?.username);
+        if (selectedPlayer) {
+          setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
+        }
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questa nota.');
+      }
+    }
+  };
+
+  const handleSaveNote = (noteData: any) => {
+    try {
+      if (noteData.id) {
+        DbService.updateNote(noteData.id, noteData, user?.username);
+      } else {
+        DbService.addNote({
+          ...noteData,
+          authorId: user?.username || 'samueleromini',
+          authorName: user?.displayName || 'Arbitro',
+          authorRole: user?.refereeRole || 'AE',
+          authorAvatar: user?.avatarUrl || '',
+          authorSection: user?.sectionAia || '',
+        });
+      }
+
+      if (selectedPlayer) {
+        setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
+      }
+      setIsNoteModalOpen(false);
+      setEditingNote(null);
+    } catch (err: any) {
+      alert(err.message || 'Errore durante il salvataggio della nota');
+    }
   };
 
   const handleToggleTag = (tag: RefereeCustomTag) => {
@@ -289,6 +381,15 @@ function PlayersContent() {
                 {player.age ? `${player.age} anni` : 'Età n.d.'}
               </span>
               <div className="flex items-center gap-2 text-slate-400">
+                {(notesCountByPlayer.get(player.id) || 0) > 0 && (
+                  <span
+                    className="flex items-center gap-1 text-[10px] text-[#CCFF00] font-black bg-[#CCFF00]/10 px-1.5 py-0.5 rounded border border-[#CCFF00]/30"
+                    title={`${notesCountByPlayer.get(player.id)} note arbitrali registrate`}
+                  >
+                    <FileText className="w-3 h-3 text-[#CCFF00]" />
+                    {notesCountByPlayer.get(player.id)}
+                  </span>
+                )}
                 <span className="text-yellow-400 font-bold">{player.yellowCards} 🟨</span>
                 <span className="text-rose-400 font-bold">{player.redCards} 🟥</span>
                 <span className="text-slate-300 font-bold">{player.goals} ⚽</span>
@@ -527,23 +628,132 @@ function PlayersContent() {
               )}
             </div>
 
-            {/* Note Arbitro */}
-            <div className="p-4 rounded-xl bg-[#12151E] border border-[#212638] space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Note Riservate sul Calciatore
-              </h4>
-              {isEditing ? (
-                <textarea
-                  rows={3}
-                  value={editForm.refereeNotes || ''}
-                  onChange={(e) => setEditForm({ ...editForm, refereeNotes: e.target.value })}
-                  placeholder="Inserisci osservazioni sul comportamento in campo..."
-                  className="w-full bg-[#181C28] border border-[#282E40] rounded p-2 text-xs text-slate-200"
-                />
+            {/* Note Arbitrali sul Calciatore inserite dagli utenti */}
+            <div className="p-5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-black text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-[#CCFF00]" />
+                    Note Arbitrali sul Calciatore ({playerNotes.length})
+                  </h4>
+                  <p className="text-[11px] text-slate-400">
+                    Osservazioni su condotta, falli tattici e atteggiamento inserite dai colleghi arbitri
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddNote}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all cursor-pointer active:scale-95"
+                >
+                  <Plus className="w-4 h-4" /> Aggiungi Nota
+                </button>
+              </div>
+
+              {playerNotes.length > 0 ? (
+                <div className="space-y-3">
+                  {playerNotes.map((note) => (
+                    <div
+                      key={note.id}
+                      className="p-3.5 rounded-xl bg-[#0D0F16] border border-[#212638] text-xs space-y-2 hover:border-[#CCFF00]/30 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono font-black ${
+                              note.priority === 'HIGH'
+                                ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                                : 'bg-[#141824] text-slate-300 border border-[#212638]'
+                            }`}
+                          >
+                            Priorità {note.priority}
+                          </span>
+                          {note.isPublic === false ? (
+                            <span className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                              <Lock className="w-2.5 h-2.5 text-amber-400" /> Personale
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30">
+                              <Globe className="w-2.5 h-2.5 text-[#CCFF00]" /> Condivisa
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="text-[10px] font-mono text-slate-500">
+                            {new Date(note.createdAt).toLocaleDateString('it-IT')}
+                          </span>
+                          {user && (isAdmin || (note.authorId && note.authorId.toLowerCase() === user.username.toLowerCase())) ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleEditNote(note)}
+                                className="text-slate-400 hover:text-[#CCFF00] flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" /> Modifica
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteNote(note.id)}
+                                className="text-slate-400 hover:text-rose-400 flex items-center gap-1 font-semibold transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" /> Elimina
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-slate-500 italic flex items-center gap-1">
+                              <Lock className="w-3 h-3 text-slate-600" /> Sola lettura
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Author info */}
+                      <div className="flex items-center gap-2 text-[11px] text-slate-400 pt-0.5">
+                        <span className="font-bold text-white">{note.authorName || note.authorId}</span>
+                        {note.authorRole && (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
+                            {note.authorRole}
+                          </span>
+                        )}
+                        {note.authorSection && <span className="text-slate-500">• {note.authorSection}</span>}
+                      </div>
+
+                      <p className="text-slate-200 whitespace-pre-line leading-relaxed">{note.content}</p>
+
+                      {note.attachments && note.attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          {note.attachments.map((att, i) => {
+                            const attStr = typeof att === 'string' ? att : (att as any)?.url || '';
+                            const isImg = attStr.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i);
+                            return (
+                              <button
+                                key={i}
+                                type="button"
+                                onClick={() => {
+                                  setActiveViewerMedia({
+                                    url: attStr,
+                                    title: `${selectedPlayer.firstName} ${selectedPlayer.lastName} - Allegato ${i + 1}`,
+                                    subtitle: `Nota arbitrale di ${note.authorName || 'Arbitro'}`,
+                                    description: note.content,
+                                    mediaType: isImg ? 'image' : 'video',
+                                  });
+                                  setIsViewerOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1 text-[10px] text-[#CCFF00] bg-[#141824] border border-[#212638] px-2.5 py-1 rounded-lg hover:border-[#CCFF00]/40 transition-colors"
+                              >
+                                <Paperclip className="w-3 h-3" /> Allegato {i + 1}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
-                <p className="text-xs text-slate-300 italic">
-                  {selectedPlayer.refereeNotes || 'Nessuna nota presente per questo calciatore.'}
-                </p>
+                <div className="py-6 text-center text-slate-500 text-xs italic bg-[#0D0F16] rounded-xl border border-dashed border-[#212638]">
+                  Nessuna nota ancora inserita per questo calciatore. Clicca &quot;Aggiungi Nota&quot; per registrare il primo appunto.
+                </div>
               )}
             </div>
 
@@ -551,15 +761,17 @@ function PlayersContent() {
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-[#1F2433]">
               <div className="flex gap-2">
                 <button
-                  onClick={() => setIsNoteModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#12151E] hover:bg-[#181C28] text-xs font-bold text-slate-200 border border-[#242B3C] transition-colors"
+                  type="button"
+                  onClick={handleAddNote}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#12151E] hover:bg-[#181C28] text-xs font-bold text-slate-200 border border-[#242B3C] transition-colors cursor-pointer"
                 >
                   <FileText className="w-4 h-4 text-[#CCFF00]" />
                   Aggiungi Nota Calciatore
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsVideoModalOpen(true)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#12151E] hover:bg-[#181C28] text-xs font-bold text-slate-200 border border-[#242B3C] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#12151E] hover:bg-[#181C28] text-xs font-bold text-slate-200 border border-[#242B3C] transition-colors cursor-pointer"
                 >
                   <Video className="w-4 h-4 text-[#FF334B]" />
                   Aggiungi Clip Episodio
@@ -583,21 +795,15 @@ function PlayersContent() {
         <>
           <NoteModal
             isOpen={isNoteModalOpen}
-            onClose={() => setIsNoteModalOpen(false)}
+            onClose={() => {
+              setIsNoteModalOpen(false);
+              setEditingNote(null);
+            }}
             initialTargetType="giocatore"
             initialTargetId={selectedPlayer.id}
             initialTargetName={`${selectedPlayer.firstName} ${selectedPlayer.lastName} (${selectedPlayer.teamName})`}
-            onSave={(data) => {
-              DbService.addNote({
-                ...data,
-                authorId: user?.username || 'samueleromini',
-                authorName: user?.displayName || 'Arbitro',
-                authorRole: user?.refereeRole || 'AE',
-                authorAvatar: user?.avatarUrl || '',
-                authorSection: user?.sectionAia || '',
-              });
-              setIsNoteModalOpen(false);
-            }}
+            existingNote={editingNote}
+            onSave={handleSaveNote}
           />
 
           <VideoModal
@@ -608,6 +814,10 @@ function PlayersContent() {
             initialTargetName={`${selectedPlayer.firstName} ${selectedPlayer.lastName} (${selectedPlayer.teamName})`}
             onSave={(data) => {
               DbService.addVideo(data);
+              if (selectedPlayer) {
+                setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id));
+              }
+              setIsVideoModalOpen(false);
             }}
           />
 
@@ -620,6 +830,15 @@ function PlayersContent() {
             currentUrl={selectedPlayer.photoUrl}
             role={selectedPlayer.role}
             onSave={handleSaveAvatarUrl}
+          />
+
+          <MediaViewerModal
+            isOpen={isViewerOpen}
+            onClose={() => {
+              setIsViewerOpen(false);
+              setActiveViewerMedia(null);
+            }}
+            media={activeViewerMedia}
           />
         </>
       )}

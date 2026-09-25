@@ -174,8 +174,8 @@ export const NoteModal: React.FC<NoteModalProps> = ({
             </h3>
             <p className="text-xs text-slate-400">
               {existingNote
-                ? 'Aggiorna le osservazioni riservate per questo soggetto'
-                : 'Archivia osservazioni confidenziali per la direzione di gara'}
+                ? 'Aggiorna le note arbitrali per questo soggetto'
+                : 'Aggiungi note e osservazioni per la direzione di gara'}
             </p>
           </div>
         </div>

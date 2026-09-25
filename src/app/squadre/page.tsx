@@ -1275,7 +1275,7 @@ function SquadreContent() {
                     : 'text-slate-400 hover:text-white bg-[#11141D] border border-[#212638]'
                 }`}
               >
-                <FileText className="w-3.5 h-3.5" /> Note Riservate ({teamNotes.length})
+                <FileText className="w-3.5 h-3.5" /> Note Arbitrali ({teamNotes.length})
               </button>
               <button
                 onClick={() => setActiveTeamTab('VIDEO')}
@@ -1521,7 +1521,7 @@ function SquadreContent() {
                       Note Arbitrali sulla Squadra ({teamNotes.length})
                     </h4>
                     <p className="text-[11px] text-slate-400">
-                      Annotazioni riservate inserite dai colleghi arbitri su condotta, clima e campo
+                      Osservazioni inserite dai colleghi arbitri su condotta, clima e campo
                     </p>
                   </div>
                   <button
@@ -2112,10 +2112,10 @@ function SquadreContent() {
                 <div>
                   <h4 className="text-sm font-black text-white flex items-center gap-2">
                     <FileText className="w-4 h-4 text-[#CCFF00]" />
-                    Note Riservate sul Calciatore ({playerNotes.length})
+                    Note Arbitrali sul Calciatore ({playerNotes.length})
                   </h4>
                   <p className="text-[11px] text-slate-400">
-                    Annotazioni riservate per la direzione di gara e lo storico comportamentale
+                    Osservazioni su condotta, falli tattici e atteggiamento inserite dai colleghi arbitri
                   </p>
                 </div>
                 <button
