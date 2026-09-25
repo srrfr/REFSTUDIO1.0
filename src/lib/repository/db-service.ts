@@ -149,40 +149,7 @@ const defaultInitialVideos: VideoClip[] = [
   },
 ];
 
-const defaultInitialDesignations: MatchDesignation[] = [
-  {
-    id: 'des-1',
-    matchId: 'match-A-5-1281681-1000471', // Ars Et Labor Ferrara vs Vianese Calcio (Giornata 5, in programma)
-    userId: 'samueleromini',
-    role: 'AE',
-    assistant1: 'Luca Ghirardi (AIA Parma)',
-    assistant2: 'Karim Palombo (AIA Ravenna)',
-    observer: 'Riccardo Samaritani (AIA Ferrara)',
-    customDateText: 'Domenica ore 15:30',
-    customField: 'Stadio Paolo Mazza, Ferrara',
-    notes: 'Scontro al vertice della 5ª giornata. Massima soglia di concentrazione sulle seconde palle e partenze veloci.',
-    designatedAt: new Date(Date.now() - 3600000 * 24).toISOString(),
-  },
-  {
-    id: 'des-2',
-    matchId: 'match-A-1-68499-1000471', // Medolla San Felice vs Vianese Calcio (Giornata 1, disputata 0 - 1)
-    userId: 'samueleromini',
-    role: 'AE',
-    assistant1: 'Simone Clemente (AIA Forlì)',
-    assistant2: 'Collaboratore Sezionale',
-    observer: 'Delegato Tecnico CRA ER',
-    customDateText: 'Giornata 1',
-    customField: 'Campo Federale',
-    yellowCardsGiven: 4,
-    redCardsGiven: 0,
-    penaltiesAwarded: 0,
-    refereeScore: 8.45,
-    diariaEuro: 75,
-    travelKm: 92,
-    notes: 'Gara diretta con autorità e linearità. Ottima accettazione dei provvedimenti disciplinari da ambo le panchine.',
-    designatedAt: new Date(Date.now() - 3600000 * 24 * 14).toISOString(),
-  },
-];
+const defaultInitialDesignations: MatchDesignation[] = [];
 
 let inMemoryData: DatabaseState = {
   teams: [...(defaultDataset.teams as unknown as Team[])],
@@ -199,7 +166,7 @@ let inMemoryData: DatabaseState = {
   profiles: (defaultDataset as any).profiles && (defaultDataset as any).profiles.length > 0
     ? [...((defaultDataset as any).profiles as UserAccount[])]
     : [...DEFAULT_USERS],
-  designations: [...defaultInitialDesignations],
+  designations: [],
 };
 
 let hasInitializedSupabase = false;
@@ -214,7 +181,11 @@ if (typeof window === 'undefined') {
     if (fs.existsSync(stateFile)) {
       const parsed = JSON.parse(fs.readFileSync(stateFile, 'utf-8'));
       if (parsed && Array.isArray(parsed.teams) && parsed.teams.length > 0) {
-        inMemoryData = parsed;
+        inMemoryData = {
+          ...inMemoryData,
+          ...parsed,
+          designations: Array.isArray(parsed.designations) ? parsed.designations : (inMemoryData.designations || []),
+        };
       }
     }
   } catch {
@@ -223,6 +194,49 @@ if (typeof window === 'undefined') {
 }
 
 export class DbService {
+  /**
+   * Propaga le designazioni correnti ai rispettivi oggetti Match in memoria
+   */
+  private static applyDesignationsToMatches(): void {
+    if (!inMemoryData.matches) return;
+    const designations = inMemoryData.designations || [];
+    const desMap = new Map<string, MatchDesignation>();
+    designations.forEach((d) => {
+      if (d && d.matchId) {
+        desMap.set(d.matchId, d);
+      }
+    });
+
+    inMemoryData.matches = inMemoryData.matches.map((m) => {
+      const des = desMap.get(m.id);
+      if (des) {
+        const profile = inMemoryData.profiles?.find((p) => p.username.toLowerCase() === des.userId.toLowerCase());
+        return {
+          ...m,
+          designatedRefereeId: des.userId,
+          refereeRole: des.role,
+          refereeName: profile?.displayName || m.refereeName || 'Arbitro Designato',
+          assistant1: des.assistant1,
+          assistant2: des.assistant2,
+          observer: des.observer,
+          designationNotes: des.notes,
+        };
+      } else if (m.designatedRefereeId) {
+        const {
+          designatedRefereeId,
+          refereeRole,
+          assistant1,
+          assistant2,
+          observer,
+          designationNotes,
+          ...cleanMatch
+        } = m;
+        return cleanMatch as Match;
+      }
+      return m;
+    });
+  }
+
   /**
    * Assicura che i dati siano sincronizzati con il LocalStorage del browser
    * e avvia la sincronizzazione trasparente con Supabase se configurato
@@ -234,13 +248,36 @@ export class DbService {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && Array.isArray(parsed.teams) && parsed.teams.length > 0) {
+            // Filtriamo via in modo permanente i mock des-1 e des-2 se risiedono nella cache del browser
+            let cleanDesignations: MatchDesignation[] = [];
+            if (Array.isArray(parsed.designations)) {
+              cleanDesignations = parsed.designations.filter(
+                (d: any) =>
+                  d &&
+                  d.id !== 'des-1' &&
+                  d.id !== 'des-2' &&
+                  !(d.matchId === 'match-A-5-1281681-1000471' && (d.id === 'des-1' || d.notes?.includes('Scontro al vertice'))) &&
+                  !(d.matchId === 'match-A-1-68499-1000471' && (d.id === 'des-2' || d.notes?.includes('Gara diretta con autorità')))
+              );
+            } else if (Array.isArray(inMemoryData.designations)) {
+              cleanDesignations = inMemoryData.designations.filter(
+                (d: any) =>
+                  d &&
+                  d.id !== 'des-1' &&
+                  d.id !== 'des-2' &&
+                  !(d.matchId === 'match-A-5-1281681-1000471' && (d.id === 'des-1' || d.notes?.includes('Scontro al vertice'))) &&
+                  !(d.matchId === 'match-A-1-68499-1000471' && (d.id === 'des-2' || d.notes?.includes('Gara diretta con autorità')))
+              );
+            }
+
             inMemoryData = {
               ...inMemoryData,
               ...parsed,
-              designations: parsed.designations && Array.isArray(parsed.designations) && parsed.designations.length > 0
-                ? parsed.designations
-                : (inMemoryData.designations || [...defaultInitialDesignations]),
+              designations: cleanDesignations,
             };
+
+            // Propaga le designazioni ai match
+            this.applyDesignationsToMatches();
           }
         } else {
           // Salva lo stato iniziale in LocalStorage
@@ -373,6 +410,18 @@ export class DbService {
 
       // Se il database cloud contiene dati, aggiorna lo stato locale
       if (cloudTeams.length > 0) {
+        // Preserva accuratamente le designazioni correnti
+        const currentDesignations = Array.isArray(inMemoryData.designations)
+          ? inMemoryData.designations.filter(
+              (d: any) =>
+                d &&
+                d.id !== 'des-1' &&
+                d.id !== 'des-2' &&
+                !(d.matchId === 'match-A-5-1281681-1000471' && d.id === 'des-1') &&
+                !(d.matchId === 'match-A-1-68499-1000471' && d.id === 'des-2')
+            )
+          : [];
+
         inMemoryData = {
           teams: cloudTeams,
           players: cloudPlayers.length > 0 ? cloudPlayers : inMemoryData.players,
@@ -382,11 +431,16 @@ export class DbService {
           notes: cloudNotes.length > 0 ? cloudNotes : inMemoryData.notes,
           videos: cloudVideos.length > 0 ? cloudVideos : inMemoryData.videos,
           profiles: cloudProfiles.length > 0 ? cloudProfiles : inMemoryData.profiles || [...DEFAULT_USERS],
+          designations: currentDesignations,
         };
+
+        // Riapplica le designazioni ai cloudMatches scaricati
+        this.applyDesignationsToMatches();
 
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryData));
           window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { fullSync: true } }));
+          window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { fullSync: true } }));
         }
         return true;
       }
@@ -671,14 +725,18 @@ export class DbService {
 
   static removeMatchDesignation(matchId: string, userId?: string): boolean {
     this.ensureLoaded();
-    if (!inMemoryData.designations) return false;
+    if (!inMemoryData.designations) {
+      inMemoryData.designations = [];
+    }
 
     const lenBefore = inMemoryData.designations.length;
     inMemoryData.designations = inMemoryData.designations.filter((d) => {
-      if (userId) {
-        return !(d.matchId === matchId && d.userId.toLowerCase() === userId.toLowerCase());
+      if (d.id === matchId) return false;
+      if (d.matchId === matchId) {
+        if (!userId) return false;
+        return d.userId.toLowerCase() !== userId.toLowerCase();
       }
-      return d.matchId !== matchId;
+      return true;
     });
 
     const removed = inMemoryData.designations.length < lenBefore;
@@ -698,14 +756,20 @@ export class DbService {
       }
     }
 
-    if (removed) {
-      this.persist();
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { matchId, userId } }));
-      }
+    this.persist();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { matchId, userId } }));
     }
 
     return removed;
+  }
+
+  static deleteDesignationById(designationId: string): boolean {
+    this.ensureLoaded();
+    if (!inMemoryData.designations) return false;
+    const target = inMemoryData.designations.find((d) => d.id === designationId);
+    if (!target) return false;
+    return this.removeMatchDesignation(target.matchId, target.userId);
   }
 
   static getNextOrLatestDesignatedMatch(userId: string = 'samueleromini'): {
@@ -776,8 +840,6 @@ export class DbService {
 
       if (des.yellowCardsGiven !== undefined) {
         totalYellowCards += des.yellowCardsGiven;
-      } else if (m.played) {
-        totalYellowCards += 4;
       }
 
       if (des.redCardsGiven !== undefined) {
@@ -1141,7 +1203,9 @@ export class DbService {
       matches: [...(newDataset.matches as unknown as Match[])],
       standingsA: [...(newDataset.standingsA as unknown as StandingRow[])],
       standingsB: [...(newDataset.standingsB as unknown as StandingRow[])],
+      designations: inMemoryData.designations || [],
     };
+    this.applyDesignationsToMatches();
     this.persist();
 
     if (typeof window !== 'undefined') {
@@ -1172,7 +1236,7 @@ export class DbService {
       profiles: (defaultDataset as any).profiles && (defaultDataset as any).profiles.length > 0
         ? [...((defaultDataset as any).profiles as UserAccount[])]
         : [...DEFAULT_USERS],
-      designations: [...defaultInitialDesignations],
+      designations: [],
     };
     if (typeof window !== 'undefined') {
       localStorage.removeItem(STORAGE_KEY);
