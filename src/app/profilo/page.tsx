@@ -249,16 +249,9 @@ export default function ProfilePage() {
 
           {/* Quick Switch / Logout */}
           <div className="sm:border-l sm:border-[#1E2333] sm:pl-6 flex flex-col justify-center gap-2">
-            <Link
-              href="/login"
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] text-xs font-bold transition-all"
-            >
-              <UserCheck className="w-4 h-4 text-[#CCFF00]" />
-              <span>Scheda di Login</span>
-            </Link>
             <button
               onClick={logout}
-              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-bold transition-all"
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-bold transition-all cursor-pointer"
             >
               <LogOut className="w-4 h-4" />
               <span>Disconnetti</span>

@@ -14,6 +14,7 @@ export function isSamueleRominiAdmin(user: UserAccount | null | undefined): bool
 
 interface AuthContextType {
   user: UserAccount | null;
+  authLoaded: boolean;
   isAdmin: boolean;
   isLoginModalOpen: boolean;
   openLoginModal: () => void;
@@ -39,6 +40,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<UserAccount | null>(null);
+  const [authLoaded, setAuthLoaded] = useState<boolean>(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState<boolean>(false);
   const [availableUsers, setAvailableUsers] = useState<UserAccount[]>(DEFAULT_USERS);
 
@@ -57,23 +59,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           (p) => p.username.toLowerCase() === savedUsername.toLowerCase()
         );
         if (found) {
-          // Se non è approvato, resetta sessione
-          if (found.isApproved === false || found.status === 'PENDING') {
+          // Se non è approvato o è pending/rejected, resetta sessione
+          if (found.isApproved === false || found.status === 'PENDING' || found.status === 'REJECTED') {
             localStorage.removeItem(SESSION_USER_KEY);
+            setUser(null);
           } else {
             setUser(found);
-            return;
           }
+        } else {
+          localStorage.removeItem(SESSION_USER_KEY);
+          setUser(null);
         }
+      } else {
+        // Nessun utente salvato in sessione: rimane null
+        setUser(null);
       }
-
-      // Se non c'è sessione salvata, inizializza con samueleromini come predefinito
-      const defaultUser = profiles[0] || DEFAULT_USERS[0];
-      setUser(defaultUser);
-      localStorage.setItem(SESSION_USER_KEY, defaultUser.username);
     } catch (err) {
       console.warn('Errore inizializzazione auth:', err);
-      setUser(DEFAULT_USERS[0]);
+      setUser(null);
+    } finally {
+      setAuthLoaded(true);
     }
   }, []);
 
@@ -219,6 +224,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
+        authLoaded,
         isAdmin,
         isLoginModalOpen,
         openLoginModal: () => setIsLoginModalOpen(true),

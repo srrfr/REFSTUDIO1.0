@@ -49,7 +49,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
     { label: 'Partite & Classifiche', href: '/partite', icon: Calendar },
     { label: 'Note & Video', href: '/note-video', icon: FileText },
     { label: 'Profilo Arbitro', href: '/profilo', icon: UserCheck },
-    { label: 'Accedi / Login', href: '/login', icon: Lock },
     ...(isAdmin ? [{ label: 'Data Provider Sync', href: '/admin/sync', icon: RefreshCw }] : []),
   ];
 
