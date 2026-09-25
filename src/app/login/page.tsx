@@ -22,7 +22,7 @@ import {
 import { useAuth } from '@/lib/auth/auth-context';
 import { RefereeRole } from '@/types/refstudio';
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, login, register } = useAuth();
@@ -471,5 +471,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="min-h-[85vh] flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-[#CCFF00] border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <LoginContent />
+    </React.Suspense>
   );
 }
