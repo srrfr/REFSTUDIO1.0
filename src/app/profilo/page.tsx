@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -19,11 +19,13 @@ import {
   Upload,
   UserCheck,
 } from 'lucide-react';
+import Link from 'next/link';
 import { RefereeRole, UserAccount } from '@/types/refstudio';
 import { DbService } from '@/lib/repository/db-service';
 
 export default function ProfilePage() {
-  const { user, updateProfile, logout, openLoginModal } = useAuth();
+  const { user, updateProfile, logout, openLoginModal, isAdmin, approveUser, rejectUser, availableUsers } = useAuth();
+  const [pendingUsers, setPendingUsers] = useState<UserAccount[]>([]);
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [refereeRole, setRefereeRole] = useState<RefereeRole>(user?.refereeRole || 'AE');
@@ -59,8 +61,12 @@ export default function ProfilePage() {
         publicCount: publicNotes.length,
         privateCount: privateNotes.length,
       });
+
+      if (isAdmin) {
+        setPendingUsers(DbService.getPendingProfiles());
+      }
     }
-  }, [user]);
+  }, [user, isAdmin, availableUsers]);
 
   // Gestione caricamento immagine profilo locale (converte in data URL)
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -243,13 +249,13 @@ export default function ProfilePage() {
 
           {/* Quick Switch / Logout */}
           <div className="sm:border-l sm:border-[#1E2333] sm:pl-6 flex flex-col justify-center gap-2">
-            <button
-              onClick={openLoginModal}
+            <Link
+              href="/login"
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-200 border border-[#212638] text-xs font-bold transition-all"
             >
               <UserCheck className="w-4 h-4 text-[#CCFF00]" />
-              <span>Cambia Account</span>
-            </button>
+              <span>Scheda di Login</span>
+            </Link>
             <button
               onClick={logout}
               className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 text-xs font-bold transition-all"
@@ -260,6 +266,79 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Sezione Riservata Amministratore: Validazione Richieste Profili */}
+      {isAdmin && (
+        <div className="rounded-3xl bg-[#0D0F16] border border-[#212638] p-6 sm:p-7 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <div className="p-2.5 rounded-xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 text-[#CCFF00]">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">Validazione Nuovi Profili Arbitrali</h3>
+                <p className="text-xs text-slate-400">
+                  Notifiche inviate a <span className="text-[#CCFF00] font-mono">rominisamuele@gmail.com</span> per l&apos;abilitazione
+                </p>
+              </div>
+            </div>
+            <span className="px-3 py-1 rounded-full text-xs font-black bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 font-mono">
+              {pendingUsers.length} In Sospeso
+            </span>
+          </div>
+
+          {pendingUsers.length === 0 ? (
+            <div className="p-4 rounded-2xl bg-[#11141D] border border-[#1C2130] text-center text-xs text-slate-400">
+              Nessuna richiesta di registrazione in sospeso. Tutti i profili sono convalidati.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {pendingUsers.map((p) => (
+                <div
+                  key={p.username}
+                  className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm text-white">{p.displayName}</span>
+                      <span className="text-xs font-mono text-[#CCFF00]">@{p.username}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30">
+                        {p.refereeRole}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      {p.sectionAia} • {p.email || 'Email non fornita'} • Categoria: {p.categoryAia}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await approveUser(p.username);
+                        setPendingUsers(DbService.getPendingProfiles());
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs transition-all shadow-[0_0_15px_rgba(204,255,0,0.3)] cursor-pointer active:scale-95"
+                    >
+                      ✓ Valida ed Abilita
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await rejectUser(p.username);
+                        setPendingUsers(DbService.getPendingProfiles());
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-xs transition-all cursor-pointer"
+                    >
+                      Rifiuta
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Edit Form Card */}
       <div className="rounded-3xl bg-[#0D0F16] border border-[#212638] p-6 sm:p-7 space-y-6">

@@ -10,12 +10,14 @@ export const DEFAULT_USERS: UserAccount[] = [
     username: 'samueleromini',
     password: 'samueleromini1',
     displayName: 'Samuele Romini',
-    email: 'samuele.romini@refstudio.internal',
+    email: 'rominisamuele@gmail.com',
     role: 'admin',
     refereeRole: 'AE',
     sectionAia: 'Sezione AIA Bologna',
     categoryAia: 'Eccellenza',
     avatarUrl: '',
+    isApproved: true,
+    status: 'APPROVED',
   },
   {
     username: 'lucaghirardi',
@@ -27,6 +29,8 @@ export const DEFAULT_USERS: UserAccount[] = [
     sectionAia: 'Sezione AIA Parma',
     categoryAia: 'Eccellenza',
     avatarUrl: '',
+    isApproved: true,
+    status: 'APPROVED',
   },
   {
     username: 'simoneclemente',
@@ -38,6 +42,8 @@ export const DEFAULT_USERS: UserAccount[] = [
     sectionAia: 'Sezione AIA Forlì',
     categoryAia: 'Eccellenza',
     avatarUrl: '',
+    isApproved: true,
+    status: 'APPROVED',
   },
   {
     username: 'karimpalombo',
@@ -49,6 +55,8 @@ export const DEFAULT_USERS: UserAccount[] = [
     sectionAia: 'Sezione AIA Ravenna',
     categoryAia: 'Eccellenza',
     avatarUrl: '',
+    isApproved: true,
+    status: 'APPROVED',
   },
   {
     username: 'riccardosamaritani',
@@ -60,6 +68,8 @@ export const DEFAULT_USERS: UserAccount[] = [
     sectionAia: 'Sezione AIA Ferrara',
     categoryAia: 'Eccellenza',
     avatarUrl: '',
+    isApproved: true,
+    status: 'APPROVED',
   },
 ];
 
@@ -977,6 +987,83 @@ export class DbService {
     }
 
     return profiles[idx];
+  }
+
+  static registerProfile(data: {
+    username: string;
+    password?: string;
+    displayName: string;
+    email?: string;
+    sectionAia: string;
+    refereeRole: any;
+    categoryAia?: string;
+  }): UserAccount {
+    this.ensureLoaded();
+    const cleanUser = data.username.trim().toLowerCase();
+    const existing = this.getProfileByUsername(cleanUser);
+    if (existing) {
+      throw new Error(`Lo username '${cleanUser}' è già registrato.`);
+    }
+
+    const now = new Date().toISOString();
+    const newProfile: UserAccount = {
+      username: cleanUser,
+      password: data.password ? data.password.trim() : undefined,
+      displayName: data.displayName.trim(),
+      email: data.email ? data.email.trim() : undefined,
+      role: 'arbitro',
+      refereeRole: data.refereeRole || 'AE',
+      sectionAia: data.sectionAia.trim() || 'AIA Emilia-Romagna',
+      categoryAia: data.categoryAia?.trim() || 'Eccellenza',
+      avatarUrl: '',
+      isApproved: false, // In attesa di validazione da parte di rominisamuele@gmail.com
+      status: 'PENDING',
+      requestedAt: now,
+      updatedAt: now,
+    };
+
+    inMemoryData.profiles.push(newProfile);
+    this.persist();
+
+    if (isSupabaseConfigured()) {
+      SupabaseService.upsertProfile(newProfile).catch((err) =>
+        console.warn('Errore salvataggio profilo su Supabase:', err)
+      );
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { profileRegistered: cleanUser } }));
+    }
+
+    return newProfile;
+  }
+
+  static approveProfile(username: string): UserAccount {
+    this.ensureLoaded();
+    const profile = this.getProfileByUsername(username);
+    if (!profile) throw new Error('Profilo non trovato');
+
+    return this.updateProfile(username, {
+      isApproved: true,
+      status: 'APPROVED',
+      approvedAt: new Date().toISOString(),
+    });
+  }
+
+  static rejectProfile(username: string): UserAccount {
+    this.ensureLoaded();
+    const profile = this.getProfileByUsername(username);
+    if (!profile) throw new Error('Profilo non trovato');
+
+    return this.updateProfile(username, {
+      isApproved: false,
+      status: 'REJECTED',
+    });
+  }
+
+  static getPendingProfiles(): UserAccount[] {
+    this.ensureLoaded();
+    return this.getProfiles().filter((p) => p.status === 'PENDING' || p.isApproved === false);
   }
 
   static getVideos(targetType?: string, targetId?: string): VideoClip[] {

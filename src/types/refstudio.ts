@@ -226,6 +226,10 @@ export interface UserAccount {
   sectionAia: string; // Sezione AIA (es. "Bologna", "Parma")
   categoryAia: string; // Categoria arbitrata (es. "Eccellenza", "Promozione", "CAN D")
   avatarUrl?: string; // Immagine profilo URL o data-URL
+  isApproved?: boolean; // Se false, richiede validazione da parte dell'amministratore rominisamuele@gmail.com
+  status?: 'APPROVED' | 'PENDING' | 'REJECTED';
+  requestedAt?: string;
+  approvedAt?: string;
   updatedAt?: string;
 }
 

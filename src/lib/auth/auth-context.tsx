@@ -19,6 +19,17 @@ interface AuthContextType {
   openLoginModal: () => void;
   closeLoginModal: () => void;
   login: (username: string, pass: string) => Promise<{ success: boolean; message?: string }>;
+  register: (data: {
+    username: string;
+    password?: string;
+    displayName: string;
+    email?: string;
+    sectionAia: string;
+    refereeRole: any;
+    categoryAia?: string;
+  }) => Promise<{ success: boolean; message?: string }>;
+  approveUser: (username: string) => Promise<boolean>;
+  rejectUser: (username: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<UserAccount>) => Promise<boolean>;
   availableUsers: UserAccount[];
@@ -46,8 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           (p) => p.username.toLowerCase() === savedUsername.toLowerCase()
         );
         if (found) {
-          setUser(found);
-          return;
+          // Se non è approvato, resetta sessione
+          if (found.isApproved === false || found.status === 'PENDING') {
+            localStorage.removeItem(SESSION_USER_KEY);
+          } else {
+            setUser(found);
+            return;
+          }
         }
       }
 
@@ -98,12 +114,84 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: false, message: 'Password errata.' };
     }
 
+    // Verifica stato validazione profilo
+    if (found.isApproved === false || found.status === 'PENDING') {
+      return {
+        success: false,
+        message: 'Il tuo profilo è in attesa di validazione da parte dell\'amministratore (rominisamuele@gmail.com). Ti verrà confermato l\'accesso appena convalidato.',
+      };
+    }
+
+    if (found.status === 'REJECTED') {
+      return {
+        success: false,
+        message: 'La richiesta di accesso per questo profilo è stata rifiutata dall\'amministratore.',
+      };
+    }
+
     setUser(found);
     if (typeof window !== 'undefined') {
       localStorage.setItem(SESSION_USER_KEY, found.username);
     }
     setIsLoginModalOpen(false);
     return { success: true };
+  };
+
+  const register = async (data: {
+    username: string;
+    password?: string;
+    displayName: string;
+    email?: string;
+    sectionAia: string;
+    refereeRole: any;
+    categoryAia?: string;
+  }): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const newProfile = DbService.registerProfile(data);
+      setAvailableUsers(DbService.getProfiles());
+
+      // Invia notifica email al validatore rominisamuele@gmail.com tramite API
+      try {
+        await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      } catch (mailErr) {
+        console.warn('Errore chiamata invio notifica email:', mailErr);
+      }
+
+      return {
+        success: true,
+        message:
+          'Richiesta registrata con successo! È stata inviata una notifica a rominisamuele@gmail.com per validare il tuo accesso.',
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        message: err.message || 'Errore durante la registrazione del profilo.',
+      };
+    }
+  };
+
+  const approveUser = async (username: string): Promise<boolean> => {
+    try {
+      DbService.approveProfile(username);
+      setAvailableUsers(DbService.getProfiles());
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const rejectUser = async (username: string): Promise<boolean> => {
+    try {
+      DbService.rejectProfile(username);
+      setAvailableUsers(DbService.getProfiles());
+      return true;
+    } catch {
+      return false;
+    }
   };
 
   const logout = () => {
@@ -136,6 +224,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         openLoginModal: () => setIsLoginModalOpen(true),
         closeLoginModal: () => setIsLoginModalOpen(false),
         login,
+        register,
+        approveUser,
+        rejectUser,
         logout,
         updateProfile,
         availableUsers,
