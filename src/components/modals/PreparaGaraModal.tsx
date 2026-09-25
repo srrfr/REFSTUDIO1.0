@@ -21,7 +21,6 @@ import {
   Paperclip,
   Lock,
   Globe,
-  CheckCircle2,
   ChevronRight,
   TrendingUp,
   Camera,
@@ -46,7 +45,25 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
   match,
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HOME' | 'AWAY' | 'CHECKLIST'>('OVERVIEW');
+  const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HOME' | 'AWAY'>('OVERVIEW');
+  const contentContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Resetta lo scroll del contenuto in cima quando si cambia tab
+  useEffect(() => {
+    if (contentContainerRef.current) {
+      contentContainerRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
+
+  // All'apertura del modal imposta sempre la panoramica e scroll in cima
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab('OVERVIEW');
+      if (contentContainerRef.current) {
+        contentContainerRef.current.scrollTop = 0;
+      }
+    }
+  }, [isOpen]);
 
   // Sub-modal states for adding notes/videos directly from Prepara la Gara
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
@@ -796,17 +813,17 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 md:p-6 overflow-hidden animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
       <div
-        className="relative w-full max-w-5xl my-4 rounded-3xl bg-[#0A0D15] border border-[#212638] shadow-2xl p-4 sm:p-7 text-slate-100 max-h-[94vh] overflow-y-auto flex flex-col justify-between space-y-5"
+        className="relative w-full max-w-5xl h-[92vh] max-h-[92vh] flex flex-col rounded-3xl bg-[#0A0D15] border border-[#212638] shadow-2xl overflow-hidden text-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Bar with Title and Actions */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#1E2333] pb-4">
+        {/* Pinned Top Bar with Title and Actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-6 pb-3 border-b border-[#1E2333] bg-[#0A0D15] shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 text-[#CCFF00] shadow-[0_0_15px_rgba(204,255,0,0.25)] flex-shrink-0">
               <ClipboardCheck className="w-6 h-6 text-[#CCFF00]" />
@@ -851,57 +868,53 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
           </div>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex p-1 rounded-xl bg-[#11141D] border border-[#212638] overflow-x-auto gap-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('OVERVIEW')}
-            className={`flex-1 min-w-[130px] flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition-all ${
-              activeTab === 'OVERVIEW'
-                ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.3)]'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Activity className="w-3.5 h-3.5" /> Panoramica & Confronto
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('HOME')}
-            className={`flex-1 min-w-[140px] flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition-all ${
-              activeTab === 'HOME'
-                ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.3)]'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5 text-inherit" /> Casa: {homeTeam.name}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('AWAY')}
-            className={`flex-1 min-w-[140px] flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition-all ${
-              activeTab === 'AWAY'
-                ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.3)]'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Shield className="w-3.5 h-3.5 text-inherit" /> Trasf: {awayTeam.name}
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('CHECKLIST')}
-            className={`flex-1 min-w-[130px] flex items-center justify-center gap-1.5 py-2 text-xs font-black rounded-lg transition-all ${
-              activeTab === 'CHECKLIST'
-                ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.3)]'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" /> Checklist Gara
-          </button>
+        {/* Pinned Tab Switcher (Sempre in primo piano, mai coperto) */}
+        <div className="px-4 sm:px-6 py-2.5 bg-[#0A0D15] border-b border-[#1E2333]/80 shrink-0 z-10">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 p-1 rounded-xl bg-[#11141D] border border-[#212638]">
+            <button
+              type="button"
+              onClick={() => setActiveTab('OVERVIEW')}
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-black rounded-lg transition-all cursor-pointer ${
+                activeTab === 'OVERVIEW'
+                  ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.3)]'
+                  : 'text-slate-400 hover:text-white hover:bg-[#161B28]'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              <span>Panoramica & Confronto</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('HOME')}
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-black rounded-lg transition-all cursor-pointer truncate ${
+                activeTab === 'HOME'
+                  ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.3)]'
+                  : 'text-slate-400 hover:text-white hover:bg-[#161B28]'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 shrink-0 text-inherit" />
+              <span className="truncate">Casa: {homeTeam.name}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('AWAY')}
+              className={`flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-black rounded-lg transition-all cursor-pointer truncate ${
+                activeTab === 'AWAY'
+                  ? 'bg-[#CCFF00] text-black shadow-[0_0_12px_rgba(204,255,0,0.3)]'
+                  : 'text-slate-400 hover:text-white hover:bg-[#161B28]'
+              }`}
+            >
+              <Shield className="w-3.5 h-3.5 shrink-0 text-inherit" />
+              <span className="truncate">Trasferta: {awayTeam.name}</span>
+            </button>
+          </div>
         </div>
 
-        {/* Tab 1: PANORAMICA & CONFRONTO DIRETTO */}
-        {activeTab === 'OVERVIEW' && (
-          <div className="space-y-5 animate-in fade-in duration-200">
+        {/* Contenuto scorrevole con scrollbar dedicata */}
+        <div ref={contentContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+          {/* Tab 1: PANORAMICA & CONFRONTO DIRETTO */}
+          {activeTab === 'OVERVIEW' && (
+            <div className="space-y-5 animate-in fade-in duration-200">
             {/* Comparative Head-to-Head Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Home Team Card */}
@@ -1076,58 +1089,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
             false
           )}
 
-        {/* Tab 4: CHECKLIST PRE-GARA PER LA TERNA */}
-        {activeTab === 'CHECKLIST' && (
-          <div className="space-y-5 animate-in fade-in duration-200">
-            <div className="p-5 rounded-2xl bg-[#0D0F16] border border-[#1F2433] space-y-4">
-              <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2 border-b border-[#1E2333] pb-3">
-                <CheckCircle2 className="w-4 h-4 text-[#CCFF00]" />
-                Protocollo Operativo Direzione di Gara
-              </h4>
+        </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-[#11141D] border border-[#212638] space-y-2">
-                  <h5 className="text-xs font-bold text-[#CCFF00] uppercase tracking-wide">1. Ispezione Campo & Divise</h5>
-                  <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside leading-relaxed">
-                    <li>Verifica reti delle porte, tiranti e bandierine d&apos;angolo.</li>
-                    <li>Accertamento contrasto cromatico tra divise di gioco e portieri.</li>
-                    <li>Controllo palloni omologati di gara e riscaldamento pre-gara.</li>
-                  </ul>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[#11141D] border border-[#212638] space-y-2">
-                  <h5 className="text-xs font-bold text-[#CCFF00] uppercase tracking-wide">2. Riconoscimento & Documenti</h5>
-                  <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside leading-relaxed">
-                    <li>Verifica cartellini d&apos;identità/tessere federali e liste giocatori.</li>
-                    <li>Rilevazione capitani, vicecapitani e dirigenti ammessi in panchina.</li>
-                    <li>Firma e conferma distinta con i dirigenti accompagnatori.</li>
-                  </ul>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[#11141D] border border-[#212638] space-y-2">
-                  <h5 className="text-xs font-bold text-[#CCFF00] uppercase tracking-wide">3. Disposizioni agli Assistenti</h5>
-                  <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside leading-relaxed">
-                    <li>Allineamento su fuorigioco geografico vs attivo.</li>
-                    <li>Gestione contatti e falli sul limite dell&apos;area di rigore.</li>
-                    <li>Condotta violenta a palla lontana e controllo panchine.</li>
-                  </ul>
-                </div>
-
-                <div className="p-4 rounded-xl bg-[#11141D] border border-[#212638] space-y-2">
-                  <h5 className="text-xs font-bold text-[#CCFF00] uppercase tracking-wide">4. Clima Gara & Disciplina</h5>
-                  <ul className="text-xs text-slate-300 space-y-1.5 list-disc list-inside leading-relaxed">
-                    <li>Attenzione preventiva sui calciatori segnalati per proteste frequenti.</li>
-                    <li>Presenza fisica autorevole nelle ripartenze e nei calci piazzati.</li>
-                    <li>Tutela dell&apos;incolumità dei calciatori su interventi pericolosi.</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="pt-4 border-t border-[#1C2130] flex items-center justify-between">
+        {/* Pinned Footer */}
+        <div className="p-4 sm:p-6 py-3 border-t border-[#1C2130] bg-[#0A0D15] shrink-0 flex items-center justify-between">
           <span className="text-xs text-slate-500 font-mono">
             REFSTUDIO • Modulo Operativo Preparazione Gara
           </span>
