@@ -450,14 +450,39 @@ export class DbService {
             )
           : [];
 
+        // Unione difensiva: preserva accuratamente eventuali note e video creati localmente che non sono ancora sul cloud
+        const cloudNoteIds = new Set(cloudNotes.map((n) => n.id));
+        const localOnlyNotes = (inMemoryData.notes || []).filter((n) => !cloudNoteIds.has(n.id));
+        const mergedNotes = [...cloudNotes, ...localOnlyNotes];
+
+        const cloudVideoIds = new Set(cloudVideos.map((v) => v.id));
+        const localOnlyVideos = (inMemoryData.videos || []).filter((v) => !cloudVideoIds.has(v.id));
+        const mergedVideos = [...cloudVideos, ...localOnlyVideos];
+
+        // Sincronizza verso il cloud eventuali elementi rimasti solo locali
+        if (localOnlyVideos.length > 0) {
+          localOnlyVideos.forEach((lv) => {
+            SupabaseService.insertVideo(lv).catch((err) =>
+              console.warn('Sync background push video fallito:', err)
+            );
+          });
+        }
+        if (localOnlyNotes.length > 0) {
+          localOnlyNotes.forEach((ln) => {
+            SupabaseService.insertNote(ln).catch((err) =>
+              console.warn('Sync background push note fallito:', err)
+            );
+          });
+        }
+
         inMemoryData = {
           teams: cloudTeams,
           players: cloudPlayers.length > 0 ? cloudPlayers : inMemoryData.players,
           matches: cloudMatches.length > 0 ? cloudMatches : inMemoryData.matches,
           standingsA: cloudStandings.standingsA.length > 0 ? cloudStandings.standingsA : inMemoryData.standingsA,
           standingsB: cloudStandings.standingsB.length > 0 ? cloudStandings.standingsB : inMemoryData.standingsB,
-          notes: cloudNotes.length > 0 ? cloudNotes : inMemoryData.notes,
-          videos: cloudVideos.length > 0 ? cloudVideos : inMemoryData.videos,
+          notes: mergedNotes,
+          videos: mergedVideos,
           profiles: cloudProfiles.length > 0 ? cloudProfiles : inMemoryData.profiles || [...DEFAULT_USERS],
           designations: currentDesignations,
         };

@@ -150,7 +150,7 @@ CREATE TABLE IF NOT EXISTS public.videos (
     target_type TEXT NOT NULL CHECK (target_type IN ('squadra', 'giocatore', 'partita')),
     target_id TEXT NOT NULL,
     target_name TEXT NOT NULL,
-    video_source TEXT DEFAULT 'YOUTUBE' CHECK (video_source IN ('YOUTUBE', 'LOCAL', 'STORAGE')),
+    video_source TEXT DEFAULT 'YOUTUBE' CHECK (video_source IN ('YOUTUBE', 'LOCAL', 'STORAGE', 'VEO')),
     external_url TEXT,
     storage_path TEXT,
     title TEXT NOT NULL,

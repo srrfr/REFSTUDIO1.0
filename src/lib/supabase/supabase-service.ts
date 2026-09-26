@@ -1,5 +1,6 @@
 import { getSupabaseClient, isSupabaseConfigured } from './client';
 import { Team, Player, Match, StandingRow, Note, VideoClip, UserAccount } from '@/types/refstudio';
+import { isVeoUrl } from '@/lib/services/veo-service';
 
 export class SupabaseService {
   /**
@@ -160,13 +161,14 @@ export class SupabaseService {
    * Converte una riga Supabase nel modello TypeScript VideoClip
    */
   static mapVideoFromRow(row: any): VideoClip {
+    const isVeo = row.video_source === 'VEO' || isVeoUrl(row.external_url);
     return {
       id: row.id,
       authorId: row.author_id,
       targetType: row.target_type,
       targetId: row.target_id,
       targetName: row.target_name,
-      videoSource: row.video_source || 'YOUTUBE',
+      videoSource: isVeo ? 'VEO' : (row.video_source || 'YOUTUBE'),
       externalUrl: row.external_url,
       storagePath: row.storage_path,
       title: row.title,
@@ -451,21 +453,27 @@ export class SupabaseService {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
-    await supabase.from('videos').insert({
+    const isVeo = video.videoSource === 'VEO' || isVeoUrl(video.externalUrl);
+    const payload = {
       id: video.id,
       author_id: video.authorId || 'ref-1',
       target_type: video.targetType,
       target_id: video.targetId,
       target_name: video.targetName,
-      video_source: video.videoSource,
+      video_source: isVeo ? 'LOCAL' : video.videoSource,
       external_url: video.externalUrl,
       storage_path: video.storagePath,
       title: video.title,
       description: video.description,
       timestamp_mark: video.timestampMark,
-      created_at: new Date().toISOString(),
+      created_at: video.createdAt || new Date().toISOString(),
       updated_at: new Date().toISOString(),
-    });
+    };
+
+    const { error } = await supabase.from('videos').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('Errore upsert Supabase video:', error);
+    }
   }
 
   static async deleteVideo(videoId: string): Promise<void> {
@@ -672,7 +680,7 @@ export class SupabaseService {
           target_type: v.targetType,
           target_id: v.targetId,
           target_name: v.targetName,
-          video_source: v.videoSource || 'YOUTUBE',
+          video_source: (v.videoSource === 'VEO' || isVeoUrl(v.externalUrl)) ? 'LOCAL' : (v.videoSource || 'YOUTUBE'),
           external_url: v.externalUrl,
           storage_path: v.storagePath,
           title: v.title,
