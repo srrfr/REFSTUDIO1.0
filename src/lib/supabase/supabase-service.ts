@@ -413,10 +413,15 @@ export class SupabaseService {
     await supabase.from('notes').update(payload).eq('id', noteId);
   }
 
-  static async deleteNote(noteId: string): Promise<void> {
+  static async deleteNote(noteId: string): Promise<boolean> {
     const supabase = getSupabaseClient();
-    if (!supabase) return;
-    await supabase.from('notes').delete().eq('id', noteId);
+    if (!supabase) return false;
+    const { error } = await supabase.from('notes').delete().eq('id', noteId);
+    if (error) {
+      console.warn('Errore eliminazione Supabase note:', error.message || error);
+      return false;
+    }
+    return true;
   }
 
   static async upsertProfile(profile: UserAccount): Promise<void> {
@@ -476,10 +481,15 @@ export class SupabaseService {
     }
   }
 
-  static async deleteVideo(videoId: string): Promise<void> {
+  static async deleteVideo(videoId: string): Promise<boolean> {
     const supabase = getSupabaseClient();
-    if (!supabase) return;
-    await supabase.from('videos').delete().eq('id', videoId);
+    if (!supabase) return false;
+    const { error } = await supabase.from('videos').delete().eq('id', videoId);
+    if (error) {
+      console.warn('Errore eliminazione Supabase video:', error.message || error);
+      return false;
+    }
+    return true;
   }
 
   // ==========================================================================
@@ -712,7 +722,9 @@ export class SupabaseService {
   // REALTIME SUBSCRIPTIONS
   // ==========================================================================
 
-  static subscribeToChanges(onUpdate: (payload: { table: string; eventType: string; newRecord: any }) => void) {
+  static subscribeToChanges(
+    onUpdate: (payload: { table: string; eventType: string; newRecord: any; oldRecord?: any }) => void
+  ) {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
@@ -723,6 +735,7 @@ export class SupabaseService {
           table: payload.table,
           eventType: payload.eventType,
           newRecord: payload.new,
+          oldRecord: payload.old,
         });
       })
       .subscribe();

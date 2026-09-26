@@ -79,7 +79,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: false, message: 'ID nota mancante' }, { status: 400 });
   }
   try {
-    const deleted = DbService.deleteNote(id, username);
+    const deleted = await DbService.deleteNoteAsync(id, username);
     return NextResponse.json({ success: deleted });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 403 });

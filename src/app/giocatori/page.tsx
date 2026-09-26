@@ -91,9 +91,9 @@ function PlayersContent() {
     return null;
   };
 
-  const handleDeleteVideo = (id: string) => {
+  const handleDeleteVideo = async (id: string) => {
     if (confirm('Sei sicuro di voler eliminare questa nota video?')) {
-      DbService.deleteVideo(id);
+      await DbService.deleteVideoAsync(id);
       if (selectedPlayer) {
         setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
       }
@@ -178,10 +178,10 @@ function PlayersContent() {
     setIsNoteModalOpen(true);
   };
 
-  const handleDeleteNote = (noteId: string) => {
+  const handleDeleteNote = async (noteId: string) => {
     if (confirm('Sei sicuro di voler eliminare questa nota arbitrale?')) {
       try {
-        DbService.deleteNote(noteId, user?.username);
+        await DbService.deleteNoteAsync(noteId, user?.username);
         if (selectedPlayer) {
           setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
         }

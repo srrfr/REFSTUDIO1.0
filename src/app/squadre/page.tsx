@@ -434,9 +434,9 @@ function SquadreContent() {
     setIsVideoModalOpen(true);
   };
 
-  const handleDeletePlayerVideo = (videoId: string) => {
+  const handleDeletePlayerVideo = async (videoId: string) => {
     if (confirm('Sei sicuro di voler eliminare questa nota video?')) {
-      DbService.deleteVideo(videoId);
+      await DbService.deleteVideoAsync(videoId);
       if (selectedPlayer) {
         setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
       }
@@ -496,10 +496,10 @@ function SquadreContent() {
     setIsNoteModalOpen(true);
   };
 
-  const handleDeleteNote = (noteId: string, isPlayerNote: boolean) => {
+  const handleDeleteNote = async (noteId: string, isPlayerNote: boolean) => {
     if (confirm('Sei sicuro di voler eliminare questa nota?')) {
       try {
-        DbService.deleteNote(noteId, user?.username);
+        await DbService.deleteNoteAsync(noteId, user?.username);
         if (isPlayerNote && selectedPlayer) {
           setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
         } else if (selectedTeam) {

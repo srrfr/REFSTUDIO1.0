@@ -47,6 +47,6 @@ export async function DELETE(request: Request) {
   if (!id) {
     return NextResponse.json({ success: false, message: 'ID video mancante' }, { status: 400 });
   }
-  const deleted = DbService.deleteVideo(id);
+  const deleted = await DbService.deleteVideoAsync(id);
   return NextResponse.json({ success: deleted });
 }

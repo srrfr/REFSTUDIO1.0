@@ -41,6 +41,9 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const getEventSummary = (table: string, eventType: string, newRecord: any): string => {
     switch (table) {
       case 'notes':
+        if (eventType === 'DELETE') {
+          return 'Nota arbitrale eliminata';
+        }
         return eventType === 'INSERT'
           ? `Nuova nota arbitrale su ${newRecord?.target_name || 'soggetto'}`
           : `Nota modificata per ${newRecord?.target_name || 'soggetto'}`;
@@ -51,6 +54,9 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
       case 'teams':
         return `Dati squadra aggiornati: ${newRecord?.name || ''}`;
       case 'videos':
+        if (eventType === 'DELETE') {
+          return 'Video clip eliminato';
+        }
         return `Nuova clip video caricata: ${newRecord?.title || ''}`;
       case 'standings':
         return `Classifica girone ${newRecord?.girone || ''} aggiornata`;
@@ -108,12 +114,19 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload: any) => {
         const table = payload.table;
         const eventType = payload.eventType;
-        const newRecord = payload.new || payload.old;
+        const newRecord = payload.new;
+        const oldRecord = payload.old;
+        const activeRecord = eventType === 'DELETE' ? oldRecord : (newRecord || oldRecord);
 
         // Aggiorna lo stato in-memory e localStorage
-        (DbService as any).handleRealtimeEvent?.(payload);
+        (DbService as any).handleRealtimeEvent?.({
+          table,
+          eventType,
+          newRecord,
+          oldRecord,
+        });
 
-        const summary = getEventSummary(table, eventType, newRecord);
+        const summary = getEventSummary(table, eventType, activeRecord);
         const eventInfo: RealtimeEventInfo = {
           table,
           eventType,
@@ -150,13 +163,22 @@ export const RealtimeSyncProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
       });
 
-    // 3. Auto-risincronizzazione quando l'utente sblocca il telefono o torna sulla scheda (Visibility / Focus)
+    // 3. Auto-risincronizzazione quando l'utente torna sulla scheda (Visibility / Focus)
+    // Con throttling per evitare re-sync istantanei a seguito di finestre di dialogo (es. confirm())
+    let lastFocusSync = Date.now();
+
     const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastFocusSync < 10000) return;
+      lastFocusSync = now;
       syncNow();
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        if (now - lastFocusSync < 10000) return;
+        lastFocusSync = now;
         syncNow();
       }
     };

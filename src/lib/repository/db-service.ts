@@ -4,6 +4,12 @@ import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseService } from '@/lib/supabase/supabase-service';
 
 const STORAGE_KEY = 'refstudio_persistent_db_v4';
+const DELETED_NOTES_KEY = 'refstudio_tombstone_notes';
+const DELETED_VIDEOS_KEY = 'refstudio_tombstone_videos';
+
+// Set in memoria dei tombstones per impedire categoricamente la risurrezione di elementi eliminati
+let deletedNoteIds = new Set<string>();
+let deletedVideoIds = new Set<string>();
 
 export const DEFAULT_USERS: UserAccount[] = [
   {
@@ -312,6 +318,24 @@ export class DbService {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryData));
         }
 
+        // Ripristina i tombstone salvati localmente
+        try {
+          const storedDeletedNotes = localStorage.getItem(DELETED_NOTES_KEY);
+          if (storedDeletedNotes) {
+            const parsed = JSON.parse(storedDeletedNotes);
+            if (Array.isArray(parsed)) {
+              deletedNoteIds = new Set([...deletedNoteIds, ...parsed]);
+            }
+          }
+          const storedDeletedVideos = localStorage.getItem(DELETED_VIDEOS_KEY);
+          if (storedDeletedVideos) {
+            const parsed = JSON.parse(storedDeletedVideos);
+            if (Array.isArray(parsed)) {
+              deletedVideoIds = new Set([...deletedVideoIds, ...parsed]);
+            }
+          }
+        } catch {}
+
         // Avvia la sincronizzazione cloud Supabase in background
         if (!hasInitializedSupabase) {
           this.initSupabaseSync();
@@ -319,6 +343,89 @@ export class DbService {
       } catch (err) {
         console.warn('Errore lettura LocalStorage:', err);
       }
+    }
+  }
+
+  // ==========================================================================
+  // GESTIONE TOMBSTONES (ELEMENTI ELIMINATI)
+  // ==========================================================================
+
+  static isNoteDeleted(id: string): boolean {
+    return deletedNoteIds.has(id);
+  }
+
+  static isVideoDeleted(id: string): boolean {
+    return deletedVideoIds.has(id);
+  }
+
+  static markNoteDeleted(id: string): void {
+    deletedNoteIds.add(id);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(DELETED_NOTES_KEY, JSON.stringify(Array.from(deletedNoteIds)));
+      } catch {}
+    }
+  }
+
+  static markVideoDeleted(id: string): void {
+    deletedVideoIds.add(id);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(DELETED_VIDEOS_KEY, JSON.stringify(Array.from(deletedVideoIds)));
+      } catch {}
+    }
+  }
+
+  static unmarkNoteDeleted(id: string): void {
+    if (deletedNoteIds.has(id)) {
+      deletedNoteIds.delete(id);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(DELETED_NOTES_KEY, JSON.stringify(Array.from(deletedNoteIds)));
+        } catch {}
+      }
+    }
+  }
+
+  static unmarkVideoDeleted(id: string): void {
+    if (deletedVideoIds.has(id)) {
+      deletedVideoIds.delete(id);
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(DELETED_VIDEOS_KEY, JSON.stringify(Array.from(deletedVideoIds)));
+        } catch {}
+      }
+    }
+  }
+
+  private static pruneDeletedNoteIds(cloudNoteIds: Set<string>): void {
+    let changed = false;
+    deletedNoteIds.forEach((id) => {
+      // Se non compare più tra i dati scaricati dal cloud, Supabase ha recepito la cancellazione
+      if (!cloudNoteIds.has(id)) {
+        deletedNoteIds.delete(id);
+        changed = true;
+      }
+    });
+    if (changed && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(DELETED_NOTES_KEY, JSON.stringify(Array.from(deletedNoteIds)));
+      } catch {}
+    }
+  }
+
+  private static pruneDeletedVideoIds(cloudVideoIds: Set<string>): void {
+    let changed = false;
+    deletedVideoIds.forEach((id) => {
+      if (!cloudVideoIds.has(id)) {
+        deletedVideoIds.delete(id);
+        changed = true;
+      }
+    });
+    if (changed && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(DELETED_VIDEOS_KEY, JSON.stringify(Array.from(deletedVideoIds)));
+      } catch {}
     }
   }
 
@@ -353,14 +460,17 @@ export class DbService {
   /**
    * Gestisce gli eventi Realtime ricevuti da altri utenti/dispositivi
    */
-  private static handleRealtimeEvent(payload: { table: string; eventType: string; newRecord: any }) {
+  static handleRealtimeEvent(payload: { table: string; eventType: string; newRecord?: any; oldRecord?: any }) {
     if (payload.table === 'notes') {
       if (payload.eventType === 'DELETE') {
-        const idToDelete = payload.newRecord?.id;
+        const idToDelete = payload.oldRecord?.id || payload.newRecord?.id;
         if (idToDelete) {
+          this.markNoteDeleted(idToDelete);
           inMemoryData.notes = inMemoryData.notes.filter((n) => n.id !== idToDelete);
+          this.persist();
         }
-      } else if (payload.newRecord) {
+      } else if (payload.newRecord && payload.newRecord.id) {
+        if (this.isNoteDeleted(payload.newRecord.id)) return;
         const mapped = SupabaseService.mapNoteFromRow(payload.newRecord);
         const existingIdx = inMemoryData.notes.findIndex((n) => n.id === mapped.id);
         if (existingIdx >= 0) {
@@ -368,14 +478,18 @@ export class DbService {
         } else {
           inMemoryData.notes.unshift(mapped);
         }
+        this.persist();
       }
     } else if (payload.table === 'videos') {
       if (payload.eventType === 'DELETE') {
-        const idToDelete = payload.newRecord?.id;
+        const idToDelete = payload.oldRecord?.id || payload.newRecord?.id;
         if (idToDelete) {
+          this.markVideoDeleted(idToDelete);
           inMemoryData.videos = inMemoryData.videos.filter((v) => v.id !== idToDelete);
+          this.persist();
         }
-      } else if (payload.newRecord) {
+      } else if (payload.newRecord && payload.newRecord.id) {
+        if (this.isVideoDeleted(payload.newRecord.id)) return;
         const mapped = SupabaseService.mapVideoFromRow(payload.newRecord);
         const existingIdx = inMemoryData.videos.findIndex((v) => v.id === mapped.id);
         if (existingIdx >= 0) {
@@ -383,6 +497,7 @@ export class DbService {
         } else {
           inMemoryData.videos.unshift(mapped);
         }
+        this.persist();
       }
     } else if (payload.table === 'teams' && payload.newRecord) {
       const mapped = SupabaseService.mapTeamFromRow(payload.newRecord);
@@ -450,16 +565,39 @@ export class DbService {
             )
           : [];
 
-        // Unione difensiva: preserva accuratamente eventuali note e video creati localmente che non sono ancora sul cloud
+        // 1. Unione difensiva NOTE: filtra categoricamente le note eliminate localmente (tombstones)
+        const validCloudNotes = cloudNotes.filter((n) => !this.isNoteDeleted(n.id));
+        const ghostCloudNotes = cloudNotes.filter((n) => this.isNoteDeleted(n.id));
+        if (ghostCloudNotes.length > 0) {
+          ghostCloudNotes.forEach((gn) => {
+            SupabaseService.deleteNote(gn.id).catch(() => {});
+          });
+        }
         const cloudNoteIds = new Set(cloudNotes.map((n) => n.id));
-        const localOnlyNotes = (inMemoryData.notes || []).filter((n) => !cloudNoteIds.has(n.id));
-        const mergedNotes = [...cloudNotes, ...localOnlyNotes];
+        this.pruneDeletedNoteIds(cloudNoteIds);
 
+        const validLocalNotes = (inMemoryData.notes || []).filter((n) => !this.isNoteDeleted(n.id));
+        const validCloudNoteIds = new Set(validCloudNotes.map((n) => n.id));
+        const localOnlyNotes = validLocalNotes.filter((n) => !validCloudNoteIds.has(n.id));
+        const mergedNotes = [...validCloudNotes, ...localOnlyNotes];
+
+        // 2. Unione difensiva VIDEO: filtra categoricamente i video eliminati localmente (tombstones)
+        const validCloudVideos = cloudVideos.filter((v) => !this.isVideoDeleted(v.id));
+        const ghostCloudVideos = cloudVideos.filter((v) => this.isVideoDeleted(v.id));
+        if (ghostCloudVideos.length > 0) {
+          ghostCloudVideos.forEach((gv) => {
+            SupabaseService.deleteVideo(gv.id).catch(() => {});
+          });
+        }
         const cloudVideoIds = new Set(cloudVideos.map((v) => v.id));
-        const localOnlyVideos = (inMemoryData.videos || []).filter((v) => !cloudVideoIds.has(v.id));
-        const mergedVideos = [...cloudVideos, ...localOnlyVideos];
+        this.pruneDeletedVideoIds(cloudVideoIds);
 
-        // Sincronizza verso il cloud eventuali elementi rimasti solo locali
+        const validLocalVideos = (inMemoryData.videos || []).filter((v) => !this.isVideoDeleted(v.id));
+        const validCloudVideoIds = new Set(validCloudVideos.map((v) => v.id));
+        const localOnlyVideos = validLocalVideos.filter((v) => !validCloudVideoIds.has(v.id));
+        const mergedVideos = [...validCloudVideos, ...localOnlyVideos];
+
+        // Sincronizza verso il cloud solo elementi validi e non eliminati
         if (localOnlyVideos.length > 0) {
           localOnlyVideos.forEach((lv) => {
             SupabaseService.insertVideo(lv).catch((err) =>
@@ -990,7 +1128,7 @@ export class DbService {
 
   static getNotes(targetType?: string, targetId?: string, currentUsername?: string): Note[] {
     this.ensureLoaded();
-    let list = inMemoryData.notes;
+    let list = (inMemoryData.notes || []).filter((n) => !this.isNoteDeleted(n.id));
     if (targetType) list = list.filter((n) => n.targetType === targetType);
     if (targetId) list = list.filter((n) => n.targetId === targetId);
 
@@ -1019,6 +1157,7 @@ export class DbService {
       id: note.id || `note-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       createdAt: note.createdAt || new Date().toISOString(),
     };
+    this.unmarkNoteDeleted(newNote.id);
     inMemoryData.notes.unshift(newNote);
     this.persist();
 
@@ -1068,6 +1207,9 @@ export class DbService {
       throw new Error('Non sei autorizzato a eliminare questa nota: solo il proprietario può farlo.');
     }
 
+    // Registra nel tombstone per impedire che risorga
+    this.markNoteDeleted(noteId);
+
     const lenBefore = inMemoryData.notes.length;
     inMemoryData.notes = inMemoryData.notes.filter((n) => n.id !== noteId);
     const deleted = inMemoryData.notes.length < lenBefore;
@@ -1080,6 +1222,34 @@ export class DbService {
       }
     }
     return deleted;
+  }
+
+  static async deleteNoteAsync(noteId: string, currentUsername?: string): Promise<boolean> {
+    this.ensureLoaded();
+    const existing = inMemoryData.notes.find((n) => n.id === noteId);
+    if (!existing) return false;
+
+    if (currentUsername && existing.authorId && existing.authorId.toLowerCase() !== currentUsername.toLowerCase()) {
+      throw new Error('Non sei autorizzato a eliminare questa nota: solo il proprietario può farlo.');
+    }
+
+    // Registra subito nel tombstone
+    this.markNoteDeleted(noteId);
+
+    // Rimozione ottimistica immediata
+    inMemoryData.notes = inMemoryData.notes.filter((n) => n.id !== noteId);
+    this.persist();
+
+    // Sincronizzazione cloud e attesa conferma
+    if (isSupabaseConfigured()) {
+      try {
+        await SupabaseService.deleteNote(noteId);
+      } catch (err) {
+        console.warn('Errore deleteNoteAsync Supabase:', err);
+      }
+    }
+
+    return true;
   }
 
   static getProfiles(): UserAccount[] {
@@ -1198,7 +1368,7 @@ export class DbService {
 
   static getVideos(targetType?: string, targetId?: string, targetName?: string): VideoClip[] {
     this.ensureLoaded();
-    let list = inMemoryData.videos || [];
+    let list = (inMemoryData.videos || []).filter((v) => !this.isVideoDeleted(v.id));
     if (targetType) {
       const cleanType = targetType.toLowerCase().trim();
       list = list.filter((v) => v.targetType && v.targetType.toLowerCase().trim() === cleanType);
@@ -1227,6 +1397,7 @@ export class DbService {
       id: `vid-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       createdAt: new Date().toISOString(),
     };
+    this.unmarkVideoDeleted(newVideo.id);
     inMemoryData.videos.unshift(newVideo);
     this.persist();
 
@@ -1242,6 +1413,8 @@ export class DbService {
 
   static deleteVideo(videoId: string): boolean {
     this.ensureLoaded();
+    this.markVideoDeleted(videoId);
+
     const lenBefore = inMemoryData.videos.length;
     inMemoryData.videos = inMemoryData.videos.filter((v) => v.id !== videoId);
     const deleted = inMemoryData.videos.length < lenBefore;
@@ -1254,6 +1427,23 @@ export class DbService {
       }
     }
     return deleted;
+  }
+
+  static async deleteVideoAsync(videoId: string): Promise<boolean> {
+    this.ensureLoaded();
+    this.markVideoDeleted(videoId);
+
+    inMemoryData.videos = inMemoryData.videos.filter((v) => v.id !== videoId);
+    this.persist();
+
+    if (isSupabaseConfigured()) {
+      try {
+        await SupabaseService.deleteVideo(videoId);
+      } catch (err) {
+        console.warn('Errore deleteVideoAsync Supabase:', err);
+      }
+    }
+    return true;
   }
 
   static getStatsSummary() {

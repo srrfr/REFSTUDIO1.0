@@ -69,10 +69,10 @@ export default function NotesVideosPage() {
     setIsNoteModalOpen(true);
   };
 
-  const handleDeleteNote = (id: string) => {
+  const handleDeleteNote = async (id: string) => {
     if (confirm('Sei sicuro di voler eliminare questa nota arbitrale?')) {
       try {
-        DbService.deleteNote(id, user?.username);
+        await DbService.deleteNoteAsync(id, user?.username);
         loadContent();
       } catch (err: any) {
         alert(err.message || 'Non sei autorizzato a eliminare questa nota.');
@@ -102,9 +102,9 @@ export default function NotesVideosPage() {
     }
   };
 
-  const handleDeleteVideo = (id: string) => {
+  const handleDeleteVideo = async (id: string) => {
     if (confirm('Sei sicuro di voler eliminare questo video clip?')) {
-      DbService.deleteVideo(id);
+      await DbService.deleteVideoAsync(id);
       loadContent();
     }
   };
