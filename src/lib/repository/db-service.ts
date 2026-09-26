@@ -161,6 +161,20 @@ const defaultInitialVideos: VideoClip[] = [
     createdAt: '2026-09-24T08:38:17.519Z',
     updatedAt: '2026-09-24T08:38:17.519Z',
   },
+  {
+    id: 'vid-veo-vianese-rolo',
+    authorId: 'samueleromini',
+    targetType: 'partita',
+    targetId: 'match-A-4-1000471-74595',
+    targetName: 'Vianese Calcio vs Rolo Fabbrico',
+    videoSource: 'VEO',
+    externalUrl: 'https://app.veo.co/matches/20260920-partita-20-set-2026-v115a432/',
+    title: 'Ripresa Integrale Gara: Vianese Calcio vs Rolo Fabbrico (Veo Camera)',
+    description: 'Registrazione integrale Veo AI della gara di Eccellenza Girone A (Giornata 4). Riproducibile direttamente in app con navigatore per saltare ai minuti di gioco (1° tempo 00:28-47:30, 2° tempo 62:36-83:33), eventi partita/gol ed appunti arbitrali dedicati.',
+    timestampMark: '00:00',
+    createdAt: '2026-09-20T17:30:00.000Z',
+    updatedAt: '2026-09-20T17:30:00.000Z',
+  },
 ];
 
 const defaultInitialDesignations: MatchDesignation[] = [];

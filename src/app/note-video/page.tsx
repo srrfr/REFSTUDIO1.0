@@ -28,6 +28,7 @@ import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewe
 import { MediaDropzone, UploadResult } from '@/components/media/MediaDropzone';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 import { useAuth } from '@/lib/auth/auth-context';
+import { isVeoUrl } from '@/lib/services/veo-service';
 
 export default function NotesVideosPage() {
   const { user } = useAuth();
@@ -469,7 +470,8 @@ export default function NotesVideosPage() {
               const isImg =
                 vid.mediaType === 'image' ||
                 Boolean(vid.externalUrl && vid.externalUrl.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i));
-              const isDirectVideo = !ytId && !isImg && Boolean(vid.externalUrl);
+              const isVeo = Boolean(vid.videoSource === 'VEO' || isVeoUrl(vid.externalUrl));
+              const isDirectVideo = !ytId && !isImg && !isVeo && Boolean(vid.externalUrl);
 
               const handleCardPlay = () => {
                 if (vid.externalUrl) {
@@ -506,6 +508,17 @@ export default function NotesVideosPage() {
                         alt={vid.title}
                         className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-300"
                       />
+                    ) : isVeo ? (
+                      <div className="relative w-full h-full bg-[#080B13] flex flex-col items-center justify-center overflow-hidden">
+                        <img
+                          src="https://c.veocdn.com/b411e762-2e34-45ce-b7ea-92aab34f9aae/standard/machine/78f48ceb/thumbnail.jpg"
+                          alt={vid.title}
+                          className="w-full h-full object-cover opacity-70 group-hover/thumb:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#00E5FF]/20 border border-[#00E5FF]/40 text-[#00E5FF] text-[9px] font-black uppercase tracking-wider backdrop-blur-md">
+                          AI Camera
+                        </div>
+                      </div>
                     ) : isDirectVideo ? (
                       <video
                         src={vid.externalUrl}
@@ -530,12 +543,14 @@ export default function NotesVideosPage() {
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md text-white border border-white/20 flex items-center gap-1">
                         {isImg ? (
                           <ImageIcon className="w-3 h-3 text-[#CCFF00]" />
+                        ) : isVeo ? (
+                          <span className="text-[#00E5FF] font-black">Veo</span>
                         ) : ytId ? (
                           <span className="text-[#FF334B]">YouTube</span>
                         ) : (
                           <Film className="w-3 h-3 text-[#CCFF00]" />
                         )}
-                        <span>{isImg ? 'Foto' : ytId ? 'Clip' : 'File Locale'}</span>
+                        <span>{isImg ? 'Foto' : isVeo ? 'Gara Veo' : ytId ? 'Clip' : 'File Locale'}</span>
                       </span>
                     </div>
 

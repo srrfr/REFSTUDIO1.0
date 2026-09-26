@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { VideoSource } from '@/types/refstudio';
-import { Video, X, AlertCircle, UploadCloud, Link as LinkIcon, Film, Image as ImageIcon } from 'lucide-react';
+import { Video, X, AlertCircle, UploadCloud, Link as LinkIcon, Film, Image as ImageIcon, Sparkles, Loader2 } from 'lucide-react';
 import { MediaDropzone, UploadResult } from '@/components/media/MediaDropzone';
+import { isVeoUrl } from '@/lib/services/veo-service';
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -100,6 +101,28 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     setStoragePath('');
   };
 
+  const handleUrlChange = (url: string) => {
+    setExternalUrl(url);
+    if (isVeoUrl(url)) {
+      setVideoSource('VEO');
+      setMediaType('video');
+      fetch(`/api/veo/resolve?url=${encodeURIComponent(url)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.match) {
+            if (!title.trim()) {
+              setTitle(data.match.title || 'Gara Veo');
+            }
+            if (!targetName.trim() && data.match.title) {
+              setTargetName(data.match.title);
+              setTargetType('partita');
+            }
+          }
+        })
+        .catch(() => {});
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -117,7 +140,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       setError(
         mode === 'UPLOAD'
           ? 'Trascina o seleziona un file video o immagine dal tuo PC.'
-          : 'Inserisci un URL valido (YouTube o file web).'
+          : 'Inserisci un URL valido (YouTube, Veo o file web).'
       );
       return;
     }
@@ -125,6 +148,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     const effectiveSource =
       mode === 'UPLOAD'
         ? 'LOCAL'
+        : isVeoUrl(externalUrl)
+        ? 'VEO'
         : externalUrl.includes('youtube') || externalUrl.includes('youtu.be')
         ? 'YOUTUBE'
         : videoSource;
@@ -244,6 +269,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                     className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
                   >
                     <option value="YOUTUBE">YouTube (URL / Embed)</option>
+                    <option value="VEO">Gara Veo (app.veo.co)</option>
                     <option value="LOCAL">URL Diretto (MP4 / WebM / Immagine)</option>
                   </select>
                 </div>
@@ -264,14 +290,19 @@ export const VideoModal: React.FC<VideoModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-                  {videoSource === 'YOUTUBE' ? 'URL Video YouTube' : 'URL File Web'}
+                <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px] flex items-center justify-between">
+                  <span>{videoSource === 'VEO' ? 'Link Partita Veo' : videoSource === 'YOUTUBE' ? 'URL Video YouTube' : 'URL File Web'}</span>
+                  {isVeoUrl(externalUrl) && (
+                    <span className="text-[10px] font-black text-[#00E5FF] flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Rilevato Veo Match
+                    </span>
+                  )}
                 </label>
                 <input
                   type="text"
                   value={externalUrl}
-                  onChange={(e) => setExternalUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/watch?v=... o https://..."
+                  onChange={(e) => handleUrlChange(e.target.value)}
+                  placeholder={videoSource === 'VEO' ? 'https://app.veo.co/matches/...' : 'https://www.youtube.com/watch?v=... o https://...'}
                   className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
                 />
               </div>

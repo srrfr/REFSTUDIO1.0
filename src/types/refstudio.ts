@@ -197,7 +197,7 @@ export interface Note {
   updatedAt?: string;
 }
 
-export type VideoSource = 'YOUTUBE' | 'LOCAL' | 'STORAGE';
+export type VideoSource = 'YOUTUBE' | 'LOCAL' | 'STORAGE' | 'VEO';
 
 export interface VideoClip {
   id: string;
