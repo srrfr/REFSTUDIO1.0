@@ -39,6 +39,7 @@ import {
 import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TeamBadge, PlayerBadge, CoachBadge } from '@/components/common/AvatarBadge';
+import { BenchAttitudeBadge } from '@/components/common/BenchAttitudeBadge';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
@@ -427,6 +428,12 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                       </button>
                     </div>
                     <strong className="text-slate-300 font-semibold">{team.coachName}</strong>
+                  </span>
+                )}
+                {team.benchAttitude && team.benchAttitude !== 'Da valutare' && (
+                  <span className="inline-flex items-center gap-1.5 ml-1">
+                    • <span className="text-slate-500 font-bold">Panchina:</span>
+                    <BenchAttitudeBadge attitude={team.benchAttitude} size="xs" />
                   </span>
                 )}
               </div>

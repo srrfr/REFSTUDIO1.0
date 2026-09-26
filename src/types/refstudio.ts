@@ -26,6 +26,16 @@ export interface Championship {
   lastSyncedAt?: string;
 }
 
+export type BenchAttitudeTag = 'esemplare' | 'vivace' | 'al limite' | 'problematica' | 'esplosiva';
+
+export const BENCH_ATTITUDE_TAGS: BenchAttitudeTag[] = [
+  'esemplare',
+  'vivace',
+  'al limite',
+  'problematica',
+  'esplosiva',
+];
+
 export interface Team {
   id: string; // slug-id, e.g. "vianese-calcio"
   championshipId: string;
@@ -41,7 +51,7 @@ export interface Team {
   // Valutazioni arbitro (1-5)
   technicalLevel: number; // default 3
   aggressionLevel: number; // default 3
-  benchAttitude?: string; // "Polemica", "Serena", "Rumorosa"
+  benchAttitude?: BenchAttitudeTag | string; // "esemplare", "vivace", "al limite", "problematica", "esplosiva"
   coachAttitude?: string; // "Rispettoso", "Costantemente fuori dall'area tecnica"
   coachName?: string;
   coachPhotoUrl?: string;

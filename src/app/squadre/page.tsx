@@ -41,7 +41,8 @@ import {
   ArrowUpDown,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
-import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow } from '@/types/refstudio';
+import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow, BenchAttitudeTag, BENCH_ATTITUDE_TAGS } from '@/types/refstudio';
+import { BenchAttitudeBadge, getBenchAttitudeMeta } from '@/components/common/BenchAttitudeBadge';
 import {
   RosterSortField,
   SortDirection,
@@ -1280,6 +1281,11 @@ function SquadreContent() {
                     {selectedTeam.city ? `${selectedTeam.city} • ` : ''}
                     {selectedTeam.stadium ? `Stadio: ${selectedTeam.stadium}` : 'Campo di casa'}
                     {selectedTeam.coachName ? ` • All: ${selectedTeam.coachName}` : ''}
+                    {selectedTeam.benchAttitude && selectedTeam.benchAttitude !== 'Da valutare' && (
+                      <span className="inline-flex ml-1.5">
+                        <BenchAttitudeBadge attitude={selectedTeam.benchAttitude} size="xs" />
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -2166,7 +2172,72 @@ function SquadreContent() {
                           </div>
                           <span className="font-semibold text-white">{selectedTeam.coachName || 'Non specificato'}</span>
                         </div>
-                        <p><span className="text-slate-500 font-bold">Atteggiamento panchina:</span> {selectedTeam.benchAttitude || 'Regolare'}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Dedicata: Profilo Arbitrale - Atteggiamento della Panchina */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-3.5 md:col-span-2 shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1C2232] pb-3">
+                      <div>
+                        <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                          <Users className="w-4 h-4 text-[#CCFF00]" />
+                          Atteggiamento della Panchina
+                        </span>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Profilo comportamentale di dirigenti, staff e calciatori di riserva rilevato nelle direzioni di gara
+                        </p>
+                      </div>
+                      {!isEditingTeam && (
+                        <BenchAttitudeBadge attitude={selectedTeam.benchAttitude} size="md" />
+                      )}
+                    </div>
+
+                    {isEditingTeam ? (
+                      <div className="space-y-2">
+                        <label className="text-xs text-slate-300 block font-bold">
+                          Seleziona il tag comportamentale della panchina:
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-1">
+                          {BENCH_ATTITUDE_TAGS.map((tag) => {
+                            const isSelected = (editTeamForm.benchAttitude || '').toLowerCase() === tag.toLowerCase();
+                            return (
+                              <BenchAttitudeBadge
+                                key={tag}
+                                attitude={tag}
+                                size="lg"
+                                isSelected={isSelected}
+                                showDescription={true}
+                                className="w-full justify-between py-2.5"
+                                onClick={() =>
+                                  setEditTeamForm({
+                                    ...editTeamForm,
+                                    benchAttitude: isSelected ? undefined : tag,
+                                  })
+                                }
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-[#0B0E17] border border-[#1E2436]">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-xs font-bold text-slate-300">Valutazione panchina:</span>
+                            <BenchAttitudeBadge attitude={selectedTeam.benchAttitude} size="sm" />
+                          </div>
+                          <p className="text-xs text-slate-400">
+                            {getBenchAttitudeMeta(selectedTeam.benchAttitude).description}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingTeam(true)}
+                          className="px-3.5 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-300 hover:text-white border border-[#212638] text-xs font-bold transition-all shrink-0 flex items-center gap-1.5"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#CCFF00]" /> Modifica Tag Panchina
+                        </button>
                       </div>
                     )}
                   </div>
