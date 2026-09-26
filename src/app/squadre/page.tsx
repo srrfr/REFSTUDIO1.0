@@ -38,9 +38,22 @@ import {
   Clock,
   Film,
   Image as ImageIcon,
+  ArrowUpDown,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
 import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow } from '@/types/refstudio';
+import {
+  RosterSortField,
+  SortDirection,
+  ROSTER_SORT_OPTIONS,
+  sortRoster,
+  matchesRosterRole,
+  getPlayerBirthYear,
+  getPlayerEffectiveAge,
+  getRoleWeight,
+  getRolePluralLabel,
+  getRoleIcon,
+} from '@/lib/utils/roster-sort';
 import { RatingStars } from '@/components/common/RatingStars';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TagBadge } from '@/components/common/TagBadge';
@@ -151,6 +164,8 @@ function SquadreContent() {
   const [teamVideos, setTeamVideos] = useState<VideoClip[]>([]);
   const [rosterSearch, setRosterSearch] = useState('');
   const [rosterRoleFilter, setRosterRoleFilter] = useState<string>('ALL');
+  const [rosterSortField, setRosterSortField] = useState<RosterSortField>('ROLE');
+  const [rosterSortDirection, setRosterSortDirection] = useState<SortDirection>('asc');
 
   // Team Admin edit mode
   const [isEditingTeam, setIsEditingTeam] = useState(false);
@@ -537,19 +552,47 @@ function SquadreContent() {
     });
   }, [teams, gironeFilter, searchQuery]);
 
-  // Filtraggio calciatori all'interno della modale rosa
+  // Conteggio calciatori per ruolo nella rosa
+  const rosterRoleCounts = useMemo(() => {
+    const counts = { ALL: teamRoster.length, POR: 0, DIF: 0, CEN: 0, ATT: 0 };
+    teamRoster.forEach((p) => {
+      const w = getRoleWeight(p.role);
+      if (w === 1) counts.POR++;
+      else if (w === 2) counts.DIF++;
+      else if (w === 3) counts.CEN++;
+      else if (w === 4) counts.ATT++;
+    });
+    return counts;
+  }, [teamRoster]);
+
+  // Handler cambio ordinamento
+  const handleToggleRosterSort = useCallback((field: RosterSortField) => {
+    setRosterSortField((currentField) => {
+      if (currentField === field) {
+        setRosterSortDirection((prevDir) => (prevDir === 'asc' ? 'desc' : 'asc'));
+        return currentField;
+      }
+      const option = ROSTER_SORT_OPTIONS.find((o) => o.id === field);
+      setRosterSortDirection(option ? option.defaultDirection : 'desc');
+      return field;
+    });
+  }, []);
+
+  // Filtraggio e ordinamento calciatori all'interno della modale rosa
   const filteredRoster = useMemo(() => {
-    return teamRoster.filter((p) => {
-      if (rosterRoleFilter !== 'ALL' && p.role !== rosterRoleFilter) return false;
+    const filtered = teamRoster.filter((p) => {
+      if (!matchesRosterRole(p.role, rosterRoleFilter)) return false;
       if (!rosterSearch) return true;
       const q = rosterSearch.toLowerCase().trim();
       return (
         p.lastName.toLowerCase().includes(q) ||
         p.firstName.toLowerCase().includes(q) ||
-        p.customTags.some((tag) => tag.toLowerCase().includes(q))
+        (p.customTags && p.customTags.some((tag) => tag.toLowerCase().includes(q)))
       );
     });
-  }, [teamRoster, rosterRoleFilter, rosterSearch]);
+
+    return sortRoster(filtered, rosterSortField, rosterSortDirection);
+  }, [teamRoster, rosterRoleFilter, rosterSearch, rosterSortField, rosterSortDirection]);
 
   // Helper per renderizzare i pallini forma (V-N-P)
   const renderFormBadges = (recentMatches: TeamRecentMatch[], size: 'sm' | 'md' = 'sm') => {
@@ -1467,18 +1510,19 @@ function SquadreContent() {
 
                   <div className="flex rounded-xl bg-[#11141D] border border-[#212638] p-1 shrink-0 overflow-x-auto">
                     {[
-                      { id: 'ALL', label: 'Tutti' },
-                      { id: 'P', label: 'Portieri' },
-                      { id: 'D', label: 'Difensori' },
-                      { id: 'C', label: 'Centrocampisti' },
-                      { id: 'A', label: 'Attaccanti' },
+                      { id: 'ALL', label: `Tutti (${rosterRoleCounts.ALL})` },
+                      { id: 'POR', label: `🧤 Portieri (${rosterRoleCounts.POR})` },
+                      { id: 'DIF', label: `🛡️ Difensori (${rosterRoleCounts.DIF})` },
+                      { id: 'CEN', label: `⚙️ Centrocampisti (${rosterRoleCounts.CEN})` },
+                      { id: 'ATT', label: `⚡ Attaccanti (${rosterRoleCounts.ATT})` },
                     ].map((rf) => (
                       <button
                         key={rf.id}
+                        type="button"
                         onClick={() => setRosterRoleFilter(rf.id)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all whitespace-nowrap ${
                           rosterRoleFilter === rf.id
-                            ? 'bg-[#CCFF00] text-black font-black'
+                            ? 'bg-[#CCFF00] text-black font-black shadow-[0_0_10px_rgba(204,255,0,0.3)]'
                             : 'text-slate-400 hover:text-white'
                         }`}
                       >
@@ -1488,60 +1532,254 @@ function SquadreContent() {
                   </div>
                 </div>
 
+                {/* Sort Toolbar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-2xl bg-[#0D0F16] border border-[#212638] shadow-md">
+                  <div className="flex items-center gap-2 text-xs font-bold shrink-0">
+                    <ArrowUpDown className="w-4 h-4 text-[#CCFF00]" />
+                    <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black">
+                      Ordina Calciatori:
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {ROSTER_SORT_OPTIONS.map((opt) => {
+                      const isActive = rosterSortField === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleToggleRosterSort(opt.id)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
+                            isActive
+                              ? 'bg-[#CCFF00] text-black font-black shadow-[0_0_12px_rgba(204,255,0,0.35)]'
+                              : 'bg-[#141824] text-slate-300 hover:text-white hover:bg-[#1C2233] border border-[#23293D]'
+                          }`}
+                          title={`Ordina per ${opt.label} (${
+                            isActive
+                              ? rosterSortDirection === 'asc'
+                                ? 'Crescente - Clicca per invertire'
+                                : 'Decrescente - Clicca per invertire'
+                              : 'Clicca per ordinare'
+                          })`}
+                        >
+                          <span>{opt.label}</span>
+                          {isActive && (
+                            <span className="font-mono text-[10px] ml-0.5 font-black bg-black/15 px-1 py-0.2 rounded">
+                              {rosterSortDirection === 'asc' ? '▲ ASC' : '▼ DESC'}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Roster Table / List */}
-                <div className="max-h-[55vh] overflow-y-auto rounded-2xl border border-[#212638] divide-y divide-[#1C2130] bg-[#0A0C10]">
+                <div className="max-h-[58vh] overflow-y-auto rounded-2xl border border-[#212638] bg-[#0A0C10] shadow-xl">
+                  {/* Intestazione Colonne Interattiva */}
+                  <div className="sticky top-0 z-10 px-4 py-2.5 bg-[#0F131D] border-b border-[#212638] flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 select-none">
+                    <div className="flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRosterSort('ROLE')}
+                        className={`flex items-center gap-1 hover:text-[#CCFF00] transition-colors ${
+                          rosterSortField === 'ROLE' ? 'text-[#CCFF00]' : ''
+                        }`}
+                        title="Ordina per Ruolo (Portieri ➔ Attaccanti)"
+                      >
+                        <span>Calciatore & Ruolo</span>
+                        {rosterSortField === 'ROLE' && (
+                          <span className="font-mono">{rosterSortDirection === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRosterSort('BIRTH_YEAR')}
+                        className={`flex items-center gap-1 hover:text-[#CCFF00] transition-colors ${
+                          rosterSortField === 'BIRTH_YEAR' ? 'text-[#CCFF00]' : ''
+                        }`}
+                        title="Ordina per Anno di Nascita o Età"
+                      >
+                        <span>Anno / Età</span>
+                        {rosterSortField === 'BIRTH_YEAR' && (
+                          <span className="font-mono">{rosterSortDirection === 'asc' ? '▲' : '▼'}</span>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 sm:gap-4 font-mono">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRosterSort('APPEARANCES')}
+                        className={`hover:text-[#CCFF00] transition-colors ${
+                          rosterSortField === 'APPEARANCES' ? 'text-[#CCFF00] font-black' : ''
+                        }`}
+                        title="Ordina per Presenze"
+                      >
+                        Presenze {rosterSortField === 'APPEARANCES' && (rosterSortDirection === 'asc' ? '▲' : '▼')}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRosterSort('GOALS')}
+                        className={`hover:text-emerald-400 transition-colors ${
+                          rosterSortField === 'GOALS' ? 'text-emerald-400 font-black' : ''
+                        }`}
+                        title="Ordina per Reti segnate"
+                      >
+                        Reti ⚽ {rosterSortField === 'GOALS' && (rosterSortDirection === 'asc' ? '▲' : '▼')}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRosterSort('YELLOW_CARDS')}
+                        className={`hover:text-yellow-400 transition-colors ${
+                          rosterSortField === 'YELLOW_CARDS' ? 'text-yellow-400 font-black' : ''
+                        }`}
+                        title="Ordina per Cartellini Gialli"
+                      >
+                        Gialli 🟨 {rosterSortField === 'YELLOW_CARDS' && (rosterSortDirection === 'asc' ? '▲' : '▼')}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleToggleRosterSort('RED_CARDS')}
+                        className={`hover:text-rose-400 transition-colors ${
+                          rosterSortField === 'RED_CARDS' ? 'text-rose-400 font-black' : ''
+                        }`}
+                        title="Ordina per Cartellini Rossi"
+                      >
+                        Rossi 🟥 {rosterSortField === 'RED_CARDS' && (rosterSortDirection === 'asc' ? '▲' : '▼')}
+                      </button>
+                    </div>
+                  </div>
+
                   {filteredRoster.length === 0 ? (
                     <div className="p-8 text-center text-slate-500 text-xs italic">
                       Nessun calciatore corrisponde ai filtri di ricerca.
                     </div>
                   ) : (
-                    filteredRoster.map((player) => (
-                      <div
-                        key={player.id}
-                        onClick={() => handleOpenPlayerFromRoster(player)}
-                        className="p-3.5 flex items-center justify-between text-xs hover:bg-[#CCFF00]/10 cursor-pointer transition-colors group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <PlayerBadge
-                            firstName={player.firstName}
-                            lastName={player.lastName}
-                            photoUrl={player.photoUrl}
-                            role={player.role}
-                            size="sm"
-                          />
-                          <RoleBadge role={player.role} />
-                          <div>
-                            <span className="font-bold text-white group-hover:text-[#CCFF00] transition-colors">
-                              {player.lastName} {player.firstName}
-                            </span>
-                            {player.age && (
-                              <span className="text-slate-500 ml-1.5 text-[11px]">({player.age} anni)</span>
+                    <div className="divide-y divide-[#1C2130]">
+                      {filteredRoster.map((player, idx) => {
+                        const birthYear = getPlayerBirthYear(player);
+                        const age = getPlayerEffectiveAge(player);
+
+                        // Intestazione gruppo ruolo se ordinato per RUOLO e filtro su TUTTI
+                        const showRoleDivider =
+                          rosterSortField === 'ROLE' &&
+                          rosterRoleFilter === 'ALL' &&
+                          (idx === 0 ||
+                            getRoleWeight(player.role) !==
+                              getRoleWeight(filteredRoster[idx - 1].role));
+                        const currentWeight = getRoleWeight(player.role);
+
+                        return (
+                          <React.Fragment key={player.id}>
+                            {showRoleDivider && (
+                              <div className="px-4 py-2 bg-[#121622]/90 border-y border-[#1E2436] flex items-center justify-between text-xs font-black uppercase tracking-wider text-[#CCFF00]">
+                                <span className="flex items-center gap-1.5">
+                                  <span>{getRoleIcon(currentWeight)}</span>
+                                  <span>{getRolePluralLabel(currentWeight)}</span>
+                                </span>
+                                <span className="text-[10px] text-slate-400 font-mono font-normal">
+                                  {filteredRoster.filter((p) => getRoleWeight(p.role) === currentWeight).length} calciatori
+                                </span>
+                              </div>
                             )}
-                          </div>
-                        </div>
 
-                        <div className="flex items-center gap-3">
-                          <div className="flex gap-1">
-                            {player.customTags.map((t, idx) => (
-                              <TagBadge key={idx} tag={t} size="sm" />
-                            ))}
-                          </div>
+                            <div
+                              onClick={() => handleOpenPlayerFromRoster(player)}
+                              className="p-3.5 flex items-center justify-between text-xs hover:bg-[#CCFF00]/10 cursor-pointer transition-colors group"
+                            >
+                              <div className="flex items-center gap-3">
+                                <PlayerBadge
+                                  firstName={player.firstName}
+                                  lastName={player.lastName}
+                                  photoUrl={player.photoUrl}
+                                  role={player.role}
+                                  size="sm"
+                                />
+                                <RoleBadge role={player.role} />
+                                <div>
+                                  <span className="font-bold text-white group-hover:text-[#CCFF00] transition-colors">
+                                    {player.lastName} {player.firstName}
+                                  </span>
+                                  {(birthYear > 0 || age !== undefined) && (
+                                    <span className="text-slate-400 ml-2 text-[11px] font-mono">
+                                      ({age ? `${age} anni` : ''}
+                                      {birthYear > 0 ? (age ? ` • ${birthYear}` : `Nato: ${birthYear}`) : ''})
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
 
-                          <div className="flex items-center gap-2 text-slate-400 font-mono text-xs">
-                            <span className="text-slate-300 font-semibold">{player.appearances || 0} pres</span>
-                            {player.goals !== undefined && player.goals > 0 && (
-                              <span className="text-emerald-400 font-bold">{player.goals} ⚽</span>
-                            )}
-                            <span className="text-yellow-400 font-bold">{player.yellowCards} 🟨</span>
-                            <span className="text-rose-400 font-bold">{player.redCards} 🟥</span>
-                          </div>
+                              <div className="flex items-center gap-3">
+                                {player.customTags && player.customTags.length > 0 && (
+                                  <div className="hidden md:flex gap-1">
+                                    {player.customTags.map((t, tIdx) => (
+                                      <TagBadge key={tIdx} tag={t} size="sm" />
+                                    ))}
+                                  </div>
+                                )}
 
-                          <span className="text-[11px] font-black text-[#CCFF00] opacity-0 group-hover:opacity-100 transition-opacity">
-                            Apri scheda →
-                          </span>
-                        </div>
-                      </div>
-                    ))
+                                <div className="flex items-center gap-2 sm:gap-3 text-slate-400 font-mono text-xs">
+                                  <span
+                                    className={`px-2 py-0.5 rounded font-semibold ${
+                                      rosterSortField === 'APPEARANCES'
+                                        ? 'bg-[#CCFF00]/15 text-[#CCFF00] font-black border border-[#CCFF00]/30'
+                                        : 'text-slate-300'
+                                    }`}
+                                  >
+                                    {player.appearances || 0} pres
+                                  </span>
+
+                                  <span
+                                    className={`px-2 py-0.5 rounded font-bold ${
+                                      rosterSortField === 'GOALS'
+                                        ? 'bg-emerald-500/20 text-emerald-400 font-black border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                                        : player.goals && player.goals > 0
+                                        ? 'text-emerald-400'
+                                        : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {player.goals || 0} ⚽
+                                  </span>
+
+                                  <span
+                                    className={`px-2 py-0.5 rounded font-bold ${
+                                      rosterSortField === 'YELLOW_CARDS'
+                                        ? 'bg-yellow-500/20 text-yellow-400 font-black border border-yellow-500/40'
+                                        : (player.yellowCards || 0) > 0
+                                        ? 'text-yellow-400'
+                                        : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {player.yellowCards || 0} 🟨
+                                  </span>
+
+                                  <span
+                                    className={`px-2 py-0.5 rounded font-bold ${
+                                      rosterSortField === 'RED_CARDS'
+                                        ? 'bg-rose-500/20 text-rose-400 font-black border border-rose-500/40'
+                                        : (player.redCards || 0) > 0
+                                        ? 'text-rose-400'
+                                        : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {player.redCards || 0} 🟥
+                                  </span>
+                                </div>
+
+                                <span className="text-[11px] font-black text-[#CCFF00] opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                                  Apri scheda →
+                                </span>
+                              </div>
+                            </div>
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               </div>

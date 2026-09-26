@@ -22,9 +22,20 @@ import {
   Lock,
   Globe,
   ChevronRight,
-  TrendingUp,
   Camera,
+  ArrowUpDown,
 } from 'lucide-react';
+import {
+  RosterSortField,
+  SortDirection,
+  ROSTER_SORT_OPTIONS,
+  sortRoster,
+  getPlayerBirthYear,
+  getPlayerEffectiveAge,
+  getRoleWeight,
+  getRolePluralLabel,
+  getRoleIcon,
+} from '@/lib/utils/roster-sort';
 import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TeamBadge, PlayerBadge, CoachBadge } from '@/components/common/AvatarBadge';
@@ -46,6 +57,8 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
 }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'HOME' | 'AWAY'>('OVERVIEW');
+  const [prepRosterSortField, setPrepRosterSortField] = useState<RosterSortField>('ROLE');
+  const [prepRosterSortDirection, setPrepRosterSortDirection] = useState<SortDirection>('asc');
   const contentContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Resetta lo scroll del contenuto in cima quando si cambia tab
@@ -739,74 +752,153 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
         )}
 
         {/* 5. ORGANICO COMPLETO DELLA ROSA */}
-        <details className="rounded-2xl bg-[#0D0F16] border border-[#1F2433] overflow-hidden group/roster">
-          <summary className="p-4 cursor-pointer select-none text-xs sm:text-sm font-black uppercase tracking-wider text-white flex items-center justify-between hover:bg-[#11141D] transition-colors">
-            <span className="flex items-center gap-2">
-              <Users className="w-4 h-4 text-[#CCFF00]" />
-              Organico Completo Rosa Calciatori ({players.length})
-            </span>
-            <span className="text-xs font-mono text-[#CCFF00]">Espandi / Riduci ▾</span>
-          </summary>
+        {(() => {
+          const sortedRoster = sortRoster(players, prepRosterSortField, prepRosterSortDirection);
+          return (
+            <details className="rounded-2xl bg-[#0D0F16] border border-[#1F2433] overflow-hidden group/roster">
+              <summary className="p-4 cursor-pointer select-none text-xs sm:text-sm font-black uppercase tracking-wider text-white flex items-center justify-between hover:bg-[#11141D] transition-colors">
+                <span className="flex items-center gap-2">
+                  <Users className="w-4 h-4 text-[#CCFF00]" />
+                  Organico Completo Rosa Calciatori ({players.length})
+                </span>
+                <span className="text-xs font-mono text-[#CCFF00]">Espandi / Riduci ▾</span>
+              </summary>
 
-          <div className="p-4 border-t border-[#1C2130] max-h-72 overflow-y-auto divide-y divide-[#1C2130]">
-            {players.map((p) => (
-              <div key={p.id} className="py-2 flex items-center justify-between text-xs hover:bg-[#11141D]/50 px-2 rounded-lg transition-colors group/rosterrow">
-                <div className="flex items-center gap-2.5">
-                  <div className="relative group/playerlogo shrink-0">
-                    <PlayerBadge
-                      firstName={p.firstName}
-                      lastName={p.lastName}
-                      photoUrl={p.photoUrl}
-                      role={p.role}
-                      size="sm"
-                      className="cursor-pointer"
-                      onClick={() =>
-                        handleOpenAvatarModal(
-                          'player',
-                          p.id,
-                          `${p.firstName} ${p.lastName}`,
-                          p.photoUrl,
-                          `${team.name} • ${p.role}`,
-                          p.role
-                        )
-                      }
-                      showEditOverlay={true}
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        handleOpenAvatarModal(
-                          'player',
-                          p.id,
-                          `${p.firstName} ${p.lastName}`,
-                          p.photoUrl,
-                          `${team.name} • ${p.role}`,
-                          p.role
-                        )
-                      }
-                      className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow transition-all opacity-0 group-hover/rosterrow:opacity-100 cursor-pointer"
-                      title="Modifica Foto Calciatore (URL)"
-                    >
-                      <Camera className="w-2.5 h-2.5" />
-                    </button>
+              <div className="p-4 border-t border-[#1C2130] space-y-3">
+                {/* Toolbar Ordinamento Rosa */}
+                <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-[#121622] rounded-xl border border-[#212638] text-[11px]">
+                  <div className="flex items-center gap-1.5 text-slate-400 font-bold">
+                    <ArrowUpDown className="w-3.5 h-3.5 text-[#CCFF00]" />
+                    <span>Ordina rosa:</span>
                   </div>
-                  <RoleBadge role={p.role} />
-                  <span className="font-bold text-white">
-                    {p.firstName} {p.lastName}
-                  </span>
-                  {p.age && <span className="text-slate-500 font-mono text-[11px]">({p.age} anni)</span>}
+
+                  <div className="flex flex-wrap items-center gap-1">
+                    {ROSTER_SORT_OPTIONS.map((opt) => {
+                      const isActive = prepRosterSortField === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (prepRosterSortField === opt.id) {
+                              setPrepRosterSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                            } else {
+                              setPrepRosterSortField(opt.id);
+                              setPrepRosterSortDirection(opt.defaultDirection);
+                            }
+                          }}
+                          className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            isActive
+                              ? 'bg-[#CCFF00] text-black font-black'
+                              : 'bg-[#181D2C] text-slate-300 hover:text-white border border-[#252D42]'
+                          }`}
+                          title={`Ordina per ${opt.label}`}
+                        >
+                          {opt.shortLabel} {isActive && (prepRosterSortDirection === 'asc' ? '▲' : '▼')}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 font-mono text-slate-400 text-[11px]">
-                  <span>{p.appearances || 0} pres</span>
-                  <span>{p.goals || 0} gol</span>
-                  <span className="text-yellow-400">{p.yellowCards || 0} 🟨</span>
-                  <span className="text-rose-400">{p.redCards || 0} 🟥</span>
+                <div className="max-h-72 overflow-y-auto divide-y divide-[#1C2130]">
+                  {sortedRoster.map((p, pIdx) => {
+                    const birthYear = getPlayerBirthYear(p);
+                    const age = getPlayerEffectiveAge(p);
+                    const showRoleDivider =
+                      prepRosterSortField === 'ROLE' &&
+                      (pIdx === 0 || getRoleWeight(p.role) !== getRoleWeight(sortedRoster[pIdx - 1].role));
+                    const currentWeight = getRoleWeight(p.role);
+
+                    return (
+                      <React.Fragment key={p.id}>
+                        {showRoleDivider && (
+                          <div className="py-1.5 px-2 bg-[#151926]/90 border-y border-[#1E2436] flex items-center justify-between text-[11px] font-black uppercase tracking-wider text-[#CCFF00]">
+                            <span className="flex items-center gap-1">
+                              <span>{getRoleIcon(currentWeight)}</span>
+                              <span>{getRolePluralLabel(currentWeight)}</span>
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-mono font-normal">
+                              {sortedRoster.filter((x) => getRoleWeight(x.role) === currentWeight).length}
+                            </span>
+                          </div>
+                        )}
+
+                        <div className="py-2 flex items-center justify-between text-xs hover:bg-[#11141D]/50 px-2 rounded-lg transition-colors group/rosterrow">
+                          <div className="flex items-center gap-2.5">
+                            <div className="relative group/playerlogo shrink-0">
+                              <PlayerBadge
+                                firstName={p.firstName}
+                                lastName={p.lastName}
+                                photoUrl={p.photoUrl}
+                                role={p.role}
+                                size="sm"
+                                className="cursor-pointer"
+                                onClick={() =>
+                                  handleOpenAvatarModal(
+                                    'player',
+                                    p.id,
+                                    `${p.firstName} ${p.lastName}`,
+                                    p.photoUrl,
+                                    `${team.name} • ${p.role}`,
+                                    p.role
+                                  )
+                                }
+                                showEditOverlay={true}
+                              />
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleOpenAvatarModal(
+                                    'player',
+                                    p.id,
+                                    `${p.firstName} ${p.lastName}`,
+                                    p.photoUrl,
+                                    `${team.name} • ${p.role}`,
+                                    p.role
+                                  )
+                                }
+                                className="absolute -bottom-1 -right-1 p-0.5 rounded-full bg-[#161B26] hover:bg-[#CCFF00] text-slate-300 hover:text-black border border-[#2B3245] shadow transition-all opacity-0 group-hover/rosterrow:opacity-100 cursor-pointer"
+                                title="Modifica Foto Calciatore (URL)"
+                              >
+                                <Camera className="w-2.5 h-2.5" />
+                              </button>
+                            </div>
+                            <RoleBadge role={p.role} />
+                            <span className="font-bold text-white">
+                              {p.firstName} {p.lastName}
+                            </span>
+                            {(birthYear > 0 || age !== undefined) && (
+                              <span className="text-slate-400 font-mono text-[11px]">
+                                ({age ? `${age} anni` : ''}{birthYear > 0 ? (age ? ` • ${birthYear}` : `Nato: ${birthYear}`) : ''})
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2 font-mono text-slate-400 text-[11px]">
+                            <span className={prepRosterSortField === 'APPEARANCES' ? 'text-[#CCFF00] font-bold' : ''}>
+                              {p.appearances || 0} pres
+                            </span>
+                            <span className={prepRosterSortField === 'GOALS' ? 'text-emerald-400 font-bold' : ''}>
+                              {p.goals || 0} gol
+                            </span>
+                            <span className={`text-yellow-400 ${prepRosterSortField === 'YELLOW_CARDS' ? 'font-bold underline' : ''}`}>
+                              {p.yellowCards || 0} 🟨
+                            </span>
+                            <span className={`text-rose-400 ${prepRosterSortField === 'RED_CARDS' ? 'font-bold underline' : ''}`}>
+                              {p.redCards || 0} 🟥
+                            </span>
+                          </div>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
                 </div>
               </div>
-            ))}
-          </div>
-        </details>
+            </details>
+          );
+        })()}
       </div>
     );
   };

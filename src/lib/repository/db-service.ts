@@ -542,7 +542,22 @@ export class DbService {
     let list = inMemoryData.players;
     if (girone) list = list.filter((p) => p.girone === girone);
     if (teamId) list = list.filter((p) => p.teamId === teamId);
-    return list;
+
+    // Ordine ufficiale rose: Portieri, Difensori, Centrocampisti, Attaccanti
+    return [...list].sort((a, b) => {
+      const getRoleWeight = (r?: string) => {
+        if (!r) return 5;
+        const upper = r.toUpperCase().trim();
+        if (upper === 'POR' || upper === 'P' || upper.startsWith('PORT')) return 1;
+        if (upper === 'DIF' || upper === 'D' || upper.startsWith('DIF')) return 2;
+        if (upper === 'CEN' || upper === 'C' || upper.startsWith('CENT')) return 3;
+        if (upper === 'ATT' || upper === 'A' || upper.startsWith('ATT')) return 4;
+        return 5;
+      };
+      const diff = getRoleWeight(a.role) - getRoleWeight(b.role);
+      if (diff !== 0) return diff;
+      return (a.lastName || '').localeCompare(b.lastName || '', 'it');
+    });
   }
 
   static getPlayerById(playerId: string): Player | undefined {
