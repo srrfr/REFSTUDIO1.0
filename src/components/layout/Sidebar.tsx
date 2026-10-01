@@ -12,7 +12,6 @@ import {
   Video,
   RefreshCw,
   Award,
-  Sparkles,
   Lock,
   UserCheck,
   User,
@@ -157,11 +156,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
 
 
         <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 font-medium">
-          <div className="flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5 text-[#CCFF00]" />
-            <span className="text-slate-400">Gemini AI Hub</span>
-          </div>
-          <span className="text-[10px] text-slate-600 font-mono">v1.0-dark</span>
+          <span className="text-slate-400 font-medium">Created by Samuele Romini</span>
+          <span className="text-[10px] text-slate-600 font-mono">v1.0</span>
         </div>
       </div>
     </>
