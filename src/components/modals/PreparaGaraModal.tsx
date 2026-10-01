@@ -89,7 +89,13 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
   });
 
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const [videoTarget, setVideoTarget] = useState<{ id: string; name: string; type: 'squadra' | 'partita' }>({
+  const [videoTarget, setVideoTarget] = useState<{
+    id: string;
+    name: string;
+    type: 'squadra' | 'partita';
+    homeTeamId?: string;
+    awayTeamId?: string;
+  }>({
     id: '',
     name: '',
     type: 'squadra',
@@ -319,8 +325,14 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
     setIsNoteModalOpen(true);
   };
 
-  const handleOpenAddVideo = (id: string, name: string, type: 'squadra' | 'partita') => {
-    setVideoTarget({ id, name, type });
+  const handleOpenAddVideo = (id: string, name: string, type: 'squadra' | 'partita', isHomeTeam?: boolean) => {
+    setVideoTarget({
+      id,
+      name,
+      type,
+      homeTeamId: type === 'partita' ? match?.homeTeamId : (isHomeTeam ? id : undefined),
+      awayTeamId: type === 'partita' ? match?.awayTeamId : (!isHomeTeam ? id : undefined),
+    });
     setIsVideoModalOpen(true);
   };
 
@@ -480,7 +492,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
               <Plus className="w-3.5 h-3.5" /> Nuova Nota per {team.name}
             </button>
             <button
-              onClick={() => handleOpenAddVideo(team.id, team.name, 'squadra')}
+              onClick={() => handleOpenAddVideo(team.id, team.name, 'squadra', isHome)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF334B]/15 hover:bg-[#FF334B]/25 text-[#FF334B] border border-[#FF334B]/30 text-xs font-bold transition-all shadow-sm"
             >
               <Film className="w-3.5 h-3.5" /> Collega Video
@@ -547,8 +559,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                               targetType: 'squadra',
                               targetId: team.id,
                               targetName: team.name,
-                              homeTeamId: team.id,
-                              homeTeamName: team.name,
+                              homeTeamId: isHome ? team.id : undefined,
+                              homeTeamName: isHome ? team.name : undefined,
+                              awayTeamId: !isHome ? team.id : undefined,
+                              awayTeamName: !isHome ? team.name : undefined,
                             });
                           }}
                           className="inline-flex items-center gap-1 text-[9px] font-black text-[#CCFF00] hover:text-[#d8ff33] bg-[#CCFF00]/10 border border-[#CCFF00]/30 px-1.5 py-0.5 rounded transition-all"
@@ -717,10 +731,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                           targetType: v.targetType,
                           targetId: v.targetId || team.id,
                           targetName: v.targetName || team.name,
-                          homeTeamId: v.homeTeamId || (v.targetType === 'squadra' ? team.id : undefined),
-                          homeTeamName: v.homeTeamName || (v.targetType === 'squadra' ? team.name : undefined),
-                          awayTeamId: v.awayTeamId,
-                          awayTeamName: v.awayTeamName,
+                          homeTeamId: v.homeTeamId || (v.targetType === 'squadra' && isHome ? team.id : undefined),
+                          homeTeamName: v.homeTeamName || (v.targetType === 'squadra' && isHome ? team.name : undefined),
+                          awayTeamId: v.awayTeamId || (v.targetType === 'squadra' && !isHome ? team.id : undefined),
+                          awayTeamName: v.awayTeamName || (v.targetType === 'squadra' && !isHome ? team.name : undefined),
                         });
                       }
                     }}
@@ -1271,6 +1285,8 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
         initialTargetType={videoTarget.type === 'partita' ? 'partita' : 'squadra'}
         initialTargetId={videoTarget.id}
         initialTargetName={videoTarget.name}
+        initialHomeTeamId={videoTarget.homeTeamId}
+        initialAwayTeamId={videoTarget.awayTeamId}
         onSave={(data) => {
           DbService.addVideo(data);
           setIsVideoModalOpen(false);

@@ -76,6 +76,13 @@ interface MediaViewerModalProps {
   media: MediaViewerItem | null;
 }
 
+export interface AssociatedTeamItem {
+  team: Team;
+  role: 'CASA' | 'OSPITE' | 'SQUADRA';
+  label: string;
+  shortRole: string;
+}
+
 interface RefereeBookmark {
   id: string;
   time: number;
@@ -122,7 +129,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
   // Gestione Squadre Coinvolte & Acquisizione Note
   const [allDbTeams, setAllDbTeams] = useState<Team[]>([]);
-  const [associatedTeams, setAssociatedTeams] = useState<Team[]>([]);
+  const [associatedTeams, setAssociatedTeams] = useState<AssociatedTeamItem[]>([]);
   const [videoNotes, setVideoNotes] = useState<Note[]>([]);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [selectedNoteTeamId, setSelectedNoteTeamId] = useState<string>('');
@@ -224,48 +231,122 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
       return;
     }
 
-    const found: Team[] = [];
+    let resolvedHomeTeamId: string | undefined = media.homeTeamId;
+    let resolvedAwayTeamId: string | undefined = media.awayTeamId;
 
-    // 1. Squadre esplicitamente associate in media.homeTeamId / media.awayTeamId
-    if (media.homeTeamId) {
-      const ht = teams.find((t) => t.id === media.homeTeamId);
-      if (ht && !found.some((f) => f.id === ht.id)) found.push(ht);
-    }
-    if (media.awayTeamId) {
-      const at = teams.find((t) => t.id === media.awayTeamId);
-      if (at && !found.some((f) => f.id === at.id)) found.push(at);
+    // Se mancano, controlla se media.targetId ha il formato `${homeId}_vs_${awayId}`
+    if ((!resolvedHomeTeamId || !resolvedAwayTeamId) && media.targetId && media.targetId.includes('_vs_')) {
+      const [hId, aId] = media.targetId.split('_vs_');
+      if (!resolvedHomeTeamId && hId) resolvedHomeTeamId = hId;
+      if (!resolvedAwayTeamId && aId) resolvedAwayTeamId = aId;
     }
 
-    // 2. Se media.targetType === 'partita' e media.targetId punta a una partita ufficiale
-    if (media.targetType === 'partita' && media.targetId) {
+    // Se ancora mancano e targetType === 'partita' e punta a un match a calendario
+    if ((!resolvedHomeTeamId || !resolvedAwayTeamId) && media.targetType === 'partita' && media.targetId) {
       const match = DbService.getMatchById(media.targetId);
       if (match) {
-        const ht = teams.find((t) => t.id === match.homeTeamId);
-        const at = teams.find((t) => t.id === match.awayTeamId);
-        if (ht && !found.some((f) => f.id === ht.id)) found.push(ht);
-        if (at && !found.some((f) => f.id === at.id)) found.push(at);
+        if (!resolvedHomeTeamId) resolvedHomeTeamId = match.homeTeamId;
+        if (!resolvedAwayTeamId) resolvedAwayTeamId = match.awayTeamId;
       }
     }
 
-    // 3. Se media.targetType === 'squadra'
-    if (media.targetType === 'squadra' && media.targetId) {
-      const single = teams.find((t) => t.id === media.targetId);
-      if (single && !found.some((f) => f.id === single.id)) found.push(single);
-    }
-
-    // 4. Se non trovate, cerca corrispondenze per nome in title / subtitle / targetName
-    if (found.length === 0) {
-      const fullText = `${media.title || ''} ${media.subtitle || ''} ${media.targetName || ''} ${media.description || ''}`.toLowerCase();
-      teams.forEach((t) => {
-        if (fullText.includes(t.name.toLowerCase())) {
-          if (!found.some((f) => f.id === t.id)) found.push(t);
+    // Se ancora mancano, analizza titolo / targetName cercando il separatore standard "vs" o "-"
+    if (!resolvedHomeTeamId || !resolvedAwayTeamId) {
+      const fullText = `${media.title || ''} ${media.targetName || ''} ${media.subtitle || ''}`.trim();
+      const vsPattern = /\s+(?:vs\.?|v\.?|-)\s+/i;
+      if (vsPattern.test(fullText)) {
+        const parts = fullText.split(vsPattern);
+        if (parts.length >= 2) {
+          const leftPart = parts[0].toLowerCase();
+          const rightPart = parts[1].toLowerCase();
+          const longestFirst = [...teams].sort((a, b) => b.name.length - a.name.length);
+          const hMatch = longestFirst.find((t) => leftPart.includes(t.name.toLowerCase()));
+          const aMatch = longestFirst.find((t) => rightPart.includes(t.name.toLowerCase()));
+          if (hMatch && !resolvedHomeTeamId) resolvedHomeTeamId = hMatch.id;
+          if (aMatch && !resolvedAwayTeamId) resolvedAwayTeamId = aMatch.id;
         }
-      });
+      }
     }
 
-    setAssociatedTeams(found);
-    if (found.length > 0) {
-      setSelectedNoteTeamId(found[0].id);
+    const items: AssociatedTeamItem[] = [];
+
+    // Casa: risolto con massima priorità
+    if (resolvedHomeTeamId) {
+      const ht = teams.find((t) => t.id === resolvedHomeTeamId);
+      if (ht) {
+        items.push({
+          team: ht,
+          role: 'CASA',
+          label: `Casa: ${ht.name}`,
+          shortRole: 'Casa: ',
+        });
+      }
+    }
+
+    // Ospite: risolto con massima priorità
+    if (resolvedAwayTeamId && resolvedAwayTeamId !== resolvedHomeTeamId) {
+      const at = teams.find((t) => t.id === resolvedAwayTeamId);
+      if (at) {
+        items.push({
+          team: at,
+          role: 'OSPITE',
+          label: `Ospite: ${at.name}`,
+          shortRole: 'Ospite: ',
+        });
+      }
+    }
+
+    // Singola squadra (se targetType === 'squadra')
+    if (items.length === 0 && media.targetType === 'squadra' && media.targetId) {
+      const single = teams.find((t) => t.id === media.targetId);
+      if (single) {
+        items.push({
+          team: single,
+          role: 'SQUADRA',
+          label: single.name,
+          shortRole: '',
+        });
+      }
+    }
+
+    // Fallback: cerca occorrenze nel testo ordinate per indice di apparizione nel testo (MAI in ordine alfabetico!)
+    if (items.length === 0) {
+      const fullText = `${media.title || ''} ${media.subtitle || ''} ${media.targetName || ''} ${media.description || ''}`.toLowerCase();
+      const occurrences: { team: Team; index: number }[] = [];
+      for (const t of teams) {
+        const idx = fullText.indexOf(t.name.toLowerCase());
+        if (idx !== -1) {
+          occurrences.push({ team: t, index: idx });
+        }
+      }
+      occurrences.sort((a, b) => a.index - b.index);
+
+      if (occurrences.length >= 2) {
+        items.push({
+          team: occurrences[0].team,
+          role: 'CASA',
+          label: `Casa: ${occurrences[0].team.name}`,
+          shortRole: 'Casa: ',
+        });
+        items.push({
+          team: occurrences[1].team,
+          role: 'OSPITE',
+          label: `Ospite: ${occurrences[1].team.name}`,
+          shortRole: 'Ospite: ',
+        });
+      } else if (occurrences.length === 1) {
+        items.push({
+          team: occurrences[0].team,
+          role: 'SQUADRA',
+          label: occurrences[0].team.name,
+          shortRole: '',
+        });
+      }
+    }
+
+    setAssociatedTeams(items);
+    if (items.length > 0) {
+      setSelectedNoteTeamId(items[0].team.id);
     } else if (teams.length > 0) {
       setSelectedNoteTeamId(teams[0].id);
     }
@@ -278,7 +359,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
       return;
     }
     const allNotes = DbService.getNotes(undefined, undefined, user?.username);
-    const relevantTeamIds = associatedTeams.map((t) => t.id);
+    const relevantTeamIds = associatedTeams.map((item) => item.team.id);
 
     const filtered = allNotes.filter((n) => {
       // Nota creata con ID o URL esplicito del video
@@ -814,17 +895,18 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               </h3>
               {associatedTeams.length > 0 && (
                 <div className="hidden md:flex items-center gap-1.5 ml-2">
-                  {associatedTeams.map((team, idx) => (
+                  {associatedTeams.map((item) => (
                     <span
-                      key={team.id}
+                      key={item.team.id}
                       className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                        idx === 0
+                        item.role === 'CASA'
                           ? 'bg-[#CCFF00]/15 text-[#CCFF00] border-[#CCFF00]/30'
-                          : 'bg-sky-500/15 text-sky-400 border-sky-500/30'
+                          : item.role === 'OSPITE'
+                          ? 'bg-sky-500/15 text-sky-400 border-sky-500/30'
+                          : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
                       }`}
                     >
-                      {idx === 0 ? 'Casa: ' : 'Ospite: '}
-                      {team.name}
+                      {item.label}
                     </span>
                   ))}
                 </div>
@@ -1186,22 +1268,26 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
                     {associatedTeams.length > 0 ? (
                       <div className="flex flex-wrap items-center gap-2">
-                        {associatedTeams.map((team, idx) => {
-                          const isSelected = selectedNoteTeamId === team.id;
+                        {associatedTeams.map((item) => {
+                          const isSelected = selectedNoteTeamId === item.team.id;
                           return (
                             <button
-                              key={team.id}
+                              key={item.team.id}
                               type="button"
-                              onClick={() => setSelectedNoteTeamId(team.id)}
+                              onClick={() => setSelectedNoteTeamId(item.team.id)}
                               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
                                 isSelected
-                                  ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.4)] scale-102 ring-2 ring-[#CCFF00]'
+                                  ? item.role === 'CASA'
+                                    ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.4)] scale-102 ring-2 ring-[#CCFF00]'
+                                    : item.role === 'OSPITE'
+                                    ? 'bg-sky-400 text-black shadow-[0_0_15px_rgba(56,189,248,0.4)] scale-102 ring-2 ring-sky-400'
+                                    : 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.4)] scale-102 ring-2 ring-[#CCFF00]'
                                   : 'bg-[#181D2D] text-slate-300 border border-[#2B354F] hover:text-white hover:border-slate-400'
                               }`}
                             >
                               <Shield className="w-3.5 h-3.5" />
-                              <span>{idx === 0 ? 'Casa: ' : 'Ospite: '}</span>
-                              <span>{team.name}</span>
+                              {item.shortRole && <span className="font-bold">{item.shortRole}</span>}
+                              <span>{item.team.name}</span>
                             </button>
                           );
                         })}

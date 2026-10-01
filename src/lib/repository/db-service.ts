@@ -173,6 +173,10 @@ const defaultInitialVideos: VideoClip[] = [
     targetType: 'partita',
     targetId: 'match-A-4-1000471-74595',
     targetName: 'Vianese Calcio vs Rolo Fabbrico',
+    homeTeamId: '1000471',
+    homeTeamName: 'Vianese Calcio',
+    awayTeamId: '74595',
+    awayTeamName: 'Rolo Fabbrico',
     videoSource: 'VEO',
     externalUrl: 'https://app.veo.co/matches/20260920-partita-20-set-2026-v115a432/',
     title: 'Ripresa Integrale Gara: Vianese Calcio vs Rolo Fabbrico (Veo Camera)',
@@ -309,6 +313,66 @@ export class DbService {
               ...parsed,
               designations: cleanDesignations,
             };
+
+            // Idratazione e protezione squadre Casa / Ospite per tutti i video
+            if (Array.isArray(inMemoryData.videos)) {
+              inMemoryData.videos = inMemoryData.videos.map((v) => {
+                let htId = v.homeTeamId;
+                let htName = v.homeTeamName;
+                let atId = v.awayTeamId;
+                let atName = v.awayTeamName;
+
+                if (v.targetType === 'partita' && v.targetId && (!htId || !atId)) {
+                  const m = inMemoryData.matches?.find((item) => item.id === v.targetId);
+                  if (m) {
+                    htId = htId || m.homeTeamId;
+                    htName = htName || m.homeTeamName;
+                    atId = atId || m.awayTeamId;
+                    atName = atName || m.awayTeamName;
+                  } else if (v.targetId.includes('_vs_')) {
+                    const [p1, p2] = v.targetId.split('_vs_');
+                    if (!htId && p1) {
+                      htId = p1;
+                      htName = htName || inMemoryData.teams?.find((t) => t.id === p1)?.name;
+                    }
+                    if (!atId && p2) {
+                      atId = p2;
+                      atName = atName || inMemoryData.teams?.find((t) => t.id === p2)?.name;
+                    }
+                  }
+                }
+
+                if ((!htId || !atId) && v.targetName && v.targetName.toLowerCase().includes(' vs ')) {
+                  const parts = v.targetName.split(/\s+vs\.?\s+/i);
+                  if (parts.length >= 2) {
+                    const homePart = parts[0].trim().toLowerCase();
+                    const awayPart = parts[1].trim().toLowerCase();
+                    const foundHome = inMemoryData.teams?.find(
+                      (t) => homePart.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(homePart)
+                    );
+                    const foundAway = inMemoryData.teams?.find(
+                      (t) => awayPart.includes(t.name.toLowerCase()) || t.name.toLowerCase().includes(awayPart)
+                    );
+                    if (!htId && foundHome) {
+                      htId = foundHome.id;
+                      htName = foundHome.name;
+                    }
+                    if (!atId && foundAway) {
+                      atId = foundAway.id;
+                      atName = foundAway.name;
+                    }
+                  }
+                }
+
+                return {
+                  ...v,
+                  homeTeamId: htId,
+                  homeTeamName: htName,
+                  awayTeamId: atId,
+                  awayTeamName: atName,
+                };
+              });
+            }
 
             // Propaga le designazioni ai match
             this.applyDesignationsToMatches();
@@ -1425,7 +1489,26 @@ export class DbService {
         homeTeamName = homeTeamName || match.homeTeamName;
         awayTeamId = awayTeamId || match.awayTeamId;
         awayTeamName = awayTeamName || match.awayTeamName;
+      } else if (video.targetId && video.targetId.includes('_vs_')) {
+        const [hId, aId] = video.targetId.split('_vs_');
+        if (!homeTeamId && hId) {
+          homeTeamId = hId;
+          const ht = this.getTeamById(hId);
+          homeTeamName = ht?.name || homeTeamName;
+        }
+        if (!awayTeamId && aId) {
+          awayTeamId = aId;
+          const at = this.getTeamById(aId);
+          awayTeamName = at?.name || awayTeamName;
+        }
       }
+    }
+
+    if (homeTeamId && !homeTeamName) {
+      homeTeamName = this.getTeamById(homeTeamId)?.name;
+    }
+    if (awayTeamId && !awayTeamName) {
+      awayTeamName = this.getTeamById(awayTeamId)?.name;
     }
 
     const newVideo: VideoClip = {

@@ -43,6 +43,8 @@ interface VideoModalProps {
   initialTargetId?: string;
   initialTargetName?: string;
   initialUploadedMedia?: UploadResult | null;
+  initialHomeTeamId?: string;
+  initialAwayTeamId?: string;
 }
 
 export const VideoModal: React.FC<VideoModalProps> = ({
@@ -53,6 +55,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   initialTargetId = '',
   initialTargetName = '',
   initialUploadedMedia = null,
+  initialHomeTeamId = '',
+  initialAwayTeamId = '',
 }) => {
   const [mode, setMode] = useState<'UPLOAD' | 'URL'>('UPLOAD');
   const [targetType, setTargetType] = useState<'squadra' | 'giocatore' | 'partita'>(initialTargetType);
@@ -70,9 +74,9 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   // Squadre dal Database & Partite
   const [dbTeams, setDbTeams] = useState<Team[]>([]);
   const [dbMatches, setDbMatches] = useState<Match[]>([]);
-  const [homeTeamId, setHomeTeamId] = useState('');
+  const [homeTeamId, setHomeTeamId] = useState(initialHomeTeamId);
   const [homeTeamName, setHomeTeamName] = useState('');
-  const [awayTeamId, setAwayTeamId] = useState('');
+  const [awayTeamId, setAwayTeamId] = useState(initialAwayTeamId);
   const [awayTeamName, setAwayTeamName] = useState('');
   const [selectedMatchId, setSelectedMatchId] = useState('');
 
@@ -88,21 +92,35 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       setTargetName(initialTargetName);
       setError('');
 
-      // Pre-popolamento squadre se initialTargetType è squadra o partita
-      if (initialTargetType === 'squadra' && initialTargetId) {
-        const team = teams.find((t) => t.id === initialTargetId);
-        if (team) {
-          setHomeTeamId(team.id);
-          setHomeTeamName(team.name);
-        }
-      } else if (initialTargetType === 'partita' && initialTargetId) {
-        const match = matches.find((m) => m.id === initialTargetId);
-        if (match) {
-          setSelectedMatchId(match.id);
-          setHomeTeamId(match.homeTeamId);
-          setHomeTeamName(match.homeTeamName);
-          setAwayTeamId(match.awayTeamId);
-          setAwayTeamName(match.awayTeamName);
+      // Pre-popolamento squadre esplicite
+      if (initialHomeTeamId) {
+        const ht = teams.find((t) => t.id === initialHomeTeamId);
+        setHomeTeamId(initialHomeTeamId);
+        setHomeTeamName(ht?.name || '');
+      }
+      if (initialAwayTeamId) {
+        const at = teams.find((t) => t.id === initialAwayTeamId);
+        setAwayTeamId(initialAwayTeamId);
+        setAwayTeamName(at?.name || '');
+      }
+
+      // Pre-popolamento squadre se initialTargetType è squadra o partita (solo se non già definite esplicitamente)
+      if (!initialHomeTeamId && !initialAwayTeamId) {
+        if (initialTargetType === 'squadra' && initialTargetId) {
+          const team = teams.find((t) => t.id === initialTargetId);
+          if (team) {
+            setHomeTeamId(team.id);
+            setHomeTeamName(team.name);
+          }
+        } else if (initialTargetType === 'partita' && initialTargetId) {
+          const match = matches.find((m) => m.id === initialTargetId);
+          if (match) {
+            setSelectedMatchId(match.id);
+            setHomeTeamId(match.homeTeamId);
+            setHomeTeamName(match.homeTeamName);
+            setAwayTeamId(match.awayTeamId);
+            setAwayTeamName(match.awayTeamName);
+          }
         }
       }
 
@@ -117,7 +135,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         }
       }
     }
-  }, [isOpen, initialTargetType, initialTargetId, initialTargetName, initialUploadedMedia]);
+  }, [isOpen, initialTargetType, initialTargetId, initialTargetName, initialUploadedMedia, initialHomeTeamId, initialAwayTeamId]);
 
   // Chiudi con tasto Escape
   useEffect(() => {
@@ -152,21 +170,71 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 
   const autoDetectTeams = (text: string) => {
     if (!text || dbTeams.length === 0) return;
+    // CRITICO: Non sovrascrivere se l'utente ha già impostato le squadre nei menù a tendina
+    if (homeTeamId && awayTeamId) return;
+
+    // 1. Prova splitting con standard calcistico "Casa vs Ospite" o "Casa - Ospite"
+    const vsPattern = /\s+(?:vs\.?|v\.?|-)\s+/i;
+    if (vsPattern.test(text)) {
+      const parts = text.split(vsPattern);
+      if (parts.length >= 2) {
+        const homeCandidateStr = parts[0].trim().toLowerCase();
+        const awayCandidateStr = parts[1].trim().toLowerCase();
+
+        // Cerca per prima la squadra con il nome più lungo per evitare falsi positivi
+        const sortedDbTeams = [...dbTeams].sort((a, b) => b.name.length - a.name.length);
+        const homeMatch = sortedDbTeams.find((t) => homeCandidateStr.includes(t.name.toLowerCase()));
+        const awayMatch = sortedDbTeams.find((t) => awayCandidateStr.includes(t.name.toLowerCase()));
+
+        if (homeMatch && awayMatch && homeMatch.id !== awayMatch.id) {
+          if (!homeTeamId) {
+            setHomeTeamId(homeMatch.id);
+            setHomeTeamName(homeMatch.name);
+          }
+          if (!awayTeamId) {
+            setAwayTeamId(awayMatch.id);
+            setAwayTeamName(awayMatch.name);
+          }
+          setTargetType('partita');
+          setTargetId(`${homeMatch.id}_vs_${awayMatch.id}`);
+          setTargetName(`${homeMatch.name} vs ${awayMatch.name}`);
+          return;
+        }
+      }
+    }
+
+    // 2. Ordinamento per posizione di apparizione nel testo (NON alfabetico!)
     const lower = text.toLowerCase();
-    const matched = dbTeams.filter((t) => lower.includes(t.name.toLowerCase()));
-    if (matched.length >= 2) {
-      setHomeTeamId(matched[0].id);
-      setHomeTeamName(matched[0].name);
-      setAwayTeamId(matched[1].id);
-      setAwayTeamName(matched[1].name);
+    const matchedWithIndex: { team: Team; index: number }[] = [];
+    for (const t of dbTeams) {
+      const idx = lower.indexOf(t.name.toLowerCase());
+      if (idx !== -1) {
+        matchedWithIndex.push({ team: t, index: idx });
+      }
+    }
+    // Ordina per ordine nel testo (prima squadra che compare = Casa, seconda = Ospite)
+    matchedWithIndex.sort((a, b) => a.index - b.index);
+
+    if (matchedWithIndex.length >= 2) {
+      const h = matchedWithIndex[0].team;
+      const a = matchedWithIndex[1].team;
+      if (!homeTeamId) {
+        setHomeTeamId(h.id);
+        setHomeTeamName(h.name);
+      }
+      if (!awayTeamId) {
+        setAwayTeamId(a.id);
+        setAwayTeamName(a.name);
+      }
       setTargetType('partita');
-      setTargetId(`${matched[0].id}_vs_${matched[1].id}`);
-      setTargetName(`${matched[0].name} vs ${matched[1].name}`);
-    } else if (matched.length === 1 && !homeTeamId) {
-      setHomeTeamId(matched[0].id);
-      setHomeTeamName(matched[0].name);
+      setTargetId(`${h.id}_vs_${a.id}`);
+      setTargetName(`${h.name} vs ${a.name}`);
+    } else if (matchedWithIndex.length === 1 && !homeTeamId) {
+      const single = matchedWithIndex[0].team;
+      setHomeTeamId(single.id);
+      setHomeTeamName(single.name);
       if (!targetName) {
-        setTargetName(matched[0].name);
+        setTargetName(single.name);
       }
     }
   };
@@ -225,6 +293,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       setTargetId(`${teamId}_vs_${awayTeamId}`);
     } else if (hName) {
       setTargetName(hName);
+      setTargetId(teamId);
     }
   };
 
@@ -237,6 +306,9 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     if (homeTeamName && aName) {
       setTargetName(`${homeTeamName} vs ${aName}`);
       setTargetId(`${homeTeamId}_vs_${teamId}`);
+    } else if (aName) {
+      setTargetName(aName);
+      setTargetId(teamId);
     }
   };
 
@@ -283,14 +355,26 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         ? 'YOUTUBE'
         : videoSource;
 
+    const effectiveHomeId = homeTeamId.trim() || undefined;
+    const effectiveAwayId = awayTeamId.trim() || undefined;
+    const effectiveHomeName =
+      homeTeamName.trim() || (effectiveHomeId ? dbTeams.find((t) => t.id === effectiveHomeId)?.name : undefined);
+    const effectiveAwayName =
+      awayTeamName.trim() || (effectiveAwayId ? dbTeams.find((t) => t.id === effectiveAwayId)?.name : undefined);
+
+    let effectiveTargetId = targetId.trim();
+    if (targetType === 'partita' && effectiveHomeId && effectiveAwayId) {
+      effectiveTargetId = `${effectiveHomeId}_vs_${effectiveAwayId}`;
+    }
+
     onSave({
       targetType,
-      targetId: targetId.trim() || targetName.toLowerCase().replace(/\s+/g, '-'),
+      targetId: effectiveTargetId || targetName.toLowerCase().replace(/\s+/g, '-'),
       targetName: targetName.trim(),
-      homeTeamId: homeTeamId || undefined,
-      homeTeamName: homeTeamName || undefined,
-      awayTeamId: awayTeamId || undefined,
-      awayTeamName: awayTeamName || undefined,
+      homeTeamId: effectiveHomeId,
+      homeTeamName: effectiveHomeName,
+      awayTeamId: effectiveAwayId,
+      awayTeamName: effectiveAwayName,
       videoSource: effectiveSource,
       externalUrl: externalUrl.trim(),
       storagePath: storagePath.trim() || undefined,
