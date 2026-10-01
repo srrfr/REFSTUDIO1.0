@@ -8,6 +8,8 @@ import { Player, RefereeCustomTag, DisciplinaryStatus, RoleCategory, Note, Video
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TagBadge } from '@/components/common/TagBadge';
 import { PlayerBadge } from '@/components/common/AvatarBadge';
+import { PlayerNotesBadge } from '@/components/common/PlayerNotesBadge';
+import { buildPlayersMediaMap } from '@/lib/utils/player-notes';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
@@ -123,17 +125,12 @@ function PlayersContent() {
     loadPlayerNotes();
   }, [loadPlayerNotes]);
 
-  // Conteggio note per ogni calciatore per la visualizzazione nella griglia
-  const notesCountByPlayer = useMemo(() => {
+  // Mappa note e video per ogni calciatore per la visualizzazione nella griglia
+  const playersMediaMap = useMemo(() => {
     const allNotes = DbService.getNotes('giocatore', undefined, user?.username);
-    const map = new Map<string, number>();
-    allNotes.forEach((n) => {
-      if (n.targetId) {
-        map.set(n.targetId, (map.get(n.targetId) || 0) + 1);
-      }
-    });
-    return map;
-  }, [players, user?.username, playerNotes]);
+    const allVideos = DbService.getVideos('giocatore');
+    return buildPlayersMediaMap(players, allNotes, allVideos);
+  }, [players, user?.username, playerNotes, playerVideos]);
 
   // Gestione tasto Escape per chiusura modale calciatore
   useEffect(() => {
@@ -381,9 +378,21 @@ function PlayersContent() {
                     size="sm"
                   />
                   <div>
-                    <h3 className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
-                      {player.firstName} {player.lastName}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
+                        {player.firstName} {player.lastName}
+                      </h3>
+                      {(() => {
+                        const summary = playersMediaMap.get(player.id);
+                        if (!summary || !summary.hasMedia) return null;
+                        return (
+                          <PlayerNotesBadge
+                            textCount={summary.textCount}
+                            videoCount={summary.videoCount}
+                          />
+                        );
+                      })()}
+                    </div>
                     <p className="text-[11px] text-slate-400 truncate max-w-[150px]">
                       {player.teamName}
                     </p>
@@ -406,15 +415,6 @@ function PlayersContent() {
                 {player.age ? `${player.age} anni` : 'Età n.d.'}
               </span>
               <div className="flex items-center gap-2 text-slate-400">
-                {(notesCountByPlayer.get(player.id) || 0) > 0 && (
-                  <span
-                    className="flex items-center gap-1 text-[10px] text-[#CCFF00] font-black bg-[#CCFF00]/10 px-1.5 py-0.5 rounded border border-[#CCFF00]/30"
-                    title={`${notesCountByPlayer.get(player.id)} note arbitrali registrate`}
-                  >
-                    <FileText className="w-3 h-3 text-[#CCFF00]" />
-                    {notesCountByPlayer.get(player.id)}
-                  </span>
-                )}
                 <span className="text-yellow-400 font-bold">{player.yellowCards} 🟨</span>
                 <span className="text-rose-400 font-bold">{player.redCards} 🟥</span>
                 <span className="text-slate-300 font-bold">{player.goals} ⚽</span>

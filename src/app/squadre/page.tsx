@@ -64,6 +64,8 @@ import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { AvatarUrlModal } from '@/components/modals/AvatarUrlModal';
+import { PlayerNotesBadge } from '@/components/common/PlayerNotesBadge';
+import { buildPlayersMediaMap } from '@/lib/utils/player-notes';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 
 const AVAILABLE_TAGS: RefereeCustomTag[] = [
@@ -610,6 +612,14 @@ function SquadreContent() {
 
     return sortRoster(filtered, rosterSortField, rosterSortDirection);
   }, [teamRoster, rosterRoleFilter, rosterSearch, rosterSortField, rosterSortDirection]);
+
+  // Mappa delle note e video registrati per ciascun calciatore della rosa
+  const rosterMediaMap = useMemo(() => {
+    if (!teamRoster || teamRoster.length === 0) return new Map();
+    const allNotes = DbService.getNotes('giocatore', undefined, user?.username);
+    const allVideos = DbService.getVideos('giocatore');
+    return buildPlayersMediaMap(teamRoster, allNotes, allVideos);
+  }, [teamRoster, user?.username, playerNotes, playerVideos]);
 
   // Helper per renderizzare i pallini forma (V-N-P)
   const renderFormBadges = (recentMatches: TeamRecentMatch[], size: 'sm' | 'md' = 'sm') => {
@@ -1724,11 +1734,23 @@ function SquadreContent() {
                                 />
                                 <RoleBadge role={player.role} />
                                 <div>
-                                  <span className="font-bold text-white group-hover:text-[#CCFF00] transition-colors">
-                                    {player.lastName} {player.firstName}
-                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-bold text-white group-hover:text-[#CCFF00] transition-colors">
+                                      {player.lastName} {player.firstName}
+                                    </span>
+                                    {(() => {
+                                      const summary = rosterMediaMap.get(player.id);
+                                      if (!summary || !summary.hasMedia) return null;
+                                      return (
+                                        <PlayerNotesBadge
+                                          textCount={summary.textCount}
+                                          videoCount={summary.videoCount}
+                                        />
+                                      );
+                                    })()}
+                                  </div>
                                   {(birthYear > 0 || age !== undefined) && (
-                                    <span className="text-slate-400 ml-2 text-[11px] font-mono">
+                                    <span className="text-slate-400 text-[11px] font-mono">
                                       ({age ? `${age} anni` : ''}
                                       {birthYear > 0 ? (age ? ` • ${birthYear}` : `Nato: ${birthYear}`) : ''})
                                     </span>
