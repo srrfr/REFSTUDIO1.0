@@ -203,8 +203,10 @@ export interface Note {
   content: string;
   priority?: 'LOW' | 'NORMAL' | 'HIGH';
   attachments?: string[]; // URLs delle immagini/file
-  minute?: string; // Minuto di gara (es. "14:20", "1°T 28'", "75'")
-  minuteSeconds?: number; // Secondi esatti per seek diretto
+  minute?: string; // Minuto di gara iniziale (es. "14:20", "1°T 28'", "75'")
+  endMinute?: string; // Minuto di gara finale per clip con intervallo (es. "15:45")
+  minuteSeconds?: number; // Secondi esatti per seek diretto inizio
+  endMinuteSeconds?: number; // Secondi esatti fine clip
   videoId?: string; // ID del video di riferimento
   videoTitle?: string; // Titolo del video associato
   videoUrl?: string; // URL del video (YouTube o Veo)
@@ -217,6 +219,7 @@ export type VideoSource = 'YOUTUBE' | 'LOCAL' | 'STORAGE' | 'VEO';
 export interface VideoClip {
   id: string;
   authorId: string;
+  authorName?: string;
   targetType: 'squadra' | 'giocatore' | 'partita';
   targetId: string;
   targetName: string;
@@ -229,8 +232,11 @@ export interface VideoClip {
   storagePath?: string; // percorso in Storage
   title: string;
   description?: string;
-  timestampMark?: string; // "14:20" (minuto dell'episodio)
+  timestampMark?: string; // "14:20" (minuto iniziale dell'episodio)
+  endTimestampMark?: string; // "15:45" (minuto finale per intervallo clip desiderato)
   mediaType?: 'video' | 'image'; // tipo media per visualizzazione immediata
+  priority?: 'LOW' | 'NORMAL' | 'HIGH';
+  isPublic?: boolean;
   createdAt: string;
   updatedAt?: string;
 }

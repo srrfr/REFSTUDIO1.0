@@ -684,7 +684,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
             <div className="flex items-center gap-2">
               <Film className="w-4 h-4 text-[#FF334B]" />
               <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
-                Videoteca & Episodi Didattici ({videos.length})
+                Note Video & Episodi Didattici ({videos.length})
               </h4>
             </div>
             <span className="text-[10px] text-slate-400">Clip tattiche, falli e situazioni da palla inattiva</span>
@@ -702,7 +702,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                       <span className="text-[#CCFF00] font-black">{v.targetName}</span>
                       {v.timestampMark && (
                         <span className="bg-[#CCFF00]/15 text-[#CCFF00] px-1.5 py-0.5 rounded font-bold">
-                          Min. {v.timestampMark}
+                          {v.endTimestampMark ? `Min. ${v.timestampMark} → ${v.endTimestampMark}` : `Min. ${v.timestampMark}`}
                         </span>
                       )}
                     </div>
@@ -727,6 +727,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                           subtitle: v.targetName,
                           description: v.description,
                           timestampMark: v.timestampMark,
+                          endTimestampMark: v.endTimestampMark,
                           mediaType: v.mediaType,
                           targetType: v.targetType,
                           targetId: v.targetId || team.id,

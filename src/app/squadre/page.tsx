@@ -399,6 +399,22 @@ function SquadreContent() {
     setTeamVideos(DbService.getVideos('squadra', team.id));
   };
 
+  // Sincronizzazione automatica Note Video e Note quando vengono create o eliminate
+  useEffect(() => {
+    const handleSync = () => {
+      if (selectedTeam) {
+        setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+        setTeamNotes(DbService.getNotes('squadra', selectedTeam.id, user?.username));
+      }
+      if (selectedPlayer) {
+        setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+        setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
+      }
+    };
+    window.addEventListener('refstudio-sync-update', handleSync);
+    return () => window.removeEventListener('refstudio-sync-update', handleSync);
+  }, [selectedTeam, selectedPlayer, user?.username]);
+
   const handleSaveTeamEdit = () => {
     if (!selectedTeam) return;
     try {
@@ -1370,7 +1386,7 @@ function SquadreContent() {
                     : 'text-slate-400 hover:text-white bg-[#11141D] border border-[#212638]'
                 }`}
               >
-                <Video className="w-3.5 h-3.5" /> Videoteca ({teamVideos.length})
+                <Video className="w-3.5 h-3.5" /> Note Video ({teamVideos.length})
               </button>
               <button
                 onClick={() => setActiveTeamTab('VALUTAZIONI')}
@@ -1944,17 +1960,17 @@ function SquadreContent() {
               </div>
             )}
 
-            {/* TAB 4: VIDEOTECA SQUADRA */}
+            {/* TAB 4: NOTE VIDEO SQUADRA */}
             {activeTeamTab === 'VIDEO' && (
               <div className="space-y-4 animate-in fade-in duration-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <h4 className="text-sm font-black text-white flex items-center gap-2">
                       <Video className="w-4 h-4 text-[#CCFF00]" />
-                      Videoteca Didattica della Squadra ({teamVideos.length})
+                      Note Video della Squadra ({teamVideos.length})
                     </h4>
                     <p className="text-[11px] text-slate-400">
-                      Clip video di falli, tattiche e posizionamenti con player in-app e slow motion
+                      Clip video di falli, tattiche e posizionamenti con minutaggio e player in-app
                     </p>
                   </div>
                   <button
@@ -1964,7 +1980,7 @@ function SquadreContent() {
                       setVideoModalTargetName(selectedTeam.name);
                       setIsVideoModalOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all cursor-pointer"
                   >
                     <Plus className="w-4 h-4" /> Carica Video
                   </button>
@@ -1972,49 +1988,57 @@ function SquadreContent() {
 
                 {teamVideos.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-                    {teamVideos.map((vid) => (
-                      <div
-                        key={vid.id}
-                        className="p-3.5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2.5 flex flex-col justify-between"
-                      >
-                        <div>
-                          <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20">
-                            {vid.timestampMark ? `Min. ${vid.timestampMark}` : 'Clip Video'}
-                          </span>
-                          <h5 className="font-bold text-xs text-white mt-1.5 line-clamp-1">{vid.title}</h5>
-                          {vid.description && (
-                            <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{vid.description}</p>
-                          )}
-                        </div>
+                    {teamVideos.map((vid) => {
+                      const hasInterval = Boolean(vid.timestampMark && vid.endTimestampMark);
+                      const timeLabel = vid.timestampMark ? (
+                        hasInterval ? `Min. ${vid.timestampMark} → ${vid.endTimestampMark}` : `Min. ${vid.timestampMark}`
+                      ) : 'Clip Video';
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const videoUrl = vid.externalUrl || vid.storagePath || '';
-                            setActiveViewerMedia({
-                              id: vid.id,
-                              url: videoUrl,
-                              title: vid.title,
-                              subtitle: `${selectedTeam.name} • ${vid.timestampMark ? `Min. ${vid.timestampMark}` : 'Clip Video'}`,
-                              description: vid.description,
-                              timestampMark: vid.timestampMark,
-                              mediaType: 'video',
-                              targetType: vid.targetType,
-                              targetId: vid.targetId || selectedTeam.id,
-                              targetName: vid.targetName || selectedTeam.name,
-                              homeTeamId: vid.homeTeamId || (vid.targetType === 'squadra' ? selectedTeam.id : undefined),
-                              homeTeamName: vid.homeTeamName || (vid.targetType === 'squadra' ? selectedTeam.name : undefined),
-                              awayTeamId: vid.awayTeamId,
-                              awayTeamName: vid.awayTeamName,
-                            });
-                            setIsViewerOpen(true);
-                          }}
-                          className="w-full flex items-center justify-center gap-1.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-[#CCFF00] border border-[#212638] rounded-xl text-xs font-bold transition-all"
+                      return (
+                        <div
+                          key={vid.id}
+                          className="p-3.5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2.5 flex flex-col justify-between"
                         >
-                          <Video className="w-3.5 h-3.5" /> Riproduci in App
-                        </button>
-                      </div>
-                    ))}
+                          <div>
+                            <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20">
+                              {timeLabel}
+                            </span>
+                            <h5 className="font-bold text-xs text-white mt-1.5 line-clamp-1">{vid.title}</h5>
+                            {vid.description && (
+                              <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{vid.description}</p>
+                            )}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const videoUrl = vid.externalUrl || vid.storagePath || '';
+                              setActiveViewerMedia({
+                                id: vid.id,
+                                url: videoUrl,
+                                title: vid.title,
+                                subtitle: `${selectedTeam.name} • ${timeLabel}`,
+                                description: vid.description,
+                                timestampMark: vid.timestampMark,
+                                endTimestampMark: vid.endTimestampMark,
+                                mediaType: 'video',
+                                targetType: vid.targetType,
+                                targetId: vid.targetId || selectedTeam.id,
+                                targetName: vid.targetName || selectedTeam.name,
+                                homeTeamId: vid.homeTeamId || (vid.targetType === 'squadra' ? selectedTeam.id : undefined),
+                                homeTeamName: vid.homeTeamName || (vid.targetType === 'squadra' ? selectedTeam.name : undefined),
+                                awayTeamId: vid.awayTeamId,
+                                awayTeamName: vid.awayTeamName,
+                              });
+                              setIsViewerOpen(true);
+                            }}
+                            className="w-full flex items-center justify-center gap-1.5 py-2 bg-[#141824] hover:bg-[#1E2435] text-[#CCFF00] border border-[#212638] rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <Video className="w-3.5 h-3.5" /> Riproduci in App
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="p-8 text-center text-slate-500 text-xs italic bg-[#11141D] rounded-2xl border border-dashed border-[#212638]">

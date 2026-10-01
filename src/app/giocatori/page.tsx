@@ -821,6 +821,7 @@ function PlayersContent() {
                           subtitle: `${selectedPlayer.firstName} ${selectedPlayer.lastName} • ${vid.targetName}`,
                           description: vid.description,
                           timestampMark: vid.timestampMark,
+                          endTimestampMark: vid.endTimestampMark,
                           mediaType: isImg ? 'image' : 'video',
                           targetType: vid.targetType,
                           targetId: vid.targetId,
@@ -893,7 +894,7 @@ function PlayersContent() {
                           {vid.timestampMark && (
                             <div className="absolute bottom-2 right-2">
                               <span className="flex items-center gap-1 text-[9px] font-mono font-black text-black bg-[#CCFF00] px-2 py-0.5 rounded-full shadow-md">
-                                <Clock className="w-2.5 h-2.5" /> Min. {vid.timestampMark}
+                                <Clock className="w-2.5 h-2.5" /> Min. {vid.timestampMark}{vid.endTimestampMark ? ` → ${vid.endTimestampMark}` : ''}
                               </span>
                             </div>
                           )}

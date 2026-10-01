@@ -37,6 +37,7 @@ interface VideoModalProps {
     title: string;
     description?: string;
     timestampMark?: string;
+    endTimestampMark?: string;
     mediaType?: 'video' | 'image';
   }) => void;
   initialTargetType?: 'squadra' | 'giocatore' | 'partita';
@@ -45,6 +46,8 @@ interface VideoModalProps {
   initialUploadedMedia?: UploadResult | null;
   initialHomeTeamId?: string;
   initialAwayTeamId?: string;
+  initialTimestampMark?: string;
+  initialEndTimestampMark?: string;
 }
 
 export const VideoModal: React.FC<VideoModalProps> = ({
@@ -57,6 +60,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   initialUploadedMedia = null,
   initialHomeTeamId = '',
   initialAwayTeamId = '',
+  initialTimestampMark = '',
+  initialEndTimestampMark = '',
 }) => {
   const [mode, setMode] = useState<'UPLOAD' | 'URL'>('UPLOAD');
   const [targetType, setTargetType] = useState<'squadra' | 'giocatore' | 'partita'>(initialTargetType);
@@ -68,7 +73,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   const [mediaType, setMediaType] = useState<'video' | 'image'>('video');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [timestampMark, setTimestampMark] = useState('');
+  const [timestampMark, setTimestampMark] = useState(initialTimestampMark);
+  const [endTimestampMark, setEndTimestampMark] = useState(initialEndTimestampMark);
   const [error, setError] = useState('');
 
   // Squadre dal Database & Partite
@@ -380,7 +386,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       storagePath: storagePath.trim() || undefined,
       title: title.trim(),
       description: description.trim(),
-      timestampMark: timestampMark.trim(),
+      timestampMark: timestampMark.trim() || undefined,
+      endTimestampMark: endTimestampMark.trim() || undefined,
       mediaType,
     });
 
@@ -390,6 +397,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     setStoragePath('');
     setDescription('');
     setTimestampMark('');
+    setEndTimestampMark('');
     setHomeTeamId('');
     setHomeTeamName('');
     setAwayTeamId('');
@@ -546,8 +554,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             </div>
           )}
 
-          {/* Tipo di Associazione & Minuto Episodio */}
-          <div className="grid grid-cols-2 gap-3">
+          {/* Tipo di Associazione, Minuto Iniziale & Minuto Finale */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
                 Tipologia Contenuto
@@ -565,13 +573,26 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-                Minuto Episodio Iniziale
+                Minuto Iniziale
               </label>
               <input
                 type="text"
                 value={timestampMark}
                 onChange={(e) => setTimestampMark(e.target.value)}
                 placeholder="Es. 00:00 o 14:20"
+                className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
+                Minuto Finale (Opzionale)
+              </label>
+              <input
+                type="text"
+                value={endTimestampMark}
+                onChange={(e) => setEndTimestampMark(e.target.value)}
+                placeholder="Es. 15:45 o 1°T 36'"
                 className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium font-mono"
               />
             </div>

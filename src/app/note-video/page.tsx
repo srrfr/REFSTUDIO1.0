@@ -482,6 +482,7 @@ export default function NotesVideosPage() {
                     subtitle: vid.targetName,
                     description: vid.description,
                     timestampMark: vid.timestampMark,
+                    endTimestampMark: vid.endTimestampMark,
                     mediaType: isImg ? 'image' : 'video',
                     targetType: vid.targetType,
                     targetId: vid.targetId,
@@ -566,7 +567,7 @@ export default function NotesVideosPage() {
                     {vid.timestampMark && (
                       <div className="absolute bottom-2.5 right-2.5">
                         <span className="flex items-center gap-1 text-[10px] font-mono font-black text-black bg-[#CCFF00] px-2 py-0.5 rounded-full shadow-md">
-                          <Clock className="w-3 h-3" /> Min. {vid.timestampMark}
+                          <Clock className="w-3 h-3" /> Min. {vid.timestampMark}{vid.endTimestampMark ? ` → ${vid.endTimestampMark}` : ''}
                         </span>
                       </div>
                     )}

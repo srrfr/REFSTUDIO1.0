@@ -48,7 +48,7 @@ import {
   VeoHighlight,
 } from '@/lib/services/veo-service';
 import { DbService } from '@/lib/repository/db-service';
-import { Note, Team } from '@/types/refstudio';
+import { Note, Team, VideoClip } from '@/types/refstudio';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export interface MediaViewerItem {
@@ -59,6 +59,7 @@ export interface MediaViewerItem {
   description?: string;
   mediaType?: 'video' | 'image';
   timestampMark?: string;
+  endTimestampMark?: string;
   authorName?: string;
   targetType?: 'squadra' | 'giocatore' | 'partita';
   targetId?: string;
@@ -127,18 +128,30 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   const [isAddingBookmark, setIsAddingBookmark] = useState(false);
   const [newBookmarkNote, setNewBookmarkNote] = useState('');
 
-  // Gestione Squadre Coinvolte & Acquisizione Note
+  // Gestione Squadre Coinvolte & Acquisizione Note Video / Clip
   const [allDbTeams, setAllDbTeams] = useState<Team[]>([]);
   const [associatedTeams, setAssociatedTeams] = useState<AssociatedTeamItem[]>([]);
   const [videoNotes, setVideoNotes] = useState<Note[]>([]);
+  const [recordedClips, setRecordedClips] = useState<VideoClip[]>([]);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [selectedNoteTeamId, setSelectedNoteTeamId] = useState<string>('');
   const [noteMinuteText, setNoteMinuteText] = useState('');
+  const [noteEndMinuteText, setNoteEndMinuteText] = useState('');
+  const [noteClipTitle, setNoteClipTitle] = useState('');
   const [noteContent, setNoteContent] = useState('');
   const [notePriority, setNotePriority] = useState<'LOW' | 'NORMAL' | 'HIGH'>('NORMAL');
   const [noteIsPublic, setNoteIsPublic] = useState(true);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
   const [noteFormError, setNoteFormError] = useState<string | null>(null);
+
+  // Controllo riproduzione clip con intervallo temporale (minuto iniziale -> finale)
+  const [activeClipRange, setActiveClipRange] = useState<{ start: number; end: number; label: string } | null>(null);
+  const activeClipRangeRef = useRef<{ start: number; end: number; label: string } | null>(null);
+  const [isClipFinished, setIsClipFinished] = useState(false);
+
+  useEffect(() => {
+    activeClipRangeRef.current = activeClipRange;
+  }, [activeClipRange]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -352,14 +365,28 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     }
   }, [isOpen, media]);
 
-  // Caricamento note registrate per questo video / squadre
+  // Caricamento note e clip registrate per questo video / squadre
   const loadVideoNotes = useCallback(() => {
     if (!media) {
       setVideoNotes([]);
+      setRecordedClips([]);
       return;
     }
     const allNotes = DbService.getNotes(undefined, undefined, user?.username);
+    const allClips = DbService.getVideos();
     const relevantTeamIds = associatedTeams.map((item) => item.team.id);
+
+    // Filtra clip video appartenenti a questa gara o squadre coinvolte
+    const filteredClips = allClips.filter((c) => {
+      if (media.id && c.id === media.id) return true;
+      if (media.url && (c.externalUrl === media.url || c.storagePath === media.url)) return true;
+      if (relevantTeamIds.includes(c.targetId)) return true;
+      if (media.homeTeamId && (c.homeTeamId === media.homeTeamId || c.awayTeamId === media.homeTeamId)) return true;
+      if (media.awayTeamId && (c.homeTeamId === media.awayTeamId || c.awayTeamId === media.awayTeamId)) return true;
+      if (media.targetId && c.targetId === media.targetId) return true;
+      return false;
+    });
+    setRecordedClips(filteredClips);
 
     const filtered = allNotes.filter((n) => {
       // Nota creata con ID o URL esplicito del video
@@ -384,6 +411,16 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     if (isOpen) {
       loadVideoNotes();
     }
+  }, [isOpen, loadVideoNotes]);
+
+  // Sincronizzazione in tempo reale con eventi locali
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleSync = () => {
+      loadVideoNotes();
+    };
+    window.addEventListener('refstudio-sync-update', handleSync);
+    return () => window.removeEventListener('refstudio-sync-update', handleSync);
   }, [isOpen, loadVideoNotes]);
 
   // Carica i metadati Veo se l'URL fornito è una gara Veo
@@ -483,13 +520,18 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
           },
         });
 
-        // Polling del minutaggio corrente da YouTube Player
+        // Polling del minutaggio corrente da YouTube Player con controllo fine clip
         pollInterval = setInterval(() => {
           if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
             try {
               const t = ytPlayerRef.current.getCurrentTime();
               if (typeof t === 'number' && !isNaN(t)) {
                 setCurrentTime(t);
+                if (activeClipRangeRef.current && t >= activeClipRangeRef.current.end) {
+                  ytPlayerRef.current.pauseVideo();
+                  setIsPlaying(false);
+                  setIsClipFinished(true);
+                }
               }
               const d = ytPlayerRef.current.getDuration();
               if (d && !isNaN(d)) {
@@ -497,7 +539,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               }
             } catch {}
           }
-        }, 400);
+        }, 300);
       } catch (err) {
         console.warn('Inizializzazione YouTube Player non riuscita:', err);
       }
@@ -584,80 +626,127 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     }
   };
 
-  // Apertura form acquisizione nota con minuto corrente
+  // Apertura form acquisizione clip/nota con minuto iniziale e finale
   const handleOpenAddNote = () => {
-    // Pausa video per consentire all'arbitro di scrivere con calma
+    // Pausa video per consentire all'arbitro di scrivere e regolare i tempi con calma
     if (isPlaying) {
       togglePlay();
     }
 
     const clock = getMatchClock(currentTime);
-    const minuteFormatted = clock ? clock.display : `Min. ${formatSecondsToTime(currentTime)}`;
+    const minuteFormatted = clock ? clock.display : formatSecondsToTime(currentTime);
     setNoteMinuteText(minuteFormatted);
+
+    // Minuto finale di default a +30s rispetto al tempo iniziale
+    const defaultEndSec = currentTime + 30;
+    const endClock = getMatchClock(defaultEndSec);
+    const endFormatted = endClock ? endClock.display : formatSecondsToTime(defaultEndSec);
+    setNoteEndMinuteText(endFormatted);
+
+    setNoteClipTitle('');
     setNoteContent('');
     setNoteFormError(null);
     setSaveSuccessMessage(null);
     setIsAddingNote(true);
   };
 
-  // Salvataggio nota arbitrale direttamente per la specifica squadra
+  // Salvataggio nota video/clip direttamente nella sezione Note Video della squadra
   const handleSaveTeamNote = () => {
     if (!selectedNoteTeamId) {
-      setNoteFormError('Seleziona la squadra a cui fa riferimento la nota arbitrale.');
+      setNoteFormError('Seleziona la squadra a cui fa riferimento la nota video.');
       return;
     }
 
-    if (!noteContent.trim()) {
-      setNoteFormError('Inserisci il testo dell\'osservazione arbitrale.');
+    if (!noteContent.trim() && !noteClipTitle.trim()) {
+      setNoteFormError('Inserisci un titolo per la clip o l\'osservazione arbitrale.');
       return;
     }
 
     const targetTeam = allDbTeams.find((t) => t.id === selectedNoteTeamId);
     const teamName = targetTeam ? targetTeam.name : 'Squadra';
 
-    const clock = getMatchClock(currentTime);
-    const cleanMinute = noteMinuteText.trim() || (clock ? clock.display : formatSecondsToTime(currentTime));
+    const cleanStart = noteMinuteText.trim();
+    const cleanEnd = noteEndMinuteText.trim();
 
-    // Formattazione contenuto con indicazione esplicita del minuto di gara
-    const formattedContent = noteContent.trim().startsWith('[')
-      ? noteContent.trim()
-      : `[${cleanMinute}] ${noteContent.trim()}`;
+    const titleToUse =
+      noteClipTitle.trim() ||
+      `Clip Minuto ${cleanStart}${cleanEnd ? ` - ${cleanEnd}` : ''} (${teamName})`;
 
     try {
-      const created = DbService.addNote({
+      const createdVideo = DbService.addVideo({
         targetType: 'squadra',
         targetId: selectedNoteTeamId,
         targetName: teamName,
-        content: formattedContent,
+        homeTeamId: media?.homeTeamId,
+        homeTeamName: media?.homeTeamName,
+        awayTeamId: media?.awayTeamId,
+        awayTeamName: media?.awayTeamName,
+        videoSource: isVeo ? 'VEO' : isYoutube ? 'YOUTUBE' : 'LOCAL',
+        externalUrl: media?.url,
+        storagePath: !isYoutube && !isVeo ? media?.url : undefined,
+        title: titleToUse,
+        description: noteContent.trim(),
+        timestampMark: cleanStart,
+        endTimestampMark: cleanEnd || undefined,
+        mediaType: 'video',
         priority: notePriority,
         isPublic: noteIsPublic,
-        minute: cleanMinute,
-        minuteSeconds: Math.floor(currentTime),
-        videoId: media?.id,
-        videoTitle: media?.title,
-        videoUrl: media?.url,
         authorId: user?.username || 'arbitro',
         authorName: user?.displayName || 'Arbitro',
-        authorRole: user?.refereeRole || 'AE',
-        authorSection: user?.sectionAia || '',
       });
 
       // Feedback visivo immediato
-      setSaveSuccessMessage(`Nota salvata con successo per ${teamName}!`);
+      setSaveSuccessMessage(`Nota video salvata con successo nella sezione "Note Video" di ${teamName}!`);
       setNoteContent('');
+      setNoteClipTitle('');
       setIsAddingNote(false);
       setNoteFormError(null);
       setActiveTab('NOTE_SQUADRE');
 
-      // Notifica globale multi-componente
+      // Notifica globale multi-componente (aggiorna la scheda squadra istantaneamente)
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { noteCreated: created } }));
+        window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { videoCreated: createdVideo } }));
       }
 
       loadVideoNotes();
       setTimeout(() => setSaveSuccessMessage(null), 4000);
     } catch (err: any) {
-      setNoteFormError(err.message || 'Errore durante il salvataggio della nota.');
+      setNoteFormError(err.message || 'Errore durante il salvataggio della nota video.');
+    }
+  };
+
+  const handleDeleteRecordedClip = async (clipId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Sei sicuro di voler eliminare questa clip dalla sezione Note Video della squadra?')) {
+      try {
+        await DbService.deleteVideoAsync(clipId);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { videoDeleted: clipId } }));
+        }
+        loadVideoNotes();
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questa clip.');
+      }
+    }
+  };
+
+  const handlePlayClip = (clip: VideoClip) => {
+    const startSec = clip.timestampMark ? parseTimeToSeconds(clip.timestampMark) ?? 0 : 0;
+    const endSec = clip.endTimestampMark ? parseTimeToSeconds(clip.endTimestampMark) : null;
+    seekTo(startSec);
+    if (endSec !== null && endSec > startSec) {
+      setActiveClipRange({
+        start: startSec,
+        end: endSec,
+        label: `${clip.timestampMark} → ${clip.endTimestampMark}`,
+      });
+      setIsClipFinished(false);
+    } else {
+      setActiveClipRange(null);
+      setIsClipFinished(false);
+    }
+    if (!isPlaying) {
+      togglePlay();
     }
   };
 
@@ -728,7 +817,13 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+      const cur = videoRef.current.currentTime;
+      setCurrentTime(cur);
+      if (activeClipRangeRef.current && cur >= activeClipRangeRef.current.end) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+        setIsClipFinished(true);
+      }
     }
   };
 
@@ -847,7 +942,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, isPlaying, jumpSeconds]);
 
-  // Reset stato alla chiusura / cambio media
+  // Reset stato alla chiusura / cambio media e inizializzazione intervallo clip
   useEffect(() => {
     setIsPlaying(false);
     setCurrentTime(0);
@@ -858,7 +953,28 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     setIsAddingNote(false);
     setNewBookmarkNote('');
     setNoteContent('');
+    setNoteClipTitle('');
     setNoteFormError(null);
+
+    // Inizializza intervallo clip se il media caricato contiene timestampMark ed endTimestampMark
+    if (isOpen && media?.timestampMark) {
+      const s = parseTimeToSeconds(media.timestampMark);
+      const e = media.endTimestampMark ? parseTimeToSeconds(media.endTimestampMark) : null;
+      if (s !== null && e !== null && e > s) {
+        setActiveClipRange({
+          start: s,
+          end: e,
+          label: `${media.timestampMark} → ${media.endTimestampMark}`,
+        });
+        setIsClipFinished(false);
+      } else {
+        setActiveClipRange(null);
+        setIsClipFinished(false);
+      }
+    } else {
+      setActiveClipRange(null);
+      setIsClipFinished(false);
+    }
   }, [media, isOpen]);
 
   if (!isOpen || !media) return null;
@@ -921,11 +1037,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
           <button
             onClick={handleOpenAddNote}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all active:scale-95 cursor-pointer"
-            title="Acquisisci nota arbitrale associata a una squadra (Tasto N)"
+            title="Acquisisci clip / nota video associata a una squadra (Tasto N)"
           >
             <PenTool className="w-4 h-4 fill-black" />
-            <span className="hidden sm:inline">Acquisisci Nota Arbitrale</span>
-            <span className="sm:hidden">Nuova Nota</span>
+            <span className="hidden sm:inline">Acquisisci Nota Video</span>
+            <span className="sm:hidden">Nuova Clip</span>
           </button>
 
           {media.url && (
@@ -1058,6 +1174,60 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                 <div className="absolute top-3 left-3 bg-[#0B0E17]/85 backdrop-blur-md px-3 py-1 rounded-xl border border-[#212638] text-[11px] font-black text-white shadow-lg flex items-center gap-2 z-10 pointer-events-none">
                   <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse" />
                   <span>{currentClock.display}</span>
+                </div>
+              )}
+
+              {/* Active Clip Range Indicator on top-right */}
+              {activeClipRange && (
+                <div className="absolute top-3 right-3 bg-[#0B0E17]/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#CCFF00]/40 text-xs font-bold text-white shadow-xl flex items-center gap-2 z-10 animate-in fade-in">
+                  <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase">Riproduzione Clip:</span>
+                  <span className="font-mono text-[#CCFF00] font-black">{activeClipRange.label}</span>
+                  <button
+                    onClick={() => {
+                      setActiveClipRange(null);
+                      setIsClipFinished(false);
+                    }}
+                    className="ml-1 text-slate-400 hover:text-white text-[10px] bg-white/10 px-1.5 py-0.5 rounded hover:bg-white/20 transition-all cursor-pointer"
+                    title="Esci dalla clip e continua riproduzione libera"
+                  >
+                    Esci da Clip
+                  </button>
+                </div>
+              )}
+
+              {/* Clip Finished Overlay with Quick Actions */}
+              {isClipFinished && activeClipRange && (
+                <div className="absolute inset-0 bg-black/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 animate-in fade-in duration-200">
+                  <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/20 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] mb-2 shadow-[0_0_20px_rgba(204,255,0,0.3)]">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <h4 className="text-base font-black text-white">Clip Terminata</h4>
+                  <p className="text-xs text-slate-300 mt-1 font-mono">
+                    Intervallo clip: <span className="text-[#CCFF00] font-bold">{activeClipRange.label}</span>
+                  </p>
+                  <div className="flex items-center gap-3 mt-4">
+                    <button
+                      onClick={() => {
+                        seekTo(activeClipRange.start);
+                        setIsClipFinished(false);
+                        if (!isPlaying) togglePlay();
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs shadow-lg transition-all active:scale-95 cursor-pointer"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" /> Riavvia Clip
+                    </button>
+                    <button
+                      onClick={() => {
+                        setIsClipFinished(false);
+                        setActiveClipRange(null);
+                        if (!isPlaying) togglePlay();
+                      }}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1C2235] hover:bg-[#252D45] text-white font-bold text-xs border border-[#2F3854] transition-all active:scale-95 cursor-pointer"
+                    >
+                      <Play className="w-3.5 h-3.5" /> Continua Gara Intera
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -1233,24 +1403,21 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   {/* Primary Note Acquisition Trigger Button */}
                   <button
                     onClick={handleOpenAddNote}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all active:scale-95"
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all active:scale-95 cursor-pointer"
                   >
                     <PenTool className="w-3.5 h-3.5 fill-black" />
-                    <span>Registra Nota Squadra</span>
+                    <span>Registra Nota Video Squadra</span>
                   </button>
                 </div>
               </div>
 
-              {/* Inline Form ACQUISIZIONE NOTA ARBITRALE PER LA SQUADRA */}
+              {/* Inline Form ACQUISIZIONE NOTA VIDEO & CLIP PER LA SQUADRA */}
               {isAddingNote && (
                 <div className="p-4 bg-[#111420] border-2 border-[#CCFF00]/50 rounded-2xl space-y-3.5 shadow-2xl animate-in fade-in duration-200">
                   <div className="flex items-center justify-between border-b border-[#21283D] pb-2">
                     <span className="font-black text-white flex items-center gap-2 text-xs sm:text-sm">
                       <PenTool className="w-4 h-4 text-[#CCFF00]" />
-                      Acquisisci Nota Arbitrale al minuto{' '}
-                      <span className="font-mono text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded">
-                        {noteMinuteText}
-                      </span>
+                      Acquisisci Nota Video / Clip per la Squadra
                     </span>
                     <button
                       onClick={() => setIsAddingNote(false)}
@@ -1263,7 +1430,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   {/* 1. Selezione della squadra di riferimento (Obbligatoria) */}
                   <div>
                     <label className="block text-[11px] font-black text-slate-300 uppercase tracking-wider mb-1.5">
-                      Squadra a cui fa riferimento la nota (Seleziona):
+                      Squadra a cui associare la clip (Seleziona):
                     </label>
 
                     {associatedTeams.length > 0 ? (
@@ -1324,18 +1491,81 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     )}
                   </div>
 
-                  {/* 2. Dettagli Minuto, Priorità e Visibilità */}
+                  {/* 2. Dettagli Intervallo Temporale Clip (Minuto Iniziale e Minuto Finale) */}
+                  <div className="space-y-1.5 p-3 rounded-xl bg-[#141824] border border-[#232B40]">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-black text-[#CCFF00] uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Minuto Iniziale Clip
+                        </label>
+                        <input
+                          type="text"
+                          value={noteMinuteText}
+                          onChange={(e) => setNoteMinuteText(e.target.value)}
+                          placeholder="Es. 14:20 o 1°T 35'"
+                          className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#CCFF00]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-black text-[#00E5FF] uppercase tracking-wider mb-1 flex items-center gap-1">
+                          <Clock className="w-3 h-3" /> Minuto Finale Clip (Intervallo)
+                        </label>
+                        <input
+                          type="text"
+                          value={noteEndMinuteText}
+                          onChange={(e) => setNoteEndMinuteText(e.target.value)}
+                          placeholder="Es. 14:50 o 1°T 36'"
+                          className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#00E5FF]"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Preset rapidi per impostare il minuto finale */}
+                    <div className="flex items-center gap-1 text-[11px] flex-wrap pt-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                        Imposta fine clip:
+                      </span>
+                      {[15, 30, 45, 60, 120].map((delta) => (
+                        <button
+                          key={delta}
+                          type="button"
+                          onClick={() => {
+                            const sSec = parseTimeToSeconds(noteMinuteText) ?? currentTime;
+                            const target = sSec + delta;
+                            const clk = getMatchClock(target);
+                            setNoteEndMinuteText(clk ? clk.display : formatSecondsToTime(target));
+                          }}
+                          className="px-2 py-0.5 rounded-lg bg-[#1A2030] hover:bg-[#252E46] text-slate-300 hover:text-[#CCFF00] border border-[#2B354F] font-mono text-[10px] font-bold transition-all cursor-pointer"
+                        >
+                          +{delta < 60 ? `${delta}s` : `${delta / 60}m`}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const clk = getMatchClock(currentTime);
+                          setNoteEndMinuteText(clk ? clk.display : formatSecondsToTime(currentTime));
+                        }}
+                        className="px-2 py-0.5 rounded-lg bg-[#1A2030] hover:bg-[#252E46] text-[#00E5FF] border border-[#00E5FF]/40 font-mono text-[10px] font-bold transition-all cursor-pointer"
+                      >
+                        📍 Tempo corrente
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3. Titolo Clip, Priorità e Visibilità */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <div>
+                    <div className="sm:col-span-1">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
-                        Minuto Visualizzato
+                        Titolo Clip (Opzionale)
                       </label>
                       <input
                         type="text"
-                        value={noteMinuteText}
-                        onChange={(e) => setNoteMinuteText(e.target.value)}
-                        placeholder="Es. 14:20 o 1°T 35'"
-                        className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#CCFF00]"
+                        value={noteClipTitle}
+                        onChange={(e) => setNoteClipTitle(e.target.value)}
+                        placeholder="Es. Contrasto in area, Pressing..."
+                        className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00]"
                       />
                     </div>
 
@@ -1381,7 +1611,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     </div>
                   </div>
 
-                  {/* 3. Contenuto della nota */}
+                  {/* 4. Contenuto dell'Osservazione Arbitrale */}
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
                       Osservazione Arbitrale
@@ -1405,24 +1635,24 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
                   <div className="flex items-center justify-between pt-1">
                     <span className="text-[11px] text-slate-400">
-                      La nota verrà archiviata direttamente nella scheda della squadra selezionata.
+                      La clip verrà archiviata direttamente nella sezione <strong className="text-white">&quot;Note Video&quot;</strong> della squadra.
                     </span>
 
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => setIsAddingNote(false)}
-                        className="px-3 py-1.5 bg-[#181D2D] hover:bg-[#252C42] text-slate-300 font-bold text-xs rounded-xl border border-[#2B354F] transition-all"
+                        className="px-3 py-1.5 bg-[#181D2D] hover:bg-[#252C42] text-slate-300 font-bold text-xs rounded-xl border border-[#2B354F] transition-all cursor-pointer"
                       >
                         Annulla
                       </button>
                       <button
                         type="button"
                         onClick={handleSaveTeamNote}
-                        className="px-4 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all flex items-center gap-1.5"
+                        className="px-4 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Salva tra le Note della Squadra
+                        Salva nella Sezione &quot;Note Video&quot; della Squadra
                       </button>
                     </div>
                   </div>
@@ -1470,19 +1700,19 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               {/* Tabs Navigazione: Note Squadre / Tempi Gara / Highlights / Segnalibri */}
               <div className="pt-2 border-t border-[#1C2133]">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  {/* Tab Note Squadre Gara */}
+                  {/* Tab Note Video Squadre */}
                   <button
                     onClick={() => setActiveTab('NOTE_SQUADRE')}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
                       activeTab === 'NOTE_SQUADRE'
                         ? 'bg-[#1C2235] text-white border border-[#2E3754] shadow-sm'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    <FileText className="w-3.5 h-3.5 text-[#CCFF00]" />
-                    <span>Note Squadre Gara</span>
+                    <Film className="w-3.5 h-3.5 text-[#CCFF00]" />
+                    <span>Note Video Squadre</span>
                     <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#CCFF00]/20 text-[#CCFF00] font-mono">
-                      {videoNotes.length}
+                      {recordedClips.length}
                     </span>
                   </button>
 
@@ -1538,43 +1768,40 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   </button>
                 </div>
 
-                {/* Tab 1: NOTE SQUADRE GARA */}
+                {/* Tab 1: NOTE VIDEO SQUADRE GARA */}
                 {activeTab === 'NOTE_SQUADRE' && (
-                  <div className="space-y-2">
-                    {videoNotes.length > 0 ? (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-44 overflow-y-auto p-1">
-                        {videoNotes.map((n) => {
-                          const isMine = user && n.authorId && n.authorId.toLowerCase() === user.username.toLowerCase();
-                          const seekSec = n.minuteSeconds ?? (n.minute ? parseTimeToSeconds(n.minute) : null);
+                  <div className="space-y-3">
+                    {recordedClips.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto p-1">
+                        {recordedClips.map((clip) => {
+                          const isMine = user && clip.authorId && clip.authorId.toLowerCase() === user.username.toLowerCase();
+                          const hasInterval = Boolean(clip.timestampMark && clip.endTimestampMark);
 
                           return (
                             <div
-                              key={n.id}
-                              onClick={() => {
-                                if (seekSec !== null && seekSec !== undefined) {
-                                  seekTo(seekSec);
-                                }
-                              }}
+                              key={clip.id}
+                              onClick={() => handlePlayClip(clip)}
                               className="flex flex-col justify-between p-2.5 rounded-xl bg-[#141824] border border-[#212638] hover:border-[#CCFF00]/50 transition-all cursor-pointer group shadow-sm"
                             >
                               <div>
                                 <div className="flex items-center justify-between gap-1 text-[10px] border-b border-[#1C2233] pb-1.5 mb-1.5">
                                   <span className="font-black text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded truncate max-w-[130px]">
-                                    {n.targetName}
+                                    {clip.targetName}
                                   </span>
 
                                   <div className="flex items-center gap-1.5">
-                                    {n.minute && (
-                                      <span className="font-mono font-black text-black bg-[#CCFF00] px-1.5 py-0.2 rounded shadow-xs">
-                                        {n.minute}
+                                    {clip.timestampMark && (
+                                      <span className="font-mono font-black text-black bg-[#CCFF00] px-1.5 py-0.2 rounded shadow-xs flex items-center gap-1 text-[10px]">
+                                        <Clock className="w-2.5 h-2.5" />
+                                        {hasInterval ? `${clip.timestampMark} → ${clip.endTimestampMark}` : `Min. ${clip.timestampMark}`}
                                       </span>
                                     )}
 
                                     {isMine && (
                                       <button
-                                        onClick={(e) => handleDeleteTeamNote(n.id, e)}
-                                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors"
-                                        title="Elimina nota"
+                                        onClick={(e) => handleDeleteRecordedClip(clip.id, e)}
+                                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
+                                        title="Elimina clip da Note Video"
                                       >
                                         <Trash2 className="w-3 h-3" />
                                       </button>
@@ -1582,18 +1809,22 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                                   </div>
                                 </div>
 
-                                <p className="text-xs text-slate-200 line-clamp-2 leading-relaxed">
-                                  {n.content}
-                                </p>
+                                <h5 className="font-bold text-xs text-white line-clamp-1 group-hover:text-[#CCFF00] transition-colors">
+                                  {clip.title}
+                                </h5>
+
+                                {clip.description && (
+                                  <p className="text-[11px] text-slate-300 line-clamp-2 leading-relaxed mt-1">
+                                    {clip.description}
+                                  </p>
+                                )}
                               </div>
 
-                              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 mt-1 border-t border-[#1A1F2E]">
-                                <span>{n.authorName || 'Arbitro'}</span>
-                                {seekSec !== null && (
-                                  <span className="text-[#CCFF00] font-bold group-hover:underline flex items-center gap-0.5">
-                                    <Play className="w-2.5 h-2.5 fill-[#CCFF00]" /> Vai al minuto
-                                  </span>
-                                )}
+                              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 mt-1.5 border-t border-[#1A1F2E]">
+                                <span>{clip.authorName || 'Arbitro'}</span>
+                                <span className="text-[#CCFF00] font-bold group-hover:underline flex items-center gap-0.5">
+                                  <Play className="w-2.5 h-2.5 fill-[#CCFF00]" /> Riproduci Clip
+                                </span>
                               </div>
                             </div>
                           );
@@ -1601,13 +1832,56 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                       </div>
                     ) : (
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-3 rounded-xl bg-[#121622] border border-[#212638] text-xs text-slate-400">
-                        <span>Nessuna nota arbitrale registrata per questa gara. Clicca &quot;Registra Nota Squadra&quot; per annotare un episodio al minuto corrente.</span>
+                        <span>Nessuna clip archiviata nella sezione &quot;Note Video&quot; per questa gara. Clicca &quot;Registra Nota Video Squadra&quot; per salvare una clip con intervallo.</span>
                         <button
                           onClick={handleOpenAddNote}
-                          className="px-3 py-1 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg transition-all flex items-center gap-1 flex-shrink-0"
+                          className="px-3 py-1 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg transition-all flex items-center gap-1 flex-shrink-0 cursor-pointer"
                         >
-                          <Plus className="w-3.5 h-3.5" /> Aggiungi Nota
+                          <Plus className="w-3.5 h-3.5" /> Registra Nota Video
                         </button>
+                      </div>
+                    )}
+
+                    {/* Eventuali note arbitrali testuali legacy */}
+                    {videoNotes.length > 0 && (
+                      <div className="pt-2 border-t border-[#1C2233]">
+                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
+                          Altre Note Arbitrali Testuali ({videoNotes.length})
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                          {videoNotes.map((n) => {
+                            const isMine = user && n.authorId && n.authorId.toLowerCase() === user.username.toLowerCase();
+                            const seekSec = n.minuteSeconds ?? (n.minute ? parseTimeToSeconds(n.minute) : null);
+                            return (
+                              <div
+                                key={n.id}
+                                onClick={() => {
+                                  if (seekSec !== null && seekSec !== undefined) {
+                                    seekTo(seekSec);
+                                  }
+                                }}
+                                className="p-2 rounded-xl bg-[#121520] border border-[#1E2536] hover:border-[#CCFF00]/40 transition-all cursor-pointer text-xs"
+                              >
+                                <div className="flex items-center justify-between text-[10px] pb-1 mb-1 border-b border-[#1A1F2C]">
+                                  <span className="text-[#CCFF00] font-bold truncate max-w-[120px]">{n.targetName}</span>
+                                  <div className="flex items-center gap-1">
+                                    {n.minute && <span className="text-slate-400 font-mono font-bold">{n.minute}</span>}
+                                    {isMine && (
+                                      <button
+                                        onClick={(e) => handleDeleteTeamNote(n.id, e)}
+                                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded cursor-pointer"
+                                        title="Elimina nota"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                                <p className="text-slate-300 text-[11px] line-clamp-1">{n.content}</p>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

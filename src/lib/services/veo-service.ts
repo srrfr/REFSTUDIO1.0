@@ -68,22 +68,22 @@ export function parseTimeToSeconds(timeStr: string): number | null {
   if (!timeStr) return null;
   const clean = timeStr.trim();
 
-  // Formato mm:ss o hh:mm:ss
-  if (clean.includes(':')) {
-    const parts = clean.split(':').map((p) => parseInt(p, 10));
-    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-      return parts[0] * 60 + parts[1];
-    }
-    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-      return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  // Se contiene pattern hh:mm:ss o mm:ss all'interno della stringa (es. "1°T 14:20" o "(14:20)")
+  const timeMatch = clean.match(/(?:(\d{1,2}):)?(\d{1,2}):(\d{2})/);
+  if (timeMatch) {
+    const hours = timeMatch[1] ? parseInt(timeMatch[1], 10) : 0;
+    const minutes = parseInt(timeMatch[2], 10);
+    const seconds = parseInt(timeMatch[3], 10);
+    if (!isNaN(minutes) && !isNaN(seconds)) {
+      return hours * 3600 + minutes * 60 + seconds;
     }
   }
 
-  // Numero semplice di minuti es. "45" o "45'" -> 45 * 60
-  const minuteMatch = clean.match(/^(\d+)'?$/);
+  // Numero semplice di minuti es. "45", "45'", "Min. 45" -> 45 * 60
+  const minuteMatch = clean.match(/(?:min\.?\s*)?(\d+)'?$/i);
   if (minuteMatch) {
     const min = parseInt(minuteMatch[1], 10);
-    return min * 60;
+    if (!isNaN(min)) return min * 60;
   }
 
   const num = parseFloat(clean);
