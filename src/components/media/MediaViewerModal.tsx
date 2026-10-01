@@ -184,30 +184,34 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     return '';
   }, []);
 
-  // Calcolo tempo gara e minuto effettivo dai periodi Veo
+  // Calcolo tempo gara e minuto effettivo dai periodi Veo (avvio corretto da 00:00)
   const getMatchClock = useCallback((timeSec: number) => {
     if (!veoData?.periods || veoData.periods.length === 0) return null;
     const p1 = veoData.periods[0];
     const p2 = veoData.periods[1];
 
     if (p1 && timeSec >= p1.start && timeSec <= p1.end) {
-      const matchMin = Math.floor((timeSec - p1.start) / 60) + 1;
-      const matchSec = Math.floor((timeSec - p1.start) % 60);
+      const elapsedSec = Math.max(0, Math.floor(timeSec - p1.start));
+      const mm = Math.floor(elapsedSec / 60);
+      const ss = elapsedSec % 60;
+      const timeStr = `${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
       return {
         periodName: '1° Tempo',
-        matchMinute: matchMin,
-        display: `1°T ${matchMin}' (${matchMin}:${matchSec.toString().padStart(2, '0')})`,
+        matchMinute: mm,
+        display: `1°T ${timeStr}`,
         isHalfTime: false,
       };
     }
 
     if (p2 && timeSec >= p2.start) {
-      const matchMin = Math.floor(45 + (timeSec - p2.start) / 60) + 1;
-      const matchSec = Math.floor((timeSec - p2.start) % 60);
+      const elapsedSec = Math.max(0, Math.floor(timeSec - p2.start));
+      const mm = 45 + Math.floor(elapsedSec / 60);
+      const ss = elapsedSec % 60;
+      const timeStr = `${mm.toString().padStart(2, '0')}:${ss.toString().padStart(2, '0')}`;
       return {
         periodName: '2° Tempo',
-        matchMinute: matchMin,
-        display: `2°T ${matchMin}' (${matchMin}:${matchSec.toString().padStart(2, '0')})`,
+        matchMinute: mm,
+        display: `2°T ${timeStr}`,
         isHalfTime: false,
       };
     }
@@ -633,15 +637,14 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
       togglePlay();
     }
 
-    const clock = getMatchClock(currentTime);
-    const minuteFormatted = clock ? clock.display : formatSecondsToTime(currentTime);
-    setNoteMinuteText(minuteFormatted);
+    // Minuto effettivo di scorrimento del video (timeline) per sincronizzazione 1:1 con il player
+    const videoStartStr = formatSecondsToTime(currentTime);
+    setNoteMinuteText(videoStartStr);
 
-    // Minuto finale di default a +30s rispetto al tempo iniziale
+    // Minuto finale di default a +30s rispetto al tempo effettivo del video
     const defaultEndSec = currentTime + 30;
-    const endClock = getMatchClock(defaultEndSec);
-    const endFormatted = endClock ? endClock.display : formatSecondsToTime(defaultEndSec);
-    setNoteEndMinuteText(endFormatted);
+    const videoEndStr = formatSecondsToTime(defaultEndSec);
+    setNoteEndMinuteText(videoEndStr);
 
     setNoteClipTitle('');
     setNoteContent('');
@@ -665,12 +668,15 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     const targetTeam = allDbTeams.find((t) => t.id === selectedNoteTeamId);
     const teamName = targetTeam ? targetTeam.name : 'Squadra';
 
-    const cleanStart = noteMinuteText.trim();
-    const cleanEnd = noteEndMinuteText.trim();
+    const cleanStart = noteMinuteText.trim() || formatSecondsToTime(currentTime);
+    const cleanEnd = noteEndMinuteText.trim() || formatSecondsToTime(currentTime + 30);
+
+    const clock = getMatchClock(currentTime);
+    const clockInfo = clock?.display ? ` [${clock.display}]` : '';
 
     const titleToUse =
       noteClipTitle.trim() ||
-      `Clip Minuto ${cleanStart}${cleanEnd ? ` - ${cleanEnd}` : ''} (${teamName})`;
+      `Clip ${cleanStart}${cleanEnd ? ` - ${cleanEnd}` : ''}${clockInfo} (${teamName})`;
 
     try {
       const createdVideo = DbService.addVideo({
@@ -1169,11 +1175,14 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                 </>
               )}
 
-              {/* Match clock overlay on top-left of video */}
-              {currentClock && (
-                <div className="absolute top-3 left-3 bg-[#0B0E17]/85 backdrop-blur-md px-3 py-1 rounded-xl border border-[#212638] text-[11px] font-black text-white shadow-lg flex items-center gap-2 z-10 pointer-events-none">
+              {/* Match clock & video timeline overlay on top-left of video */}
+              {(currentClock || isVeo) && (
+                <div className="absolute top-3 left-3 bg-[#0B0E17]/85 backdrop-blur-md px-3 py-1.5 rounded-xl border border-[#212638] text-[11px] font-black text-white shadow-lg flex items-center gap-2.5 z-10 pointer-events-none">
                   <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse" />
-                  <span>{currentClock.display}</span>
+                  {currentClock && <span>{currentClock.display}</span>}
+                  <span className="text-slate-400 font-mono text-[10px] border-l border-slate-700 pl-2">
+                    Video: {formatSecondsToTime(currentTime)}
+                  </span>
                 </div>
               )}
 
@@ -1495,29 +1504,44 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   <div className="space-y-1.5 p-3 rounded-xl bg-[#141824] border border-[#232B40]">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-black text-[#CCFF00] uppercase tracking-wider mb-1 flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Minuto Iniziale Clip
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black text-[#CCFF00] uppercase tracking-wider flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Minuto Inizio Clip (Video)
+                          </label>
+                          {currentClock && (
+                            <span className="text-[9px] font-mono text-slate-400 bg-black/40 px-1.5 py-0.5 rounded border border-slate-700">
+                              Gara: {currentClock.display}
+                            </span>
+                          )}
+                        </div>
                         <input
                           type="text"
                           value={noteMinuteText}
                           onChange={(e) => setNoteMinuteText(e.target.value)}
-                          placeholder="Es. 14:20 o 1°T 35'"
+                          placeholder="Es. 14:20"
                           className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#CCFF00]"
                         />
+                        <p className="text-[9px] text-slate-400 mt-1">
+                          Tempo effettivo del video (timeline)
+                        </p>
                       </div>
 
                       <div>
-                        <label className="block text-[10px] font-black text-[#00E5FF] uppercase tracking-wider mb-1 flex items-center gap-1">
-                          <Clock className="w-3 h-3" /> Minuto Finale Clip (Intervallo)
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-wider flex items-center gap-1">
+                            <Clock className="w-3 h-3" /> Minuto Fine Clip (Intervallo)
+                          </label>
+                        </div>
                         <input
                           type="text"
                           value={noteEndMinuteText}
                           onChange={(e) => setNoteEndMinuteText(e.target.value)}
-                          placeholder="Es. 14:50 o 1°T 36'"
+                          placeholder="Es. 14:50"
                           className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#00E5FF]"
                         />
+                        <p className="text-[9px] text-slate-400 mt-1">
+                          Fine riproduzione automatica della clip
+                        </p>
                       </div>
                     </div>
 
@@ -1533,8 +1557,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                           onClick={() => {
                             const sSec = parseTimeToSeconds(noteMinuteText) ?? currentTime;
                             const target = sSec + delta;
-                            const clk = getMatchClock(target);
-                            setNoteEndMinuteText(clk ? clk.display : formatSecondsToTime(target));
+                            setNoteEndMinuteText(formatSecondsToTime(target));
                           }}
                           className="px-2 py-0.5 rounded-lg bg-[#1A2030] hover:bg-[#252E46] text-slate-300 hover:text-[#CCFF00] border border-[#2B354F] font-mono text-[10px] font-bold transition-all cursor-pointer"
                         >
@@ -1544,12 +1567,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                       <button
                         type="button"
                         onClick={() => {
-                          const clk = getMatchClock(currentTime);
-                          setNoteEndMinuteText(clk ? clk.display : formatSecondsToTime(currentTime));
+                          setNoteEndMinuteText(formatSecondsToTime(currentTime));
                         }}
                         className="px-2 py-0.5 rounded-lg bg-[#1A2030] hover:bg-[#252E46] text-[#00E5FF] border border-[#00E5FF]/40 font-mono text-[10px] font-bold transition-all cursor-pointer"
                       >
-                        📍 Tempo corrente
+                        📍 Tempo video corrente
                       </button>
                     </div>
                   </div>
