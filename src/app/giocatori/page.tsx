@@ -815,12 +815,20 @@ function PlayersContent() {
                     const handleCardPlay = () => {
                       if (vid.externalUrl) {
                         setActiveViewerMedia({
+                          id: vid.id,
                           url: vid.externalUrl,
                           title: vid.title,
                           subtitle: `${selectedPlayer.firstName} ${selectedPlayer.lastName} • ${vid.targetName}`,
                           description: vid.description,
                           timestampMark: vid.timestampMark,
                           mediaType: isImg ? 'image' : 'video',
+                          targetType: vid.targetType,
+                          targetId: vid.targetId,
+                          targetName: vid.targetName,
+                          homeTeamId: vid.homeTeamId || selectedPlayer.teamId,
+                          homeTeamName: vid.homeTeamName || selectedPlayer.teamName,
+                          awayTeamId: vid.awayTeamId,
+                          awayTeamName: vid.awayTeamName,
                         });
                         setIsViewerOpen(true);
                       }

@@ -203,6 +203,11 @@ export interface Note {
   content: string;
   priority?: 'LOW' | 'NORMAL' | 'HIGH';
   attachments?: string[]; // URLs delle immagini/file
+  minute?: string; // Minuto di gara (es. "14:20", "1°T 28'", "75'")
+  minuteSeconds?: number; // Secondi esatti per seek diretto
+  videoId?: string; // ID del video di riferimento
+  videoTitle?: string; // Titolo del video associato
+  videoUrl?: string; // URL del video (YouTube o Veo)
   createdAt: string;
   updatedAt?: string;
 }
@@ -215,6 +220,10 @@ export interface VideoClip {
   targetType: 'squadra' | 'giocatore' | 'partita';
   targetId: string;
   targetName: string;
+  homeTeamId?: string; // ID Squadra di Casa (per gare)
+  homeTeamName?: string; // Nome Squadra di Casa
+  awayTeamId?: string; // ID Squadra Ospite (per gare)
+  awayTeamName?: string; // Nome Squadra Ospite
   videoSource: VideoSource;
   externalUrl?: string; // es. https://www.youtube.com/watch?v=...
   storagePath?: string; // percorso in Storage

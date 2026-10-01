@@ -29,6 +29,14 @@ import {
   ChevronRight,
   Flag,
   Calendar,
+  Shield,
+  FileText,
+  CheckCircle2,
+  Lock,
+  Globe,
+  Plus,
+  PenTool,
+  AlertCircle,
 } from 'lucide-react';
 import {
   isVeoUrl,
@@ -39,8 +47,12 @@ import {
   VeoPeriod,
   VeoHighlight,
 } from '@/lib/services/veo-service';
+import { DbService } from '@/lib/repository/db-service';
+import { Note, Team } from '@/types/refstudio';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export interface MediaViewerItem {
+  id?: string;
   url: string;
   title: string;
   subtitle?: string;
@@ -48,6 +60,14 @@ export interface MediaViewerItem {
   mediaType?: 'video' | 'image';
   timestampMark?: string;
   authorName?: string;
+  targetType?: 'squadra' | 'giocatore' | 'partita';
+  targetId?: string;
+  targetName?: string;
+  homeTeamId?: string;
+  homeTeamName?: string;
+  awayTeamId?: string;
+  awayTeamName?: string;
+  relatedTeams?: { id: string; name: string }[];
 }
 
 interface MediaViewerModalProps {
@@ -65,7 +85,16 @@ interface RefereeBookmark {
   createdAt: string;
 }
 
+declare global {
+  interface Window {
+    YT: any;
+    onYouTubeIframeAPIReady: (() => void) | undefined;
+  }
+}
+
 export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onClose, media }) => {
+  const { user } = useAuth();
+
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -80,12 +109,29 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   const [veoError, setVeoError] = useState<string | null>(null);
   const [directStreamUrl, setDirectStreamUrl] = useState<string>('');
 
+  // YouTube specific states
+  const [isYtReady, setIsYtReady] = useState(false);
+  const ytPlayerRef = useRef<any>(null);
+
   // Navigator controls
   const [minuteInput, setMinuteInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'TEMPI' | 'HIGHLIGHTS' | 'SEGNALIBRI'>('TEMPI');
+  const [activeTab, setActiveTab] = useState<'NOTE_SQUADRE' | 'TEMPI' | 'HIGHLIGHTS' | 'SEGNALIBRI'>('NOTE_SQUADRE');
   const [bookmarks, setBookmarks] = useState<RefereeBookmark[]>([]);
   const [isAddingBookmark, setIsAddingBookmark] = useState(false);
   const [newBookmarkNote, setNewBookmarkNote] = useState('');
+
+  // Gestione Squadre Coinvolte & Acquisizione Note
+  const [allDbTeams, setAllDbTeams] = useState<Team[]>([]);
+  const [associatedTeams, setAssociatedTeams] = useState<Team[]>([]);
+  const [videoNotes, setVideoNotes] = useState<Note[]>([]);
+  const [isAddingNote, setIsAddingNote] = useState(false);
+  const [selectedNoteTeamId, setSelectedNoteTeamId] = useState<string>('');
+  const [noteMinuteText, setNoteMinuteText] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [notePriority, setNotePriority] = useState<'LOW' | 'NORMAL' | 'HIGH'>('NORMAL');
+  const [noteIsPublic, setNoteIsPublic] = useState(true);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+  const [noteFormError, setNoteFormError] = useState<string | null>(null);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -102,6 +148,162 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   );
 
   const isVideo = !isYoutube && !isImage && Boolean(media?.url);
+
+  // Utility estrazione YouTube Video ID
+  const getYoutubeVideoId = useCallback((url?: string): string => {
+    if (!url) return '';
+    try {
+      if (url.includes('watch?v=')) {
+        return url.split('watch?v=')[1].split('&')[0];
+      } else if (url.includes('youtu.be/')) {
+        return url.split('youtu.be/')[1].split('?')[0];
+      } else if (url.includes('embed/')) {
+        return url.split('embed/')[1].split('?')[0];
+      }
+    } catch {}
+    return '';
+  }, []);
+
+  // Calcolo tempo gara e minuto effettivo dai periodi Veo
+  const getMatchClock = useCallback((timeSec: number) => {
+    if (!veoData?.periods || veoData.periods.length === 0) return null;
+    const p1 = veoData.periods[0];
+    const p2 = veoData.periods[1];
+
+    if (p1 && timeSec >= p1.start && timeSec <= p1.end) {
+      const matchMin = Math.floor((timeSec - p1.start) / 60) + 1;
+      const matchSec = Math.floor((timeSec - p1.start) % 60);
+      return {
+        periodName: '1° Tempo',
+        matchMinute: matchMin,
+        display: `1°T ${matchMin}' (${matchMin}:${matchSec.toString().padStart(2, '0')})`,
+        isHalfTime: false,
+      };
+    }
+
+    if (p2 && timeSec >= p2.start) {
+      const matchMin = Math.floor(45 + (timeSec - p2.start) / 60) + 1;
+      const matchSec = Math.floor((timeSec - p2.start) % 60);
+      return {
+        periodName: '2° Tempo',
+        matchMinute: matchMin,
+        display: `2°T ${matchMin}' (${matchMin}:${matchSec.toString().padStart(2, '0')})`,
+        isHalfTime: false,
+      };
+    }
+
+    if (p1 && timeSec < p1.start) {
+      return {
+        periodName: 'Pre-gara',
+        matchMinute: 0,
+        display: 'Pre-gara',
+        isHalfTime: false,
+      };
+    }
+
+    if (p1 && p2 && timeSec > p1.end && timeSec < p2.start) {
+      return {
+        periodName: 'Intervallo',
+        matchMinute: 45,
+        display: 'Intervallo 1°/2°T',
+        isHalfTime: true,
+      };
+    }
+
+    return null;
+  }, [veoData]);
+
+  // Caricamento e identificazione squadre coinvolte nel video
+  useEffect(() => {
+    if (!isOpen) return;
+    const teams = DbService.getTeams().sort((a, b) => a.name.localeCompare(b.name));
+    setAllDbTeams(teams);
+
+    if (!media) {
+      setAssociatedTeams([]);
+      return;
+    }
+
+    const found: Team[] = [];
+
+    // 1. Squadre esplicitamente associate in media.homeTeamId / media.awayTeamId
+    if (media.homeTeamId) {
+      const ht = teams.find((t) => t.id === media.homeTeamId);
+      if (ht && !found.some((f) => f.id === ht.id)) found.push(ht);
+    }
+    if (media.awayTeamId) {
+      const at = teams.find((t) => t.id === media.awayTeamId);
+      if (at && !found.some((f) => f.id === at.id)) found.push(at);
+    }
+
+    // 2. Se media.targetType === 'partita' e media.targetId punta a una partita ufficiale
+    if (media.targetType === 'partita' && media.targetId) {
+      const match = DbService.getMatchById(media.targetId);
+      if (match) {
+        const ht = teams.find((t) => t.id === match.homeTeamId);
+        const at = teams.find((t) => t.id === match.awayTeamId);
+        if (ht && !found.some((f) => f.id === ht.id)) found.push(ht);
+        if (at && !found.some((f) => f.id === at.id)) found.push(at);
+      }
+    }
+
+    // 3. Se media.targetType === 'squadra'
+    if (media.targetType === 'squadra' && media.targetId) {
+      const single = teams.find((t) => t.id === media.targetId);
+      if (single && !found.some((f) => f.id === single.id)) found.push(single);
+    }
+
+    // 4. Se non trovate, cerca corrispondenze per nome in title / subtitle / targetName
+    if (found.length === 0) {
+      const fullText = `${media.title || ''} ${media.subtitle || ''} ${media.targetName || ''} ${media.description || ''}`.toLowerCase();
+      teams.forEach((t) => {
+        if (fullText.includes(t.name.toLowerCase())) {
+          if (!found.some((f) => f.id === t.id)) found.push(t);
+        }
+      });
+    }
+
+    setAssociatedTeams(found);
+    if (found.length > 0) {
+      setSelectedNoteTeamId(found[0].id);
+    } else if (teams.length > 0) {
+      setSelectedNoteTeamId(teams[0].id);
+    }
+  }, [isOpen, media]);
+
+  // Caricamento note registrate per questo video / squadre
+  const loadVideoNotes = useCallback(() => {
+    if (!media) {
+      setVideoNotes([]);
+      return;
+    }
+    const allNotes = DbService.getNotes(undefined, undefined, user?.username);
+    const relevantTeamIds = associatedTeams.map((t) => t.id);
+
+    const filtered = allNotes.filter((n) => {
+      // Nota creata con ID o URL esplicito del video
+      if (media.id && n.videoId === media.id) return true;
+      if (media.url && n.videoUrl === media.url) return true;
+
+      // Nota associata a una delle squadre della gara e con indicazione del minuto
+      if (relevantTeamIds.includes(n.targetId) && (n.minute || n.videoId || n.videoUrl || n.content.includes('[Min.'))) {
+        return true;
+      }
+
+      // Se la nota è associata direttamente al match
+      if (media.targetId && n.targetId === media.targetId) return true;
+
+      return false;
+    });
+
+    setVideoNotes(filtered);
+  }, [media, associatedTeams, user?.username]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadVideoNotes();
+    }
+  }, [isOpen, loadVideoNotes]);
 
   // Carica i metadati Veo se l'URL fornito è una gara Veo
   useEffect(() => {
@@ -155,128 +357,247 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     }
   }, [isOpen, media?.url, isVeo]);
 
-  // Calcola embed YouTube con eventuale timestamp
-  const getYoutubeEmbed = (url: string, timeMark?: string) => {
-    try {
-      let videoId = '';
-      if (url.includes('watch?v=')) {
-        videoId = url.split('watch?v=')[1].split('&')[0];
-      } else if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/')[1].split('?')[0];
-      } else if (url.includes('embed/')) {
-        videoId = url.split('embed/')[1].split('?')[0];
-      }
-
-      let startParam = '';
-      if (timeMark && timeMark.includes(':')) {
-        const parts = timeMark.split(':').map((p) => parseInt(p, 10));
-        if (parts.length === 2) {
-          const seconds = parts[0] * 60 + parts[1];
-          startParam = `&start=${seconds}`;
-        }
-      }
-
-      return `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0${startParam}`;
-    } catch {
-      return url;
+  // Inizializzazione YouTube Player API
+  useEffect(() => {
+    if (!isOpen || !isYoutube || !media?.url) {
+      setIsYtReady(false);
+      ytPlayerRef.current = null;
+      return;
     }
-  };
 
-  // Funzione di seek fluida
+    const videoId = getYoutubeVideoId(media.url);
+    if (!videoId) return;
+
+    let pollInterval: any = null;
+
+    const setupPlayer = () => {
+      const containerEl = document.getElementById('yt-player-iframe-mount');
+      if (!containerEl || !window.YT || !window.YT.Player) return;
+
+      try {
+        if (ytPlayerRef.current && typeof ytPlayerRef.current.destroy === 'function') {
+          ytPlayerRef.current.destroy();
+        }
+
+        const initialSeconds = media.timestampMark ? parseTimeToSeconds(media.timestampMark) || 0 : 0;
+
+        ytPlayerRef.current = new window.YT.Player('yt-player-iframe-mount', {
+          videoId,
+          playerVars: {
+            autoplay: 1,
+            enablejsapi: 1,
+            rel: 0,
+            start: initialSeconds,
+          },
+          events: {
+            onReady: (event: any) => {
+              setIsYtReady(true);
+              const d = event.target.getDuration();
+              if (d) setDuration(d);
+            },
+            onStateChange: (event: any) => {
+              // 1 = PLAYING, 2 = PAUSED
+              setIsPlaying(event.data === 1);
+            },
+          },
+        });
+
+        // Polling del minutaggio corrente da YouTube Player
+        pollInterval = setInterval(() => {
+          if (ytPlayerRef.current && typeof ytPlayerRef.current.getCurrentTime === 'function') {
+            try {
+              const t = ytPlayerRef.current.getCurrentTime();
+              if (typeof t === 'number' && !isNaN(t)) {
+                setCurrentTime(t);
+              }
+              const d = ytPlayerRef.current.getDuration();
+              if (d && !isNaN(d)) {
+                setDuration(d);
+              }
+            } catch {}
+          }
+        }, 400);
+      } catch (err) {
+        console.warn('Inizializzazione YouTube Player non riuscita:', err);
+      }
+    };
+
+    if (window.YT && window.YT.Player) {
+      setupPlayer();
+    } else {
+      const existingScript = document.getElementById('youtube-iframe-api-script');
+      if (!existingScript) {
+        const tag = document.createElement('script');
+        tag.id = 'youtube-iframe-api-script';
+        tag.src = 'https://www.youtube.com/iframe_api';
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
+      }
+
+      window.onYouTubeIframeAPIReady = () => {
+        setupPlayer();
+      };
+    }
+
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.destroy === 'function') {
+        try {
+          ytPlayerRef.current.destroy();
+        } catch {}
+      }
+      ytPlayerRef.current = null;
+      setIsYtReady(false);
+    };
+  }, [isOpen, isYoutube, media?.url, getYoutubeVideoId, media?.timestampMark]);
+
+  // Funzione di seek fluida unificata per Veo, YouTube e Video locale
   const seekTo = useCallback(
     (targetSeconds: number) => {
-      if (!videoRef.current) return;
-      const validTime = Math.max(0, Math.min(videoRef.current.duration || 999999, targetSeconds));
-      videoRef.current.currentTime = validTime;
-      setCurrentTime(validTime);
+      const safeTime = Math.max(0, targetSeconds);
+      if (isYoutube && ytPlayerRef.current && typeof ytPlayerRef.current.seekTo === 'function') {
+        try {
+          ytPlayerRef.current.seekTo(safeTime, true);
+          setCurrentTime(safeTime);
+          return;
+        } catch {}
+      }
+
+      if (videoRef.current) {
+        const validTime = Math.max(0, Math.min(videoRef.current.duration || 999999, safeTime));
+        videoRef.current.currentTime = validTime;
+        setCurrentTime(validTime);
+      }
     },
-    []
+    [isYoutube]
   );
 
   const jumpSeconds = useCallback(
     (delta: number) => {
-      if (!videoRef.current) return;
-      seekTo(videoRef.current.currentTime + delta);
+      seekTo(currentTime + delta);
     },
-    [seekTo]
+    [currentTime, seekTo]
   );
 
-  // Parsing timestamp per salto iniziale
-  const jumpToInitialTimestamp = useCallback(() => {
-    if (!media?.timestampMark) return;
-    const secs = parseTimeToSeconds(media.timestampMark);
-    if (secs !== null) {
-      seekTo(secs);
-      if (videoRef.current?.paused) {
-        videoRef.current.play().catch(() => {});
+  const togglePlay = () => {
+    if (isYoutube && ytPlayerRef.current) {
+      try {
+        if (isPlaying) {
+          ytPlayerRef.current.pauseVideo();
+          setIsPlaying(false);
+        } else {
+          ytPlayerRef.current.playVideo();
+          setIsPlaying(true);
+        }
+        return;
+      } catch {}
+    }
+
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+      } else {
+        videoRef.current.pause();
+        setIsPlaying(false);
       }
     }
-  }, [media?.timestampMark, seekTo]);
+  };
 
-  // Gestione invio "Vai al Minuto"
-  const handleMinuteSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!minuteInput.trim()) return;
-    const secs = parseTimeToSeconds(minuteInput);
-    if (secs !== null) {
-      seekTo(secs);
-      setMinuteInput('');
+  // Apertura form acquisizione nota con minuto corrente
+  const handleOpenAddNote = () => {
+    // Pausa video per consentire all'arbitro di scrivere con calma
+    if (isPlaying) {
+      togglePlay();
+    }
+
+    const clock = getMatchClock(currentTime);
+    const minuteFormatted = clock ? clock.display : `Min. ${formatSecondsToTime(currentTime)}`;
+    setNoteMinuteText(minuteFormatted);
+    setNoteContent('');
+    setNoteFormError(null);
+    setSaveSuccessMessage(null);
+    setIsAddingNote(true);
+  };
+
+  // Salvataggio nota arbitrale direttamente per la specifica squadra
+  const handleSaveTeamNote = () => {
+    if (!selectedNoteTeamId) {
+      setNoteFormError('Seleziona la squadra a cui fa riferimento la nota arbitrale.');
+      return;
+    }
+
+    if (!noteContent.trim()) {
+      setNoteFormError('Inserisci il testo dell\'osservazione arbitrale.');
+      return;
+    }
+
+    const targetTeam = allDbTeams.find((t) => t.id === selectedNoteTeamId);
+    const teamName = targetTeam ? targetTeam.name : 'Squadra';
+
+    const clock = getMatchClock(currentTime);
+    const cleanMinute = noteMinuteText.trim() || (clock ? clock.display : formatSecondsToTime(currentTime));
+
+    // Formattazione contenuto con indicazione esplicita del minuto di gara
+    const formattedContent = noteContent.trim().startsWith('[')
+      ? noteContent.trim()
+      : `[${cleanMinute}] ${noteContent.trim()}`;
+
+    try {
+      const created = DbService.addNote({
+        targetType: 'squadra',
+        targetId: selectedNoteTeamId,
+        targetName: teamName,
+        content: formattedContent,
+        priority: notePriority,
+        isPublic: noteIsPublic,
+        minute: cleanMinute,
+        minuteSeconds: Math.floor(currentTime),
+        videoId: media?.id,
+        videoTitle: media?.title,
+        videoUrl: media?.url,
+        authorId: user?.username || 'arbitro',
+        authorName: user?.displayName || 'Arbitro',
+        authorRole: user?.refereeRole || 'AE',
+        authorSection: user?.sectionAia || '',
+      });
+
+      // Feedback visivo immediato
+      setSaveSuccessMessage(`Nota salvata con successo per ${teamName}!`);
+      setNoteContent('');
+      setIsAddingNote(false);
+      setNoteFormError(null);
+      setActiveTab('NOTE_SQUADRE');
+
+      // Notifica globale multi-componente
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { noteCreated: created } }));
+      }
+
+      loadVideoNotes();
+      setTimeout(() => setSaveSuccessMessage(null), 4000);
+    } catch (err: any) {
+      setNoteFormError(err.message || 'Errore durante il salvataggio della nota.');
     }
   };
 
-  // Calcolo tempo gara e minuto effettivo dai periodi Veo
-  const getMatchClock = (timeSec: number) => {
-    if (!veoData?.periods || veoData.periods.length === 0) return null;
-    const p1 = veoData.periods[0];
-    const p2 = veoData.periods[1];
-
-    if (p1 && timeSec >= p1.start && timeSec <= p1.end) {
-      const matchMin = Math.floor((timeSec - p1.start) / 60) + 1;
-      const matchSec = Math.floor((timeSec - p1.start) % 60);
-      return {
-        periodName: '1° Tempo',
-        matchMinute: matchMin,
-        display: `1°T ${matchMin}' (${matchMin}:${matchSec.toString().padStart(2, '0')})`,
-        isHalfTime: false,
-      };
+  const handleDeleteTeamNote = async (noteId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Sei sicuro di voler eliminare questa nota arbitrale?')) {
+      try {
+        await DbService.deleteNoteAsync(noteId, user?.username);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { noteDeleted: noteId } }));
+        }
+        loadVideoNotes();
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questa nota.');
+      }
     }
-
-    if (p2 && timeSec >= p2.start) {
-      const matchMin = Math.floor(45 + (timeSec - p2.start) / 60) + 1;
-      const matchSec = Math.floor((timeSec - p2.start) % 60);
-      return {
-        periodName: '2° Tempo',
-        matchMinute: matchMin,
-        display: `2°T ${matchMin}' (${matchMin}:${matchSec.toString().padStart(2, '0')})`,
-        isHalfTime: false,
-      };
-    }
-
-    if (p1 && timeSec < p1.start) {
-      return {
-        periodName: 'Pre-gara',
-        matchMinute: 0,
-        display: 'Pre-gara',
-        isHalfTime: false,
-      };
-    }
-
-    if (p1 && p2 && timeSec > p1.end && timeSec < p2.start) {
-      return {
-        periodName: 'Intervallo',
-        matchMinute: 45,
-        display: 'Intervallo 1°/2°T',
-        isHalfTime: true,
-      };
-    }
-
-    return null;
   };
 
-  // Gestione Segnalibri Arbitrali
+  // Segnalibri locali Veo
   const handleAddBookmark = () => {
-    if (!videoRef.current) return;
-    const time = videoRef.current.currentTime;
+    const time = currentTime;
     const timeDisplay = formatSecondsToTime(time);
     const clock = getMatchClock(time);
 
@@ -314,57 +635,13 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     }
   };
 
-  // Keyboard shortcuts (Space = play/pause, Esc = close, F = fullscreen, Arrows = seek)
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignora scorciatoie se l'utente sta digitando in un input
-      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
-        if (e.key === 'Escape') {
-          (e.target as HTMLElement).blur();
-        }
-        return;
-      }
-
-      if (e.key === 'Escape') {
-        onClose();
-      } else if (e.key === ' ' && isVideo) {
-        e.preventDefault();
-        togglePlay();
-      } else if (e.key === 'ArrowRight' && isVideo) {
-        e.preventDefault();
-        jumpSeconds(e.shiftKey ? 60 : 5);
-      } else if (e.key === 'ArrowLeft' && isVideo) {
-        e.preventDefault();
-        jumpSeconds(e.shiftKey ? -60 : -5);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isVideo, isPlaying, jumpSeconds]);
-
-  // Reset stato alla chiusura / cambio media
-  useEffect(() => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-    setDuration(0);
-    setPlaybackSpeed(1);
-    setImageZoom(1);
-    setIsAddingBookmark(false);
-    setNewBookmarkNote('');
-  }, [media, isOpen]);
-
-  if (!isOpen || !media) return null;
-
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (videoRef.current.paused) {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
-    } else {
-      videoRef.current.pause();
-      setIsPlaying(false);
+  const handleMinuteSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!minuteInput.trim()) return;
+    const secs = parseTimeToSeconds(minuteInput);
+    if (secs !== null) {
+      seekTo(secs);
+      setMinuteInput('');
     }
   };
 
@@ -377,8 +654,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       setDuration(videoRef.current.duration);
-      if (media.timestampMark) {
-        jumpToInitialTimestamp();
+      if (media?.timestampMark) {
+        const secs = parseTimeToSeconds(media.timestampMark);
+        if (secs !== null) seekTo(secs);
       }
     }
   };
@@ -393,17 +671,42 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     if (videoRef.current) {
       videoRef.current.playbackRate = speed;
     }
+    if (isYoutube && ytPlayerRef.current && typeof ytPlayerRef.current.setPlaybackRate === 'function') {
+      try {
+        ytPlayerRef.current.setPlaybackRate(speed);
+      } catch {}
+    }
   };
 
   const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
+    if (isYoutube && ytPlayerRef.current) {
+      try {
+        if (isMuted) {
+          ytPlayerRef.current.unMute();
+          setIsMuted(false);
+        } else {
+          ytPlayerRef.current.mute();
+          setIsMuted(true);
+        }
+        return;
+      } catch {}
+    }
+
+    if (videoRef.current) {
+      videoRef.current.muted = !isMuted;
+      setIsMuted(!isMuted);
+    }
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setVolume(val);
+    if (isYoutube && ytPlayerRef.current) {
+      try {
+        ytPlayerRef.current.setVolume(val * 100);
+        setIsMuted(val === 0);
+      } catch {}
+    }
     if (videoRef.current) {
       videoRef.current.volume = val;
       setIsMuted(val === 0);
@@ -420,12 +723,64 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   };
 
   const stepFrame = (forward: boolean) => {
-    if (!videoRef.current) return;
-    videoRef.current.pause();
-    setIsPlaying(false);
-    const frameTime = 0.04; // ~25 fps
-    seekTo(videoRef.current.currentTime + (forward ? frameTime : -frameTime));
+    if (videoRef.current) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+      const frameTime = 0.04;
+      seekTo(videoRef.current.currentTime + (forward ? frameTime : -frameTime));
+    } else if (isYoutube) {
+      jumpSeconds(forward ? 1 : -1);
+    }
   };
+
+  // Scorciatoie da tastiera
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target as HTMLElement)?.tagName)) {
+        if (e.key === 'Escape') {
+          (e.target as HTMLElement).blur();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        onClose();
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        togglePlay();
+      } else if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        handleOpenAddNote();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        jumpSeconds(e.shiftKey ? 60 : 5);
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        jumpSeconds(e.shiftKey ? -60 : -5);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isPlaying, jumpSeconds]);
+
+  // Reset stato alla chiusura / cambio media
+  useEffect(() => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaybackSpeed(1);
+    setImageZoom(1);
+    setIsAddingBookmark(false);
+    setIsAddingNote(false);
+    setNewBookmarkNote('');
+    setNoteContent('');
+    setNoteFormError(null);
+  }, [media, isOpen]);
+
+  if (!isOpen || !media) return null;
 
   const currentClock = getMatchClock(currentTime);
 
@@ -444,51 +799,68 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               <span className="text-xs font-black text-[#00E5FF] px-1 py-0.5 rounded bg-[#00E5FF]/10 border border-[#00E5FF]/30">
                 VEO AI
               </span>
+            ) : isYoutube ? (
+              <span className="text-xs font-black text-[#FF334B] px-1 py-0.5 rounded bg-[#FF334B]/10 border border-[#FF334B]/30">
+                YouTube
+              </span>
             ) : (
-              <Film className="w-5 h-5 text-[#FF334B]" />
+              <Film className="w-5 h-5 text-[#CCFF00]" />
             )}
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm sm:text-base font-black text-white truncate max-w-[280px] sm:max-w-md">
-                {veoData?.title || media.title || 'Visualizzatore Media'}
-              </h2>
-              {isVeo && (
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/30">
-                  <Sparkles className="w-3 h-3" /> Gara Veo
-                </span>
-              )}
-              {media.timestampMark && (
-                <button
-                  onClick={jumpToInitialTimestamp}
-                  className="flex items-center gap-1 text-[11px] font-black text-black bg-[#CCFF00] hover:bg-[#d8ff33] px-2.5 py-0.5 rounded-full shadow-[0_0_10px_rgba(204,255,0,0.3)] transition-all flex-shrink-0"
-                  title="Clicca per saltare al minuto della nota"
-                >
-                  <Clock className="w-3 h-3" /> Minuto {media.timestampMark}
-                </button>
+              <h3 className="text-sm sm:text-base font-black text-white truncate max-w-[260px] sm:max-w-md">
+                {veoData?.title || media.title || 'Visualizzatore Video & Analisi Arbitrale'}
+              </h3>
+              {associatedTeams.length > 0 && (
+                <div className="hidden md:flex items-center gap-1.5 ml-2">
+                  {associatedTeams.map((team, idx) => (
+                    <span
+                      key={team.id}
+                      className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                        idx === 0
+                          ? 'bg-[#CCFF00]/15 text-[#CCFF00] border-[#CCFF00]/30'
+                          : 'bg-sky-500/15 text-sky-400 border-sky-500/30'
+                      }`}
+                    >
+                      {idx === 0 ? 'Casa: ' : 'Ospite: '}
+                      {team.name}
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
-            {media.subtitle && (
-              <p className="text-xs text-slate-400 font-bold truncate mt-0.5">{media.subtitle}</p>
-            )}
+            {media.subtitle && <p className="text-xs text-slate-400 truncate">{media.subtitle}</p>}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Action Header: Tasto rapido Acquisisci Nota & Chiudi */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={handleOpenAddNote}
+            className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all active:scale-95 cursor-pointer"
+            title="Acquisisci nota arbitrale associata a una squadra (Tasto N)"
+          >
+            <PenTool className="w-4 h-4 fill-black" />
+            <span className="hidden sm:inline">Acquisisci Nota Arbitrale</span>
+            <span className="sm:hidden">Nuova Nota</span>
+          </button>
+
           {media.url && (
             <a
               href={media.url}
               target="_blank"
               rel="noreferrer"
-              className="p-2 rounded-xl bg-[#141824] hover:bg-[#1E2435] text-slate-400 hover:text-white border border-[#212638] transition-all"
-              title="Apri link originale"
+              className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+              title="Apri sorgente originale in nuova scheda"
             >
               <ExternalLink className="w-4 h-4" />
             </a>
           )}
+
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-[#141824] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-[#212638] hover:border-rose-500/30 transition-all"
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-colors active:scale-95"
             title="Chiudi (Esc)"
           >
             <X className="w-5 h-5" />
@@ -496,19 +868,17 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
         </div>
       </div>
 
-      {/* Main Media Stage */}
-      <div className="flex-1 relative flex flex-col items-center justify-center overflow-y-auto p-2 sm:p-4 bg-black">
-        {isYoutube ? (
-          <div className="w-full max-w-5xl aspect-video rounded-2xl overflow-hidden border border-[#212638] shadow-2xl bg-black">
-            <iframe
-              src={getYoutubeEmbed(media.url, media.timestampMark)}
-              title={media.title}
-              className="w-full h-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-            />
-          </div>
-        ) : isImage ? (
+      {/* Toast Feedback Salva Nota */}
+      {saveSuccessMessage && (
+        <div className="bg-[#CCFF00] text-black px-4 py-2 font-black text-xs flex items-center justify-center gap-2 shadow-lg animate-in fade-in duration-150 z-20">
+          <CheckCircle2 className="w-4 h-4" />
+          <span>{saveSuccessMessage}</span>
+        </div>
+      )}
+
+      {/* Main Video View Area */}
+      <div className="flex-1 relative flex flex-col items-center justify-start overflow-y-auto p-2 sm:p-4 bg-black">
+        {isImage ? (
           <div className="relative w-full h-full flex items-center justify-center overflow-auto p-4">
             <img
               src={media.url}
@@ -544,11 +914,15 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               </button>
             </div>
           </div>
-        ) : isVideo ? (
-          <div className="w-full max-w-5xl flex flex-col items-center">
-            {/* Video Container */}
-            <div className="relative w-full aspect-video max-h-[65vh] flex items-center justify-center group bg-black/90 rounded-2xl overflow-hidden border border-[#1E2436] shadow-2xl">
-              {isLoadingVeo ? (
+        ) : (
+          <div className="w-full max-w-5xl flex flex-col items-center space-y-3">
+            {/* Video Player Box */}
+            <div className="relative w-full aspect-video max-h-[62vh] flex items-center justify-center group bg-black/90 rounded-2xl overflow-hidden border border-[#1E2436] shadow-2xl">
+              {isYoutube ? (
+                <div className="w-full h-full relative flex items-center justify-center bg-black">
+                  <div id="yt-player-iframe-mount" className="w-full h-full" />
+                </div>
+              ) : isVeo && isLoadingVeo ? (
                 <div className="flex flex-col items-center gap-3 p-8 text-center animate-in fade-in">
                   <div className="w-12 h-12 rounded-2xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-[#00E5FF]">
                     <Loader2 className="w-6 h-6 animate-spin" />
@@ -560,7 +934,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     </p>
                   </div>
                 </div>
-              ) : veoError ? (
+              ) : isVeo && veoError ? (
                 <div className="flex flex-col items-center gap-2 p-8 text-center text-rose-400">
                   <p className="text-sm font-bold">{veoError}</p>
                   <a
@@ -594,20 +968,20 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                       <Play className="w-8 h-8 sm:w-9 sm:h-9 fill-black ml-1" />
                     </button>
                   )}
-
-                  {/* Match clock overlay on top-left of video */}
-                  {currentClock && (
-                    <div className="absolute top-3 left-3 bg-[#0B0E17]/85 backdrop-blur-md px-3 py-1 rounded-xl border border-[#212638] text-[11px] font-black text-white shadow-lg flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse" />
-                      <span>{currentClock.display}</span>
-                    </div>
-                  )}
                 </>
+              )}
+
+              {/* Match clock overlay on top-left of video */}
+              {currentClock && (
+                <div className="absolute top-3 left-3 bg-[#0B0E17]/85 backdrop-blur-md px-3 py-1 rounded-xl border border-[#212638] text-[11px] font-black text-white shadow-lg flex items-center gap-2 z-10 pointer-events-none">
+                  <span className="w-2 h-2 rounded-full bg-[#CCFF00] animate-pulse" />
+                  <span>{currentClock.display}</span>
+                </div>
               )}
             </div>
 
-            {/* Complete Video & Minute Navigator Panel */}
-            <div className="w-full mt-2.5 bg-[#0B0E17]/95 backdrop-blur-md border border-[#212638] rounded-2xl p-3 sm:p-4 space-y-3 shadow-2xl">
+            {/* Complete Unified Video & Minute Navigator Panel */}
+            <div className="w-full bg-[#0B0E17]/95 backdrop-blur-md border border-[#212638] rounded-2xl p-3 sm:p-4 space-y-3 shadow-2xl">
               {/* Scrubber timeline */}
               <div className="flex items-center gap-3">
                 <span className="text-[11px] font-mono text-[#CCFF00] font-black min-w-[55px]">
@@ -739,7 +1113,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                 </div>
               </div>
 
-              {/* Quick Minute Jump Chips */}
+              {/* Quick Minute Jump Chips & Action Buttons */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#1C2133]/80">
                 <div className="flex flex-wrap items-center gap-1 text-[11px]">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider mr-1">
@@ -764,15 +1138,210 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   })}
                 </div>
 
-                {/* Bookmark trigger button */}
-                <button
-                  onClick={() => setIsAddingBookmark(!isAddingBookmark)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#141824] hover:bg-[#1C2233] text-[#CCFF00] border border-[#212638] text-xs font-black transition-all active:scale-95"
-                >
-                  <BookmarkPlus className="w-3.5 h-3.5" />
-                  <span>Segna Minuto ({formatSecondsToTime(currentTime)})</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Bookmark trigger button */}
+                  <button
+                    onClick={() => setIsAddingBookmark(!isAddingBookmark)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#141824] hover:bg-[#1C2233] text-slate-300 border border-[#212638] text-xs font-bold transition-all active:scale-95"
+                  >
+                    <BookmarkPlus className="w-3.5 h-3.5 text-slate-400" />
+                    <span>Segnalibro ({formatSecondsToTime(currentTime)})</span>
+                  </button>
+
+                  {/* Primary Note Acquisition Trigger Button */}
+                  <button
+                    onClick={handleOpenAddNote}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all active:scale-95"
+                  >
+                    <PenTool className="w-3.5 h-3.5 fill-black" />
+                    <span>Registra Nota Squadra</span>
+                  </button>
+                </div>
               </div>
+
+              {/* Inline Form ACQUISIZIONE NOTA ARBITRALE PER LA SQUADRA */}
+              {isAddingNote && (
+                <div className="p-4 bg-[#111420] border-2 border-[#CCFF00]/50 rounded-2xl space-y-3.5 shadow-2xl animate-in fade-in duration-200">
+                  <div className="flex items-center justify-between border-b border-[#21283D] pb-2">
+                    <span className="font-black text-white flex items-center gap-2 text-xs sm:text-sm">
+                      <PenTool className="w-4 h-4 text-[#CCFF00]" />
+                      Acquisisci Nota Arbitrale al minuto{' '}
+                      <span className="font-mono text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded">
+                        {noteMinuteText}
+                      </span>
+                    </span>
+                    <button
+                      onClick={() => setIsAddingNote(false)}
+                      className="text-slate-400 hover:text-white p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* 1. Selezione della squadra di riferimento (Obbligatoria) */}
+                  <div>
+                    <label className="block text-[11px] font-black text-slate-300 uppercase tracking-wider mb-1.5">
+                      Squadra a cui fa riferimento la nota (Seleziona):
+                    </label>
+
+                    {associatedTeams.length > 0 ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        {associatedTeams.map((team, idx) => {
+                          const isSelected = selectedNoteTeamId === team.id;
+                          return (
+                            <button
+                              key={team.id}
+                              type="button"
+                              onClick={() => setSelectedNoteTeamId(team.id)}
+                              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
+                                isSelected
+                                  ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.4)] scale-102 ring-2 ring-[#CCFF00]'
+                                  : 'bg-[#181D2D] text-slate-300 border border-[#2B354F] hover:text-white hover:border-slate-400'
+                              }`}
+                            >
+                              <Shield className="w-3.5 h-3.5" />
+                              <span>{idx === 0 ? 'Casa: ' : 'Ospite: '}</span>
+                              <span>{team.name}</span>
+                            </button>
+                          );
+                        })}
+
+                        {/* Possibilità di selezionare un'altra squadra dal database se necessario */}
+                        <div className="flex-1 min-w-[200px]">
+                          <select
+                            value={selectedNoteTeamId}
+                            onChange={(e) => setSelectedNoteTeamId(e.target.value)}
+                            className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00]"
+                          >
+                            <option value="">-- Altra Squadra dal Database --</option>
+                            {allDbTeams.map((team) => (
+                              <option key={team.id} value={team.id}>
+                                {team.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedNoteTeamId}
+                        onChange={(e) => setSelectedNoteTeamId(e.target.value)}
+                        className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-bold"
+                      >
+                        <option value="">-- Seleziona Squadra dal Database --</option>
+                        {allDbTeams.map((team) => (
+                          <option key={team.id} value={team.id}>
+                            {team.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* 2. Dettagli Minuto, Priorità e Visibilità */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                        Minuto Visualizzato
+                      </label>
+                      <input
+                        type="text"
+                        value={noteMinuteText}
+                        onChange={(e) => setNoteMinuteText(e.target.value)}
+                        placeholder="Es. 14:20 o 1°T 35'"
+                        className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white font-mono font-bold focus:outline-none focus:border-[#CCFF00]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                        Priorità Nota
+                      </label>
+                      <select
+                        value={notePriority}
+                        onChange={(e) => setNotePriority(e.target.value as any)}
+                        className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white font-bold focus:outline-none focus:border-[#CCFF00]"
+                      >
+                        <option value="HIGH">Alta Priorità</option>
+                        <option value="NORMAL">Normale</option>
+                        <option value="LOW">Bassa</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                        Visibilità
+                      </label>
+                      <div className="flex bg-[#181D2D] border border-[#2B354F] rounded-xl p-1">
+                        <button
+                          type="button"
+                          onClick={() => setNoteIsPublic(true)}
+                          className={`flex-1 py-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all ${
+                            noteIsPublic ? 'bg-[#CCFF00] text-black font-black' : 'text-slate-400'
+                          }`}
+                        >
+                          <Globe className="w-3 h-3" /> Pubblica
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setNoteIsPublic(false)}
+                          className={`flex-1 py-1 text-[11px] font-bold rounded-lg flex items-center justify-center gap-1 transition-all ${
+                            !noteIsPublic ? 'bg-amber-400 text-black font-black' : 'text-slate-400'
+                          }`}
+                        >
+                          <Lock className="w-3 h-3" /> Privata
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 3. Contenuto della nota */}
+                  <div>
+                    <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
+                      Osservazione Arbitrale
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Descrivi l'episodio (fallo tattico, ammonizione, proteste, comportamento panchina, fuorigioco, ecc.)..."
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      className="w-full px-3 py-2 bg-[#181D2D] border border-[#2B354F] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#CCFF00] leading-relaxed"
+                      autoFocus
+                    />
+                  </div>
+
+                  {noteFormError && (
+                    <div className="flex items-center gap-2 text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 p-2.5 rounded-xl">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span>{noteFormError}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-[11px] text-slate-400">
+                      La nota verrà archiviata direttamente nella scheda della squadra selezionata.
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsAddingNote(false)}
+                        className="px-3 py-1.5 bg-[#181D2D] hover:bg-[#252C42] text-slate-300 font-bold text-xs rounded-xl border border-[#2B354F] transition-all"
+                      >
+                        Annulla
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveTeamNote}
+                        className="px-4 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Salva tra le Note della Squadra
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Inline Bookmark Creation Form */}
               {isAddingBookmark && (
@@ -780,7 +1349,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   <div className="flex items-center justify-between text-xs">
                     <span className="font-black text-white flex items-center gap-1.5">
                       <Bookmark className="w-3.5 h-3.5 text-[#CCFF00]" />
-                      Aggiungi Appunto Arbitrale al minuto {formatSecondsToTime(currentTime)}
+                      Aggiungi Segnalibro al minuto {formatSecondsToTime(currentTime)}
                       {currentClock && ` (${currentClock.display})`}
                     </span>
                     <button
@@ -812,13 +1381,28 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                 </div>
               )}
 
-              {/* Secondary Navigation Bar: Tempi Gara / Highlights / Segnalibri */}
+              {/* Tabs Navigazione: Note Squadre / Tempi Gara / Highlights / Segnalibri */}
               <div className="pt-2 border-t border-[#1C2133]">
-                {/* Tabs */}
-                <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
+                  {/* Tab Note Squadre Gara */}
+                  <button
+                    onClick={() => setActiveTab('NOTE_SQUADRE')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                      activeTab === 'NOTE_SQUADRE'
+                        ? 'bg-[#1C2235] text-white border border-[#2E3754] shadow-sm'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-[#CCFF00]" />
+                    <span>Note Squadre Gara</span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#CCFF00]/20 text-[#CCFF00] font-mono">
+                      {videoNotes.length}
+                    </span>
+                  </button>
+
                   <button
                     onClick={() => setActiveTab('TEMPI')}
-                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
                       activeTab === 'TEMPI'
                         ? 'bg-[#1C2235] text-white border border-[#2E3754]'
                         : 'text-slate-400 hover:text-white'
@@ -833,33 +1417,33 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     )}
                   </button>
 
-                  <button
-                    onClick={() => setActiveTab('HIGHLIGHTS')}
-                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
-                      activeTab === 'HIGHLIGHTS'
-                        ? 'bg-[#1C2235] text-white border border-[#2E3754]'
-                        : 'text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <Target className="w-3.5 h-3.5 text-[#00E5FF]" />
-                    <span>Eventi & Gol</span>
-                    {veoData?.highlights && (
+                  {veoData?.highlights && (
+                    <button
+                      onClick={() => setActiveTab('HIGHLIGHTS')}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                        activeTab === 'HIGHLIGHTS'
+                          ? 'bg-[#1C2235] text-white border border-[#2E3754]'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      <Target className="w-3.5 h-3.5 text-[#00E5FF]" />
+                      <span>Eventi & Gol</span>
                       <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#00E5FF]/20 text-[#00E5FF]">
                         {veoData.highlights.length}
                       </span>
-                    )}
-                  </button>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setActiveTab('SEGNALIBRI')}
-                    className={`px-3 py-1 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
                       activeTab === 'SEGNALIBRI'
                         ? 'bg-[#1C2235] text-white border border-[#2E3754]'
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
                     <Bookmark className="w-3.5 h-3.5 text-[#CCFF00]" />
-                    <span>Segnalibri Arbitro</span>
+                    <span>Segnalibri Locali</span>
                     {bookmarks.length > 0 && (
                       <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#CCFF00]/20 text-[#CCFF00]">
                         {bookmarks.length}
@@ -868,7 +1452,82 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   </button>
                 </div>
 
-                {/* Tab 1: Tempi di Gara (Periodi Veo) */}
+                {/* Tab 1: NOTE SQUADRE GARA */}
+                {activeTab === 'NOTE_SQUADRE' && (
+                  <div className="space-y-2">
+                    {videoNotes.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-44 overflow-y-auto p-1">
+                        {videoNotes.map((n) => {
+                          const isMine = user && n.authorId && n.authorId.toLowerCase() === user.username.toLowerCase();
+                          const seekSec = n.minuteSeconds ?? (n.minute ? parseTimeToSeconds(n.minute) : null);
+
+                          return (
+                            <div
+                              key={n.id}
+                              onClick={() => {
+                                if (seekSec !== null && seekSec !== undefined) {
+                                  seekTo(seekSec);
+                                }
+                              }}
+                              className="flex flex-col justify-between p-2.5 rounded-xl bg-[#141824] border border-[#212638] hover:border-[#CCFF00]/50 transition-all cursor-pointer group shadow-sm"
+                            >
+                              <div>
+                                <div className="flex items-center justify-between gap-1 text-[10px] border-b border-[#1C2233] pb-1.5 mb-1.5">
+                                  <span className="font-black text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded truncate max-w-[130px]">
+                                    {n.targetName}
+                                  </span>
+
+                                  <div className="flex items-center gap-1.5">
+                                    {n.minute && (
+                                      <span className="font-mono font-black text-black bg-[#CCFF00] px-1.5 py-0.2 rounded shadow-xs">
+                                        {n.minute}
+                                      </span>
+                                    )}
+
+                                    {isMine && (
+                                      <button
+                                        onClick={(e) => handleDeleteTeamNote(n.id, e)}
+                                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors"
+                                        title="Elimina nota"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <p className="text-xs text-slate-200 line-clamp-2 leading-relaxed">
+                                  {n.content}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 mt-1 border-t border-[#1A1F2E]">
+                                <span>{n.authorName || 'Arbitro'}</span>
+                                {seekSec !== null && (
+                                  <span className="text-[#CCFF00] font-bold group-hover:underline flex items-center gap-0.5">
+                                    <Play className="w-2.5 h-2.5 fill-[#CCFF00]" /> Vai al minuto
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-3 rounded-xl bg-[#121622] border border-[#212638] text-xs text-slate-400">
+                        <span>Nessuna nota arbitrale registrata per questa gara. Clicca &quot;Registra Nota Squadra&quot; per annotare un episodio al minuto corrente.</span>
+                        <button
+                          onClick={handleOpenAddNote}
+                          className="px-3 py-1 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg transition-all flex items-center gap-1 flex-shrink-0"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Aggiungi Nota
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab 2: Tempi di Gara (Periodi Veo) */}
                 {activeTab === 'TEMPI' && (
                   <div className="flex flex-wrap items-center gap-2">
                     {veoData?.periods && veoData.periods.length > 0 ? (
@@ -911,7 +1570,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   </div>
                 )}
 
-                {/* Tab 2: Highlights Veo (Gol & Tiri) */}
+                {/* Tab 3: Highlights Veo (Gol & Tiri) */}
                 {activeTab === 'HIGHLIGHTS' && (
                   <div className="space-y-2">
                     {veoData?.highlights && veoData.highlights.length > 0 ? (
@@ -945,7 +1604,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   </div>
                 )}
 
-                {/* Tab 3: Segnalibri Arbitrali */}
+                {/* Tab 4: Segnalibri Locali */}
                 {activeTab === 'SEGNALIBRI' && (
                   <div className="space-y-2">
                     {bookmarks.length > 0 ? (
@@ -983,7 +1642,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                       </div>
                     ) : (
                       <div className="flex items-center justify-between text-xs text-slate-400 py-1">
-                        <span>Nessun segnalibro salvato. Clicca su &quot;Segna Minuto&quot; per annotare un episodio durante la visione.</span>
+                        <span>Nessun segnalibro salvato. Clicca su &quot;Segnalibro&quot; per annotare un appunto veloce.</span>
                       </div>
                     )}
                   </div>
@@ -991,8 +1650,6 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               </div>
             </div>
           </div>
-        ) : (
-          <div className="text-slate-400 text-sm">Formato multimediale non riproducibile</div>
         )}
       </div>
 

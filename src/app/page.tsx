@@ -1019,12 +1019,20 @@ export default function DashboardPage() {
                   onClick={() => {
                     if (v.externalUrl) {
                       setActiveViewerMedia({
+                        id: v.id,
                         url: v.externalUrl,
                         title: v.title,
                         subtitle: v.targetName,
                         description: v.description,
                         timestampMark: v.timestampMark,
                         mediaType: v.mediaType,
+                        targetType: v.targetType,
+                        targetId: v.targetId,
+                        targetName: v.targetName,
+                        homeTeamId: v.homeTeamId,
+                        homeTeamName: v.homeTeamName,
+                        awayTeamId: v.awayTeamId,
+                        awayTeamName: v.awayTeamName,
                       });
                       setIsViewerOpen(true);
                     }

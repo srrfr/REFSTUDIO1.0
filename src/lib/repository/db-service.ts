@@ -1371,7 +1371,16 @@ export class DbService {
     let list = (inMemoryData.videos || []).filter((v) => !this.isVideoDeleted(v.id));
     if (targetType) {
       const cleanType = targetType.toLowerCase().trim();
-      list = list.filter((v) => v.targetType && v.targetType.toLowerCase().trim() === cleanType);
+      list = list.filter((v) => {
+        if (v.targetType && v.targetType.toLowerCase().trim() === cleanType) return true;
+        // Se si richiedono i video di una squadra, includi anche i video delle gare in cui è coinvolta
+        if (cleanType === 'squadra' && targetId) {
+          const cid = String(targetId).toLowerCase().trim();
+          if (v.homeTeamId && String(v.homeTeamId).toLowerCase().trim() === cid) return true;
+          if (v.awayTeamId && String(v.awayTeamId).toLowerCase().trim() === cid) return true;
+        }
+        return false;
+      });
     }
     if (targetId) {
       const cleanId = String(targetId).toLowerCase().trim();
@@ -1380,7 +1389,19 @@ export class DbService {
         if (v.targetId && String(v.targetId).toLowerCase().trim() === cleanId) {
           return true;
         }
+        if (v.homeTeamId && String(v.homeTeamId).toLowerCase().trim() === cleanId) {
+          return true;
+        }
+        if (v.awayTeamId && String(v.awayTeamId).toLowerCase().trim() === cleanId) {
+          return true;
+        }
         if (cleanName && v.targetName && (v.targetName.toLowerCase().includes(cleanName) || cleanName.includes(v.targetName.toLowerCase()))) {
+          return true;
+        }
+        if (cleanName && v.homeTeamName && (v.homeTeamName.toLowerCase().includes(cleanName) || cleanName.includes(v.homeTeamName.toLowerCase()))) {
+          return true;
+        }
+        if (cleanName && v.awayTeamName && (v.awayTeamName.toLowerCase().includes(cleanName) || cleanName.includes(v.awayTeamName.toLowerCase()))) {
           return true;
         }
         return false;
@@ -1391,8 +1412,28 @@ export class DbService {
 
   static addVideo(video: Omit<VideoClip, 'id' | 'createdAt' | 'authorId'> & { authorId?: string }): VideoClip {
     this.ensureLoaded();
+
+    let homeTeamId = video.homeTeamId;
+    let homeTeamName = video.homeTeamName;
+    let awayTeamId = video.awayTeamId;
+    let awayTeamName = video.awayTeamName;
+
+    if (video.targetType === 'partita' && (!homeTeamId || !awayTeamId)) {
+      const match = this.getMatchById(video.targetId);
+      if (match) {
+        homeTeamId = homeTeamId || match.homeTeamId;
+        homeTeamName = homeTeamName || match.homeTeamName;
+        awayTeamId = awayTeamId || match.awayTeamId;
+        awayTeamName = awayTeamName || match.awayTeamName;
+      }
+    }
+
     const newVideo: VideoClip = {
       ...video,
+      homeTeamId,
+      homeTeamName,
+      awayTeamId,
+      awayTeamName,
       authorId: video.authorId || 'current-referee',
       id: `vid-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       createdAt: new Date().toISOString(),

@@ -1,10 +1,24 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { VideoSource } from '@/types/refstudio';
-import { Video, X, AlertCircle, UploadCloud, Link as LinkIcon, Film, Image as ImageIcon, Sparkles, Loader2 } from 'lucide-react';
+import { VideoSource, Team, Match } from '@/types/refstudio';
+import {
+  Video,
+  X,
+  AlertCircle,
+  UploadCloud,
+  Link as LinkIcon,
+  Film,
+  Image as ImageIcon,
+  Sparkles,
+  Loader2,
+  Shield,
+  Calendar,
+  Layers,
+} from 'lucide-react';
 import { MediaDropzone, UploadResult } from '@/components/media/MediaDropzone';
 import { isVeoUrl } from '@/lib/services/veo-service';
+import { DbService } from '@/lib/repository/db-service';
 
 interface VideoModalProps {
   isOpen: boolean;
@@ -13,6 +27,10 @@ interface VideoModalProps {
     targetType: 'squadra' | 'giocatore' | 'partita';
     targetId: string;
     targetName: string;
+    homeTeamId?: string;
+    homeTeamName?: string;
+    awayTeamId?: string;
+    awayTeamName?: string;
     videoSource: VideoSource;
     externalUrl?: string;
     storagePath?: string;
@@ -49,12 +67,44 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   const [timestampMark, setTimestampMark] = useState('');
   const [error, setError] = useState('');
 
+  // Squadre dal Database & Partite
+  const [dbTeams, setDbTeams] = useState<Team[]>([]);
+  const [dbMatches, setDbMatches] = useState<Match[]>([]);
+  const [homeTeamId, setHomeTeamId] = useState('');
+  const [homeTeamName, setHomeTeamName] = useState('');
+  const [awayTeamId, setAwayTeamId] = useState('');
+  const [awayTeamName, setAwayTeamName] = useState('');
+  const [selectedMatchId, setSelectedMatchId] = useState('');
+
   useEffect(() => {
     if (isOpen) {
+      const teams = DbService.getTeams().sort((a, b) => a.name.localeCompare(b.name));
+      const matches = DbService.getMatches();
+      setDbTeams(teams);
+      setDbMatches(matches);
+
       setTargetType(initialTargetType);
       setTargetId(initialTargetId);
       setTargetName(initialTargetName);
       setError('');
+
+      // Pre-popolamento squadre se initialTargetType è squadra o partita
+      if (initialTargetType === 'squadra' && initialTargetId) {
+        const team = teams.find((t) => t.id === initialTargetId);
+        if (team) {
+          setHomeTeamId(team.id);
+          setHomeTeamName(team.name);
+        }
+      } else if (initialTargetType === 'partita' && initialTargetId) {
+        const match = matches.find((m) => m.id === initialTargetId);
+        if (match) {
+          setSelectedMatchId(match.id);
+          setHomeTeamId(match.homeTeamId);
+          setHomeTeamName(match.homeTeamName);
+          setAwayTeamId(match.awayTeamId);
+          setAwayTeamName(match.awayTeamName);
+        }
+      }
 
       if (initialUploadedMedia) {
         setMode('UPLOAD');
@@ -69,7 +119,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     }
   }, [isOpen, initialTargetType, initialTargetId, initialTargetName, initialUploadedMedia]);
 
-  // Chiudi con tasto Escape (deve trovarsi PRIMA di qualsiasi early return per rispettare le Rules of Hooks)
+  // Chiudi con tasto Escape
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -90,7 +140,6 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     setVideoSource('LOCAL');
     setError('');
 
-    // Pre-compila il titolo se vuoto
     if (!title.trim()) {
       setTitle(result.originalName.replace(/\.[^/.]+$/, ''));
     }
@@ -99,6 +148,27 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   const handleClearMedia = () => {
     setExternalUrl('');
     setStoragePath('');
+  };
+
+  const autoDetectTeams = (text: string) => {
+    if (!text || dbTeams.length === 0) return;
+    const lower = text.toLowerCase();
+    const matched = dbTeams.filter((t) => lower.includes(t.name.toLowerCase()));
+    if (matched.length >= 2) {
+      setHomeTeamId(matched[0].id);
+      setHomeTeamName(matched[0].name);
+      setAwayTeamId(matched[1].id);
+      setAwayTeamName(matched[1].name);
+      setTargetType('partita');
+      setTargetId(`${matched[0].id}_vs_${matched[1].id}`);
+      setTargetName(`${matched[0].name} vs ${matched[1].name}`);
+    } else if (matched.length === 1 && !homeTeamId) {
+      setHomeTeamId(matched[0].id);
+      setHomeTeamName(matched[0].name);
+      if (!targetName) {
+        setTargetName(matched[0].name);
+      }
+    }
   };
 
   const handleUrlChange = (url: string) => {
@@ -113,13 +183,72 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             if (!title.trim()) {
               setTitle(data.match.title || 'Gara Veo');
             }
-            if (!targetName.trim() && data.match.title) {
-              setTargetName(data.match.title);
-              setTargetType('partita');
+            if (data.match.title) {
+              autoDetectTeams(data.match.title);
             }
           }
         })
         .catch(() => {});
+    } else if (url.includes('youtube') || url.includes('youtu.be')) {
+      setVideoSource('YOUTUBE');
+      setMediaType('video');
+    }
+  };
+
+  const handleMatchSelect = (matchId: string) => {
+    setSelectedMatchId(matchId);
+    if (!matchId) return;
+
+    const m = dbMatches.find((item) => item.id === matchId);
+    if (m) {
+      setHomeTeamId(m.homeTeamId);
+      setHomeTeamName(m.homeTeamName);
+      setAwayTeamId(m.awayTeamId);
+      setAwayTeamName(m.awayTeamName);
+      setTargetId(m.id);
+      const matchLabel = `${m.homeTeamName} vs ${m.awayTeamName}`;
+      setTargetName(matchLabel);
+      if (!title.trim()) {
+        setTitle(`Ripresa Gara: ${matchLabel} (${m.dateText || 'Campionato'})`);
+      }
+    }
+  };
+
+  const handleHomeTeamChange = (teamId: string) => {
+    setHomeTeamId(teamId);
+    const team = dbTeams.find((t) => t.id === teamId);
+    const hName = team ? team.name : '';
+    setHomeTeamName(hName);
+
+    if (hName && awayTeamName) {
+      setTargetName(`${hName} vs ${awayTeamName}`);
+      setTargetId(`${teamId}_vs_${awayTeamId}`);
+    } else if (hName) {
+      setTargetName(hName);
+    }
+  };
+
+  const handleAwayTeamChange = (teamId: string) => {
+    setAwayTeamId(teamId);
+    const team = dbTeams.find((t) => t.id === teamId);
+    const aName = team ? team.name : '';
+    setAwayTeamName(aName);
+
+    if (homeTeamName && aName) {
+      setTargetName(`${homeTeamName} vs ${aName}`);
+      setTargetId(`${homeTeamId}_vs_${teamId}`);
+    }
+  };
+
+  const handleSingleTeamChange = (teamId: string) => {
+    setTargetId(teamId);
+    const team = dbTeams.find((t) => t.id === teamId);
+    if (team) {
+      setTargetName(team.name);
+      setHomeTeamId(team.id);
+      setHomeTeamName(team.name);
+      setAwayTeamId('');
+      setAwayTeamName('');
     }
   };
 
@@ -132,7 +261,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     }
 
     if (!targetName.trim()) {
-      setError('Indica il soggetto o la partita a cui associare il contenuto.');
+      setError('Indica il soggetto o le squadre a cui associare il contenuto.');
       return;
     }
 
@@ -158,6 +287,10 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       targetType,
       targetId: targetId.trim() || targetName.toLowerCase().replace(/\s+/g, '-'),
       targetName: targetName.trim(),
+      homeTeamId: homeTeamId || undefined,
+      homeTeamName: homeTeamName || undefined,
+      awayTeamId: awayTeamId || undefined,
+      awayTeamName: awayTeamName || undefined,
       videoSource: effectiveSource,
       externalUrl: externalUrl.trim(),
       storagePath: storagePath.trim() || undefined,
@@ -173,6 +306,11 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     setStoragePath('');
     setDescription('');
     setTimestampMark('');
+    setHomeTeamId('');
+    setHomeTeamName('');
+    setAwayTeamId('');
+    setAwayTeamName('');
+    setSelectedMatchId('');
     onClose();
   };
 
@@ -184,7 +322,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       }}
     >
       <div
-        className="relative w-full max-w-lg max-h-[94vh] overflow-y-auto rounded-2xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-4 sm:p-6 text-slate-100"
+        className="relative w-full max-w-xl max-h-[94vh] overflow-y-auto rounded-2xl bg-[#0D0F16] border border-[#212638] shadow-2xl p-4 sm:p-6 text-slate-100"
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -202,9 +340,9 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             <Video className="w-6 h-6" />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white">Aggiungi Contenuto Multimediale</h3>
+            <h3 className="text-lg font-black text-white">Carica Video / Gara Arbitrale</h3>
             <p className="text-xs text-slate-400">
-              Carica video/immagini dal PC o collega un link YouTube per l&apos;analisi arbitrale
+              Collega video da YouTube o Veo AI, oppure carica file dal PC associando le squadre dal database
             </p>
           </div>
         </div>
@@ -237,7 +375,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <LinkIcon className="w-4 h-4" /> Link Esterno (YouTube / URL)
+            <LinkIcon className="w-4 h-4" /> Link Esterno (YouTube / Veo / URL)
           </button>
         </div>
 
@@ -291,10 +429,21 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px] flex items-center justify-between">
-                  <span>{videoSource === 'VEO' ? 'Link Partita Veo' : videoSource === 'YOUTUBE' ? 'URL Video YouTube' : 'URL File Web'}</span>
+                  <span>
+                    {videoSource === 'VEO'
+                      ? 'Link Partita Veo'
+                      : videoSource === 'YOUTUBE'
+                      ? 'URL Video YouTube'
+                      : 'URL File Web'}
+                  </span>
                   {isVeoUrl(externalUrl) && (
                     <span className="text-[10px] font-black text-[#00E5FF] flex items-center gap-1">
-                      <Sparkles className="w-3 h-3" /> Rilevato Veo Match
+                      <Sparkles className="w-3 h-3" /> Rilevato Veo Match AI
+                    </span>
+                  )}
+                  {(externalUrl.includes('youtube') || externalUrl.includes('youtu.be')) && (
+                    <span className="text-[10px] font-black text-[#FF334B] flex items-center gap-1">
+                      <Film className="w-3 h-3" /> YouTube Video
                     </span>
                   )}
                 </label>
@@ -302,46 +451,165 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                   type="text"
                   value={externalUrl}
                   onChange={(e) => handleUrlChange(e.target.value)}
-                  placeholder={videoSource === 'VEO' ? 'https://app.veo.co/matches/...' : 'https://www.youtube.com/watch?v=... o https://...'}
+                  placeholder={
+                    videoSource === 'VEO'
+                      ? 'https://app.veo.co/matches/...'
+                      : 'https://www.youtube.com/watch?v=... o https://...'
+                  }
                   className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
                 />
               </div>
             </div>
           )}
 
+          {/* Tipo di Associazione & Minuto Episodio */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-                Associa a
+                Tipologia Contenuto
               </label>
               <select
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value as any)}
-                className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
+                className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium font-bold"
               >
-                <option value="squadra">Squadra</option>
-                <option value="giocatore">Giocatore</option>
-                <option value="partita">Partita</option>
+                <option value="partita">Partita Intera / Gara (2 Squadre)</option>
+                <option value="squadra">Singola Squadra</option>
+                <option value="giocatore">Calciatore</option>
               </select>
             </div>
 
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-                Minuto Episodio
+                Minuto Episodio Iniziale
               </label>
               <input
                 type="text"
                 value={timestampMark}
                 onChange={(e) => setTimestampMark(e.target.value)}
-                placeholder="Es. 14:20"
+                placeholder="Es. 00:00 o 14:20"
                 className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium font-mono"
               />
             </div>
           </div>
 
+          {/* Sezione SQUADRE DAL DATABASE (per Partita o Singola Squadra) */}
+          {targetType === 'partita' && (
+            <div className="p-3.5 bg-[#121622] rounded-2xl border border-[#232B40] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#CCFF00] flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                  <Shield className="w-3.5 h-3.5" /> Seleziona Squadre Interessate (dal Database)
+                </span>
+                {dbMatches.length > 0 && (
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-slate-500" /> O da calendario
+                  </span>
+                )}
+              </div>
+
+              {/* Seleziona da Partita Ufficiale da Calendario */}
+              {dbMatches.length > 0 && (
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 mb-1">
+                    Carica rapidamente da Partita Ufficiale
+                  </label>
+                  <select
+                    value={selectedMatchId}
+                    onChange={(e) => handleMatchSelect(e.target.value)}
+                    className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00]"
+                  >
+                    <option value="">-- Seleziona partita a calendario (opzionale) --</option>
+                    {dbMatches.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.homeTeamName} vs {m.awayTeamName} ({m.dateText || `G.${m.matchDay}`})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Squadra di Casa & Squadra Ospite */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-300 uppercase tracking-wider mb-1">
+                    🏠 Squadra di Casa
+                  </label>
+                  <select
+                    value={homeTeamId}
+                    onChange={(e) => handleHomeTeamChange(e.target.value)}
+                    className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  >
+                    <option value="">-- Seleziona Squadra Casa --</option>
+                    {dbTeams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-300 uppercase tracking-wider mb-1">
+                    ✈️ Squadra Ospite
+                  </label>
+                  <select
+                    value={awayTeamId}
+                    onChange={(e) => handleAwayTeamChange(e.target.value)}
+                    className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  >
+                    <option value="">-- Seleziona Squadra Ospite --</option>
+                    {dbTeams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Anteprima associazione */}
+              {(homeTeamName || awayTeamName) && (
+                <div className="pt-1 flex flex-wrap items-center gap-2">
+                  <span className="text-[10px] text-slate-400 font-medium">Squadre associate alle note:</span>
+                  {homeTeamName && (
+                    <span className="text-[10px] font-black text-[#CCFF00] bg-[#CCFF00]/15 border border-[#CCFF00]/30 px-2 py-0.5 rounded-full">
+                      Casa: {homeTeamName}
+                    </span>
+                  )}
+                  {awayTeamName && (
+                    <span className="text-[10px] font-black text-sky-400 bg-sky-500/15 border border-sky-500/30 px-2 py-0.5 rounded-full">
+                      Ospite: {awayTeamName}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {targetType === 'squadra' && (
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
+                Seleziona Squadra dal Database
+              </label>
+              <select
+                value={homeTeamId || targetId}
+                onChange={(e) => handleSingleTeamChange(e.target.value)}
+                className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00] font-semibold"
+              >
+                <option value="">-- Seleziona Squadra --</option>
+                {dbTeams.map((team) => (
+                  <option key={team.id} value={team.id}>
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Nome Soggetto / Match (Personalizzabile) */}
           <div>
             <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-              Nome Soggetto / Match
+              Nome Soggetto / Partita
             </label>
             <input
               type="text"
@@ -350,20 +618,20 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                 setTargetName(e.target.value);
                 if (!targetId) setTargetId(e.target.value.toLowerCase().replace(/\s+/g, '-'));
               }}
-              placeholder="Es. Vianese Calcio, Fallo di mano al 60..."
+              placeholder="Es. Vianese Calcio vs Rolo Fabbrico..."
               className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
             />
           </div>
 
           <div>
             <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-              Titolo del Contenuto
+              Titolo del Contenuto Video
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Es. Calci d'angolo difensivi, Simulazione secondo tempo..."
+              placeholder="Es. Ripresa Integrale Gara, Calci d'angolo difensivi, Episodi chiave..."
               className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
             />
           </div>
@@ -376,7 +644,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Cosa osservare (movimento difensivo, gomito alto, trattenuta, posizionamento)..."
+              placeholder="Indicazioni per l'analisi arbitrale (movimenti tattici, falli reiterati, proteste, ecc.)..."
               className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium leading-relaxed"
             />
           </div>

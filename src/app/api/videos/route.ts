@@ -13,7 +13,22 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { authorId, targetType, targetId, targetName, videoSource, externalUrl, storagePath, title, description, timestampMark } = body;
+    const {
+      authorId,
+      targetType,
+      targetId,
+      targetName,
+      homeTeamId,
+      homeTeamName,
+      awayTeamId,
+      awayTeamName,
+      videoSource,
+      externalUrl,
+      storagePath,
+      title,
+      description,
+      timestampMark,
+    } = body;
 
     if (!targetType || !targetId || !title) {
       return NextResponse.json(
@@ -27,6 +42,10 @@ export async function POST(request: Request) {
       targetType,
       targetId,
       targetName: targetName || 'Entità',
+      homeTeamId,
+      homeTeamName,
+      awayTeamId,
+      awayTeamName,
       videoSource: videoSource || 'YOUTUBE',
       externalUrl,
       storagePath,

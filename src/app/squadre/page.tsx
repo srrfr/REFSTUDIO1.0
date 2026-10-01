@@ -1827,6 +1827,37 @@ function SquadreContent() {
                             <span className="text-[10px] font-mono font-black text-[#CCFF00] uppercase tracking-wider px-2 py-0.5 rounded bg-[#141824] border border-[#212638]">
                               {n.priority}
                             </span>
+                            {n.minute && (
+                              <span className="flex items-center gap-1 text-[10px] font-mono font-black text-black bg-[#CCFF00] px-2 py-0.5 rounded shadow-sm">
+                                <Clock className="w-3 h-3" /> Min. {n.minute}
+                              </span>
+                            )}
+                            {n.videoUrl && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveViewerMedia({
+                                    id: n.videoId,
+                                    url: n.videoUrl!,
+                                    title: n.videoTitle || `Analisi Gara - ${selectedTeam.name}`,
+                                    subtitle: `${selectedTeam.name} • ${n.minute || 'Video'}`,
+                                    description: n.content,
+                                    timestampMark: n.minute,
+                                    mediaType: 'video',
+                                    targetType: 'squadra',
+                                    targetId: selectedTeam.id,
+                                    targetName: selectedTeam.name,
+                                    homeTeamId: selectedTeam.id,
+                                    homeTeamName: selectedTeam.name,
+                                  });
+                                  setIsViewerOpen(true);
+                                }}
+                                className="inline-flex items-center gap-1 text-[10px] font-black text-[#CCFF00] hover:text-[#d8ff33] bg-[#CCFF00]/10 border border-[#CCFF00]/30 px-2 py-0.5 rounded transition-all"
+                                title="Guarda il video al minuto esatto"
+                              >
+                                <Play className="w-3 h-3 fill-[#CCFF00]" /> Video
+                              </button>
+                            )}
                             {n.isPublic === false ? (
                               <span className="flex items-center gap-1 text-[9px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
                                 <Lock className="w-2.5 h-2.5 text-amber-400" /> Privata
@@ -1961,11 +1992,20 @@ function SquadreContent() {
                           onClick={() => {
                             const videoUrl = vid.externalUrl || vid.storagePath || '';
                             setActiveViewerMedia({
+                              id: vid.id,
                               url: videoUrl,
                               title: vid.title,
                               subtitle: `${selectedTeam.name} • ${vid.timestampMark ? `Min. ${vid.timestampMark}` : 'Clip Video'}`,
                               description: vid.description,
+                              timestampMark: vid.timestampMark,
                               mediaType: 'video',
+                              targetType: vid.targetType,
+                              targetId: vid.targetId || selectedTeam.id,
+                              targetName: vid.targetName || selectedTeam.name,
+                              homeTeamId: vid.homeTeamId || (vid.targetType === 'squadra' ? selectedTeam.id : undefined),
+                              homeTeamName: vid.homeTeamName || (vid.targetType === 'squadra' ? selectedTeam.name : undefined),
+                              awayTeamId: vid.awayTeamId,
+                              awayTeamName: vid.awayTeamName,
                             });
                             setIsViewerOpen(true);
                           }}

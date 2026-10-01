@@ -27,6 +27,11 @@ export async function POST(request: Request) {
       priority,
       attachments,
       isPublic,
+      minute,
+      minuteSeconds,
+      videoId,
+      videoTitle,
+      videoUrl,
     } = body;
 
     if (!targetType || !targetId || !content) {
@@ -49,6 +54,11 @@ export async function POST(request: Request) {
       priority: priority || 'NORMAL',
       attachments: attachments || [],
       isPublic: isPublic !== false,
+      minute,
+      minuteSeconds,
+      videoId,
+      videoTitle,
+      videoUrl,
     });
 
     return NextResponse.json({ success: true, data: note });

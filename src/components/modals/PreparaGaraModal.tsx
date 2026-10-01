@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Camera,
   ArrowUpDown,
+  Clock,
 } from 'lucide-react';
 import {
   RosterSortField,
@@ -526,6 +527,36 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                           <Globe className="w-2.5 h-2.5 text-[#CCFF00]" /> Pubblica
                         </span>
                       )}
+                      {n.minute && (
+                        <span className="flex items-center gap-1 text-[9px] font-mono font-black text-black bg-[#CCFF00] px-1.5 py-0.5 rounded shadow-xs">
+                          <Clock className="w-2.5 h-2.5" /> Min. {n.minute}
+                        </span>
+                      )}
+                      {n.videoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            openMedia({
+                              id: n.videoId,
+                              url: n.videoUrl!,
+                              title: n.videoTitle || `Analisi Gara - ${team.name}`,
+                              subtitle: `${team.name} • ${n.minute || 'Video'}`,
+                              description: n.content,
+                              timestampMark: n.minute,
+                              mediaType: 'video',
+                              targetType: 'squadra',
+                              targetId: team.id,
+                              targetName: team.name,
+                              homeTeamId: team.id,
+                              homeTeamName: team.name,
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 text-[9px] font-black text-[#CCFF00] hover:text-[#d8ff33] bg-[#CCFF00]/10 border border-[#CCFF00]/30 px-1.5 py-0.5 rounded transition-all"
+                          title="Guarda il video al minuto esatto"
+                        >
+                          <Play className="w-2.5 h-2.5 fill-[#CCFF00]" /> Video
+                        </button>
+                      )}
                     </div>
                     <span className="font-mono text-[10px] text-slate-500">
                       {new Date(n.createdAt).toLocaleDateString('it-IT')}
@@ -676,12 +707,20 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                     onClick={() => {
                       if (v.externalUrl) {
                         openMedia({
+                          id: v.id,
                           url: v.externalUrl,
                           title: v.title,
                           subtitle: v.targetName,
                           description: v.description,
                           timestampMark: v.timestampMark,
                           mediaType: v.mediaType,
+                          targetType: v.targetType,
+                          targetId: v.targetId || team.id,
+                          targetName: v.targetName || team.name,
+                          homeTeamId: v.homeTeamId || (v.targetType === 'squadra' ? team.id : undefined),
+                          homeTeamName: v.homeTeamName || (v.targetType === 'squadra' ? team.name : undefined),
+                          awayTeamId: v.awayTeamId,
+                          awayTeamName: v.awayTeamName,
                         });
                       }
                     }}
