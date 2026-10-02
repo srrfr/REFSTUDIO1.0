@@ -1524,7 +1524,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                                     mediaType: v.mediaType,
                                     targetType: 'giocatore',
                                     targetId: p.id,
-                                    targetName: `${p.firstName} ${p.lastName}`,
+                                    targetName: `${p.firstName} ${p.lastName} (${teamName})`,
                                     homeTeamId: homeTeam.id,
                                     homeTeamName: homeTeam.name,
                                     awayTeamId: awayTeam.id,

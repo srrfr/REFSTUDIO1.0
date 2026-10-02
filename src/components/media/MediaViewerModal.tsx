@@ -871,7 +871,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
     const isPlayer = noteTargetType === 'giocatore' && Boolean(targetPlayer);
     const targetId = isPlayer && targetPlayer ? targetPlayer.id : selectedNoteTeamId;
-    const targetName = isPlayer && targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : teamName;
+    const targetName = isPlayer && targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName} (${teamName})` : teamName;
 
     const defaultTitle = isPlayer && targetPlayer
       ? `Clip ${cleanStart}${cleanEnd ? ` - ${cleanEnd}` : ''}${clockInfo} - ${targetPlayer.kitNumber ? `#${targetPlayer.kitNumber} ` : ''}${targetPlayer.lastName} ${targetPlayer.firstName} (${teamName})`
