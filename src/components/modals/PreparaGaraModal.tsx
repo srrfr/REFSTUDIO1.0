@@ -181,6 +181,15 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, avatarModalState.isOpen, isViewerOpen, isNoteModalOpen, isVideoModalOpen, onClose]);
 
+  // Ascolto aggiornamenti real-time da modali secondari (es. MediaViewerModal quando registra note/video calciatore)
+  useEffect(() => {
+    const handleSync = () => {
+      setRefreshKey((k) => k + 1);
+    };
+    window.addEventListener('refstudio-sync-update', handleSync);
+    return () => window.removeEventListener('refstudio-sync-update', handleSync);
+  }, []);
+
   // Memoized data resolution for both teams involved in this specific match
   const matchData = useMemo(() => {
     if (!match) return null;
@@ -352,7 +361,13 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
   };
 
   const openMedia = (item: MediaViewerItem) => {
-    setActiveViewerMedia(item);
+    setActiveViewerMedia({
+      ...item,
+      homeTeamId: item.homeTeamId || matchData?.homeTeam?.id,
+      homeTeamName: item.homeTeamName || matchData?.homeTeam?.name,
+      awayTeamId: item.awayTeamId || matchData?.awayTeam?.id,
+      awayTeamName: item.awayTeamName || matchData?.awayTeam?.name,
+    });
     setIsViewerOpen(true);
   };
 
@@ -575,10 +590,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                               targetType: 'squadra',
                               targetId: team.id,
                               targetName: team.name,
-                              homeTeamId: isHome ? team.id : undefined,
-                              homeTeamName: isHome ? team.name : undefined,
-                              awayTeamId: !isHome ? team.id : undefined,
-                              awayTeamName: !isHome ? team.name : undefined,
+                              homeTeamId: homeTeam.id,
+                              homeTeamName: homeTeam.name,
+                              awayTeamId: awayTeam.id,
+                              awayTeamName: awayTeam.name,
                             });
                           }}
                           className="inline-flex items-center gap-1 text-[9px] font-black text-[#CCFF00] hover:text-[#d8ff33] bg-[#CCFF00]/10 border border-[#CCFF00]/30 px-1.5 py-0.5 rounded transition-all"
@@ -761,10 +776,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                           targetType: v.targetType,
                           targetId: v.targetId || team.id,
                           targetName: v.targetName || team.name,
-                          homeTeamId: v.homeTeamId || (v.targetType === 'squadra' && isHome ? team.id : undefined),
-                          homeTeamName: v.homeTeamName || (v.targetType === 'squadra' && isHome ? team.name : undefined),
-                          awayTeamId: v.awayTeamId || (v.targetType === 'squadra' && !isHome ? team.id : undefined),
-                          awayTeamName: v.awayTeamName || (v.targetType === 'squadra' && !isHome ? team.name : undefined),
+                          homeTeamId: v.homeTeamId || homeTeam.id,
+                          homeTeamName: v.homeTeamName || homeTeam.name,
+                          awayTeamId: v.awayTeamId || awayTeam.id,
+                          awayTeamName: v.awayTeamName || awayTeam.name,
                         });
                       }
                     }}
@@ -1510,6 +1525,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                                     targetType: 'giocatore',
                                     targetId: p.id,
                                     targetName: `${p.firstName} ${p.lastName}`,
+                                    homeTeamId: homeTeam.id,
+                                    homeTeamName: homeTeam.name,
+                                    awayTeamId: awayTeam.id,
+                                    awayTeamName: awayTeam.name,
                                   });
                                 }
                               }}

@@ -37,6 +37,9 @@ import {
   Plus,
   PenTool,
   AlertCircle,
+  User,
+  Search,
+  Check,
 } from 'lucide-react';
 import {
   isVeoUrl,
@@ -48,7 +51,7 @@ import {
   VeoHighlight,
 } from '@/lib/services/veo-service';
 import { DbService } from '@/lib/repository/db-service';
-import { Note, Team, VideoClip } from '@/types/refstudio';
+import { Note, Team, VideoClip, Player } from '@/types/refstudio';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export interface MediaViewerItem {
@@ -130,11 +133,22 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
   // Gestione Squadre Coinvolte & Acquisizione Note Video / Clip
   const [allDbTeams, setAllDbTeams] = useState<Team[]>([]);
+  const [allDbPlayers, setAllDbPlayers] = useState<Player[]>([]);
   const [associatedTeams, setAssociatedTeams] = useState<AssociatedTeamItem[]>([]);
   const [videoNotes, setVideoNotes] = useState<Note[]>([]);
   const [recordedClips, setRecordedClips] = useState<VideoClip[]>([]);
   const [isAddingNote, setIsAddingNote] = useState(false);
+
+  // Destinatario Nota: Squadra o Singolo Calciatore
+  const [noteTargetType, setNoteTargetType] = useState<'squadra' | 'giocatore'>('squadra');
   const [selectedNoteTeamId, setSelectedNoteTeamId] = useState<string>('');
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>('');
+  const [playerSearchQuery, setPlayerSearchQuery] = useState<string>('');
+  const [teamPlayers, setTeamPlayers] = useState<Player[]>([]);
+
+  // Filtro elenco clip nella tab Note Video
+  const [clipFilterType, setClipFilterType] = useState<'ALL' | 'SQUADRA' | 'GIOCATORE'>('ALL');
+
   const [noteMinuteText, setNoteMinuteText] = useState('');
   const [noteEndMinuteText, setNoteEndMinuteText] = useState('');
   const [noteClipTitle, setNoteClipTitle] = useState('');
@@ -241,99 +255,207 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   useEffect(() => {
     if (!isOpen) return;
     const teams = DbService.getTeams().sort((a, b) => a.name.localeCompare(b.name));
+    const players = DbService.getState().players || [];
     setAllDbTeams(teams);
+    setAllDbPlayers(players);
 
     if (!media) {
       setAssociatedTeams([]);
       return;
     }
 
-    let resolvedHomeTeamId: string | undefined = media.homeTeamId;
-    let resolvedAwayTeamId: string | undefined = media.awayTeamId;
+    const findTeam = (idOrSlugOrName?: string): Team | undefined => {
+      if (!idOrSlugOrName) return undefined;
+      const clean = idOrSlugOrName.trim().toLowerCase();
+      if (!clean) return undefined;
+      return (
+        teams.find((t) => t.id.toLowerCase() === clean) ||
+        teams.find((t) => t.normalizedName?.toLowerCase() === clean) ||
+        teams.find((t) => t.name.toLowerCase() === clean) ||
+        teams.find((t) => clean.length >= 4 && (t.name.toLowerCase().includes(clean) || clean.includes(t.name.toLowerCase())))
+      );
+    };
 
-    // Se mancano, controlla se media.targetId ha il formato `${homeId}_vs_${awayId}`
-    if ((!resolvedHomeTeamId || !resolvedAwayTeamId) && media.targetId && media.targetId.includes('_vs_')) {
-      const [hId, aId] = media.targetId.split('_vs_');
-      if (!resolvedHomeTeamId && hId) resolvedHomeTeamId = hId;
-      if (!resolvedAwayTeamId && aId) resolvedAwayTeamId = aId;
-    }
+    let resolvedHomeTeam: Team | undefined =
+      findTeam(media.homeTeamId) || findTeam(media.homeTeamName);
+    let resolvedAwayTeam: Team | undefined =
+      findTeam(media.awayTeamId) || findTeam(media.awayTeamName);
 
-    // Se ancora mancano e targetType === 'partita' e punta a un match a calendario
-    if ((!resolvedHomeTeamId || !resolvedAwayTeamId) && media.targetType === 'partita' && media.targetId) {
-      const match = DbService.getMatchById(media.targetId);
-      if (match) {
-        if (!resolvedHomeTeamId) resolvedHomeTeamId = match.homeTeamId;
-        if (!resolvedAwayTeamId) resolvedAwayTeamId = match.awayTeamId;
+    // 1. Controlla se media.id o media.url corrisponde a un video salvato in archivio con squadre già registrate
+    const storedVideo = DbService.getVideos().find(
+      (v) =>
+        (media.id && v.id === media.id) ||
+        (media.url && (v.externalUrl === media.url || v.storagePath === media.url))
+    );
+    if (storedVideo) {
+      if (!resolvedHomeTeam) {
+        resolvedHomeTeam = findTeam(storedVideo.homeTeamId) || findTeam(storedVideo.homeTeamName);
       }
-    }
-
-    // Se ancora mancano, analizza titolo / targetName cercando il separatore standard "vs" o "-"
-    if (!resolvedHomeTeamId || !resolvedAwayTeamId) {
-      const fullText = `${media.title || ''} ${media.targetName || ''} ${media.subtitle || ''}`.trim();
-      const vsPattern = /\s+(?:vs\.?|v\.?|-)\s+/i;
-      if (vsPattern.test(fullText)) {
-        const parts = fullText.split(vsPattern);
-        if (parts.length >= 2) {
-          const leftPart = parts[0].toLowerCase();
-          const rightPart = parts[1].toLowerCase();
-          const longestFirst = [...teams].sort((a, b) => b.name.length - a.name.length);
-          const hMatch = longestFirst.find((t) => leftPart.includes(t.name.toLowerCase()));
-          const aMatch = longestFirst.find((t) => rightPart.includes(t.name.toLowerCase()));
-          if (hMatch && !resolvedHomeTeamId) resolvedHomeTeamId = hMatch.id;
-          if (aMatch && !resolvedAwayTeamId) resolvedAwayTeamId = aMatch.id;
+      if (!resolvedAwayTeam) {
+        resolvedAwayTeam = findTeam(storedVideo.awayTeamId) || findTeam(storedVideo.awayTeamName);
+      }
+      if ((!resolvedHomeTeam || !resolvedAwayTeam) && storedVideo.targetType === 'partita' && storedVideo.targetId) {
+        if (storedVideo.targetId.includes('_vs_')) {
+          const [h, a] = storedVideo.targetId.split('_vs_');
+          if (!resolvedHomeTeam) resolvedHomeTeam = findTeam(h);
+          if (!resolvedAwayTeam) resolvedAwayTeam = findTeam(a);
+        } else {
+          const m = DbService.getMatchById(storedVideo.targetId);
+          if (m) {
+            if (!resolvedHomeTeam) resolvedHomeTeam = findTeam(m.homeTeamId) || findTeam(m.homeTeamName);
+            if (!resolvedAwayTeam) resolvedAwayTeam = findTeam(m.awayTeamId) || findTeam(m.awayTeamName);
+          }
         }
       }
     }
 
+    // 2. Se media.targetId ha il formato `${homeId}_vs_${awayId}` o `${homeId}-vs-${awayId}`
+    if ((!resolvedHomeTeam || !resolvedAwayTeam) && media.targetId && /[_ -]vs[_ -]/i.test(media.targetId)) {
+      const parts = media.targetId.split(/[_ -]vs[_ -]/i);
+      if (parts.length >= 2) {
+        if (!resolvedHomeTeam) resolvedHomeTeam = findTeam(parts[0]);
+        if (!resolvedAwayTeam) resolvedAwayTeam = findTeam(parts[1]);
+      }
+    }
+
+    // 3. Se media.targetType === 'partita' e punta a un match a calendario o match ID
+    if ((!resolvedHomeTeam || !resolvedAwayTeam) && media.targetId) {
+      const match =
+        DbService.getMatchById(media.targetId) ||
+        DbService.getMatches().find((m) => m.id === media.targetId);
+      if (match) {
+        if (!resolvedHomeTeam) resolvedHomeTeam = findTeam(match.homeTeamId) || findTeam(match.homeTeamName);
+        if (!resolvedAwayTeam) resolvedAwayTeam = findTeam(match.awayTeamId) || findTeam(match.awayTeamName);
+      }
+    }
+
+    // 4. Se media.relatedTeams contiene squadre
+    if ((!resolvedHomeTeam || !resolvedAwayTeam) && media.relatedTeams && media.relatedTeams.length >= 2) {
+      if (!resolvedHomeTeam) resolvedHomeTeam = findTeam(media.relatedTeams[0].id) || findTeam(media.relatedTeams[0].name);
+      if (!resolvedAwayTeam) resolvedAwayTeam = findTeam(media.relatedTeams[1].id) || findTeam(media.relatedTeams[1].name);
+    }
+
+    // Helper per riconoscimento avanzato del nome squadra nel testo (con stopwords rimossi)
+    const stopwords = new Set([
+      'calcio', 'asd', 'a.s.d.', 'fc', 'f.c.', 'us', 'u.s.', 'ac', 'a.c.', 'ssd',
+      'et', 'labor', 'citta', 'di', 'del', 'delle', 'dei', '1907', '2009', '2015',
+      'gara', 'integrale', 'ripresa', 'partita', 'camera', 'veo', 'squadra', 'analisi'
+    ]);
+    const getDistinctiveTokens = (team: Team): string[] => {
+      const clean = team.name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ');
+      return clean.split(/\s+/).filter((w) => w.length >= 3 && !stopwords.has(w));
+    };
+
+    const teamMatchesText = (team: Team, text: string): boolean => {
+      const lower = text.toLowerCase();
+      if (lower.includes(team.name.toLowerCase())) return true;
+      if (team.normalizedName && lower.includes(team.normalizedName.replace(/-/g, ' '))) return true;
+      const tokens = getDistinctiveTokens(team);
+      return tokens.some((tok) => {
+        const rx = new RegExp('(^|[^a-z0-9])' + tok + '([^a-z0-9]|$)', 'i');
+        return rx.test(lower);
+      });
+    };
+
+    const fullText = `${media.title || ''} ${media.targetName || ''} ${media.subtitle || ''} ${media.description || ''}`.trim();
+
+    // 5. Se mancano entrambe o una delle due, analizza il testo con splitting standard "vs" / "-"
+    if (!resolvedHomeTeam || !resolvedAwayTeam) {
+      const vsPattern = /\s+(?:vs\.?|v\.?|-)\s+/i;
+      if (vsPattern.test(fullText)) {
+        const parts = fullText.split(vsPattern);
+        if (parts.length >= 2) {
+          const leftPart = parts[0];
+          const rightPart = parts[1];
+          const longestFirst = [...teams].sort((a, b) => b.name.length - a.name.length);
+          const hMatch = longestFirst.find((t) => teamMatchesText(t, leftPart));
+          const aMatch = longestFirst.find((t) => teamMatchesText(t, rightPart));
+          if (hMatch && !resolvedHomeTeam) resolvedHomeTeam = hMatch;
+          if (aMatch && (!resolvedAwayTeam || resolvedAwayTeam.id === resolvedHomeTeam?.id)) {
+            if (!resolvedHomeTeam || aMatch.id !== resolvedHomeTeam.id) {
+              resolvedAwayTeam = aMatch;
+            }
+          }
+        }
+      }
+    }
+
+    // 6. Se abbiamo una squadra nota (es. da targetId o homeTeamId), cerca la seconda squadra nel testo tra le altre squadre
+    const knownTeam = resolvedHomeTeam || (media.targetType === 'squadra' ? findTeam(media.targetId) : undefined);
+    if (knownTeam && !resolvedHomeTeam) {
+      resolvedHomeTeam = knownTeam;
+    }
+
+    if (resolvedHomeTeam && !resolvedAwayTeam) {
+      // Cerca nei testi l'avversaria escludendo la squadra nota
+      const otherTeams = teams.filter((t) => t.id !== resolvedHomeTeam!.id);
+      const opponentMatch = otherTeams.find((t) => teamMatchesText(t, fullText));
+      if (opponentMatch) {
+        resolvedAwayTeam = opponentMatch;
+      } else {
+        // Cerca nelle partite a calendario della squadra nota (es. Giornata X indicata nel testo o titolo)
+        const mDayMatch = fullText.match(/(?:giornata|g\.)\s*(\d+)/i) || fullText.match(/(\d+)\s*\^?\s*giornata/i);
+        const gironeParam: 'A' | 'B' | undefined = resolvedHomeTeam.girone === 'B' ? 'B' : resolvedHomeTeam.girone === 'A' ? 'A' : undefined;
+        const allMatches = DbService.getMatches(gironeParam);
+        if (mDayMatch) {
+          const day = parseInt(mDayMatch[1], 10);
+          const m = allMatches.find(
+            (match) =>
+              match.matchDay === day &&
+              (match.homeTeamId === resolvedHomeTeam!.id || match.awayTeamId === resolvedHomeTeam!.id)
+          );
+          if (m) {
+            const oppId = m.homeTeamId === resolvedHomeTeam.id ? m.awayTeamId : m.homeTeamId;
+            const opp = teams.find((t) => t.id === oppId);
+            if (opp) {
+              resolvedAwayTeam = opp;
+            }
+          }
+        } else {
+          // Controlla se nei match disputati o in archivio c'è una partita il cui avversario compare in fullText
+          const teamMatches = allMatches.filter(
+            (m) => m.homeTeamId === resolvedHomeTeam!.id || m.awayTeamId === resolvedHomeTeam!.id
+          );
+          for (const tm of teamMatches) {
+            const oppId = tm.homeTeamId === resolvedHomeTeam.id ? tm.awayTeamId : tm.homeTeamId;
+            const opp = teams.find((t) => t.id === oppId);
+            if (opp && teamMatchesText(opp, fullText)) {
+              resolvedAwayTeam = opp;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // 7. Costruzione lista squadre associate
     const items: AssociatedTeamItem[] = [];
 
-    // Casa: risolto con massima priorità
-    if (resolvedHomeTeamId) {
-      const ht = teams.find((t) => t.id === resolvedHomeTeamId);
-      if (ht) {
-        items.push({
-          team: ht,
-          role: 'CASA',
-          label: `Casa: ${ht.name}`,
-          shortRole: 'Casa: ',
-        });
-      }
+    if (resolvedHomeTeam) {
+      items.push({
+        team: resolvedHomeTeam,
+        role: 'CASA',
+        label: `Casa: ${resolvedHomeTeam.name}`,
+        shortRole: 'Casa: ',
+      });
     }
 
-    // Ospite: risolto con massima priorità
-    if (resolvedAwayTeamId && resolvedAwayTeamId !== resolvedHomeTeamId) {
-      const at = teams.find((t) => t.id === resolvedAwayTeamId);
-      if (at) {
-        items.push({
-          team: at,
-          role: 'OSPITE',
-          label: `Ospite: ${at.name}`,
-          shortRole: 'Ospite: ',
-        });
-      }
+    if (resolvedAwayTeam && resolvedAwayTeam.id !== resolvedHomeTeam?.id) {
+      items.push({
+        team: resolvedAwayTeam,
+        role: 'OSPITE',
+        label: `Ospite: ${resolvedAwayTeam.name}`,
+        shortRole: 'Ospite: ',
+      });
     }
 
-    // Singola squadra (se targetType === 'squadra')
-    if (items.length === 0 && media.targetType === 'squadra' && media.targetId) {
-      const single = teams.find((t) => t.id === media.targetId);
-      if (single) {
-        items.push({
-          team: single,
-          role: 'SQUADRA',
-          label: single.name,
-          shortRole: '',
-        });
-      }
-    }
-
-    // Fallback: cerca occorrenze nel testo ordinate per indice di apparizione nel testo (MAI in ordine alfabetico!)
+    // 8. Se ancora zero squadre, scansiona il testo libero alla ricerca di squadre del database
     if (items.length === 0) {
-      const fullText = `${media.title || ''} ${media.subtitle || ''} ${media.targetName || ''} ${media.description || ''}`.toLowerCase();
       const occurrences: { team: Team; index: number }[] = [];
       for (const t of teams) {
-        const idx = fullText.indexOf(t.name.toLowerCase());
-        if (idx !== -1) {
-          occurrences.push({ team: t, index: idx });
+        if (teamMatchesText(t, fullText)) {
+          const idx = fullText.toLowerCase().indexOf(t.name.toLowerCase());
+          occurrences.push({ team: t, index: idx !== -1 ? idx : 999 });
         }
       }
       occurrences.sort((a, b) => a.index - b.index);
@@ -361,6 +483,21 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
       }
     }
 
+    // 9. Se ancora c'è una sola squadra, controlla se è una gara integrale e cerca l'avversaria nel database
+    if (items.length === 1) {
+      const firstTeam = items[0].team;
+      const otherTeams = teams.filter((t) => t.id !== firstTeam.id);
+      const opp = otherTeams.find((t) => teamMatchesText(t, fullText));
+      if (opp) {
+        items.push({
+          team: opp,
+          role: 'OSPITE',
+          label: `Ospite: ${opp.name}`,
+          shortRole: 'Ospite: ',
+        });
+      }
+    }
+
     setAssociatedTeams(items);
     if (items.length > 0) {
       setSelectedNoteTeamId(items[0].team.id);
@@ -369,7 +506,17 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     }
   }, [isOpen, media]);
 
-  // Caricamento note e clip registrate per questo video / squadre
+  // Caricamento dei calciatori della squadra selezionata
+  useEffect(() => {
+    if (selectedNoteTeamId) {
+      const players = DbService.getPlayers(selectedNoteTeamId);
+      setTeamPlayers(players);
+    } else {
+      setTeamPlayers([]);
+    }
+  }, [selectedNoteTeamId]);
+
+  // Caricamento note e clip registrate per questo video / squadre / calciatori
   const loadVideoNotes = useCallback(() => {
     if (!media) {
       setVideoNotes([]);
@@ -380,13 +527,22 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     const allClips = DbService.getVideos();
     const relevantTeamIds = associatedTeams.map((item) => item.team.id);
 
-    // Filtra clip video appartenenti a questa gara o squadre coinvolte
+    // ID di tutti i calciatori appartenenti alle squadre della gara
+    const relevantPlayerIds = new Set<string>();
+    relevantTeamIds.forEach((tId) => {
+      const tPlayers = DbService.getPlayers(tId);
+      tPlayers.forEach((p: Player) => relevantPlayerIds.add(p.id));
+    });
+
+    // Filtra clip video appartenenti a questa gara, squadre coinvolte o calciatori delle due squadre
     const filteredClips = allClips.filter((c) => {
       if (media.id && c.id === media.id) return true;
       if (media.url && (c.externalUrl === media.url || c.storagePath === media.url)) return true;
       if (relevantTeamIds.includes(c.targetId)) return true;
+      if (c.targetType === 'giocatore' && relevantPlayerIds.has(c.targetId)) return true;
       if (media.homeTeamId && (c.homeTeamId === media.homeTeamId || c.awayTeamId === media.homeTeamId)) return true;
       if (media.awayTeamId && (c.homeTeamId === media.awayTeamId || c.awayTeamId === media.awayTeamId)) return true;
+      if (relevantTeamIds.includes(c.homeTeamId || '') || relevantTeamIds.includes(c.awayTeamId || '')) return true;
       if (media.targetId && c.targetId === media.targetId) return true;
       return false;
     });
@@ -399,6 +555,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
       // Nota associata a una delle squadre della gara e con indicazione del minuto
       if (relevantTeamIds.includes(n.targetId) && (n.minute || n.videoId || n.videoUrl || n.content.includes('[Min.'))) {
+        return true;
+      }
+
+      // Nota associata a un calciatore di una delle due squadre
+      if (n.targetType === 'giocatore' && relevantPlayerIds.has(n.targetId)) {
         return true;
       }
 
@@ -630,8 +791,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     }
   };
 
-  // Apertura form acquisizione clip/nota con minuto iniziale e finale
-  const handleOpenAddNote = () => {
+  // Apertura form acquisizione clip/nota con minuto iniziale e finale per squadra o calciatore
+  const handleOpenAddNote = (
+    initialTarget: 'squadra' | 'giocatore' = 'squadra',
+    preselectedPlayerId?: string,
+    preselectedTeamId?: string
+  ) => {
     // Pausa video per consentire all'arbitro di scrivere e regolare i tempi con calma
     if (isPlaying) {
       togglePlay();
@@ -650,14 +815,47 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     setNoteContent('');
     setNoteFormError(null);
     setSaveSuccessMessage(null);
+    setNoteTargetType(initialTarget);
+    setPlayerSearchQuery('');
+
+    if (preselectedTeamId) {
+      setSelectedNoteTeamId(preselectedTeamId);
+    }
+
+    if (preselectedPlayerId) {
+      setSelectedPlayerId(preselectedPlayerId);
+      const p = DbService.getPlayerById(preselectedPlayerId);
+      if (p && p.teamId) {
+        setSelectedNoteTeamId(p.teamId);
+      }
+    } else {
+      setSelectedPlayerId('');
+    }
+
     setIsAddingNote(true);
   };
 
-  // Salvataggio nota video/clip direttamente nella sezione Note Video della squadra
-  const handleSaveTeamNote = () => {
+  // Salvataggio nota video/clip e appunto per la squadra o per un singolo calciatore
+  const handleSaveNote = () => {
     if (!selectedNoteTeamId) {
       setNoteFormError('Seleziona la squadra a cui fa riferimento la nota video.');
       return;
+    }
+
+    const targetTeam = allDbTeams.find((t) => t.id === selectedNoteTeamId);
+    const teamName = targetTeam ? targetTeam.name : 'Squadra';
+
+    let targetPlayer: Player | undefined;
+    if (noteTargetType === 'giocatore') {
+      if (!selectedPlayerId) {
+        setNoteFormError('Seleziona il calciatore a cui associare la nota video.');
+        return;
+      }
+      targetPlayer = teamPlayers.find((p) => p.id === selectedPlayerId) || DbService.getPlayerById(selectedPlayerId);
+      if (!targetPlayer) {
+        setNoteFormError('Calciatore selezionato non trovato.');
+        return;
+      }
     }
 
     if (!noteContent.trim() && !noteClipTitle.trim()) {
@@ -665,28 +863,32 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
       return;
     }
 
-    const targetTeam = allDbTeams.find((t) => t.id === selectedNoteTeamId);
-    const teamName = targetTeam ? targetTeam.name : 'Squadra';
-
     const cleanStart = noteMinuteText.trim() || formatSecondsToTime(currentTime);
     const cleanEnd = noteEndMinuteText.trim() || formatSecondsToTime(currentTime + 30);
 
     const clock = getMatchClock(currentTime);
     const clockInfo = clock?.display ? ` [${clock.display}]` : '';
 
-    const titleToUse =
-      noteClipTitle.trim() ||
-      `Clip ${cleanStart}${cleanEnd ? ` - ${cleanEnd}` : ''}${clockInfo} (${teamName})`;
+    const isPlayer = noteTargetType === 'giocatore' && Boolean(targetPlayer);
+    const targetId = isPlayer && targetPlayer ? targetPlayer.id : selectedNoteTeamId;
+    const targetName = isPlayer && targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : teamName;
+
+    const defaultTitle = isPlayer && targetPlayer
+      ? `Clip ${cleanStart}${cleanEnd ? ` - ${cleanEnd}` : ''}${clockInfo} - ${targetPlayer.kitNumber ? `#${targetPlayer.kitNumber} ` : ''}${targetPlayer.lastName} ${targetPlayer.firstName} (${teamName})`
+      : `Clip ${cleanStart}${cleanEnd ? ` - ${cleanEnd}` : ''}${clockInfo} (${teamName})`;
+
+    const titleToUse = noteClipTitle.trim() || defaultTitle;
 
     try {
+      // 1. Salva il VideoClip con minutaggio inizio/fine per riproduzione e navigazione clip
       const createdVideo = DbService.addVideo({
-        targetType: 'squadra',
-        targetId: selectedNoteTeamId,
-        targetName: teamName,
-        homeTeamId: media?.homeTeamId,
-        homeTeamName: media?.homeTeamName,
-        awayTeamId: media?.awayTeamId,
-        awayTeamName: media?.awayTeamName,
+        targetType: isPlayer ? 'giocatore' : 'squadra',
+        targetId,
+        targetName,
+        homeTeamId: media?.homeTeamId || (associatedTeams[0]?.team.id),
+        homeTeamName: media?.homeTeamName || (associatedTeams[0]?.team.name),
+        awayTeamId: media?.awayTeamId || (associatedTeams[1]?.team.id),
+        awayTeamName: media?.awayTeamName || (associatedTeams[1]?.team.name),
         videoSource: isVeo ? 'VEO' : isYoutube ? 'YOUTUBE' : 'LOCAL',
         externalUrl: media?.url,
         storagePath: !isYoutube && !isVeo ? media?.url : undefined,
@@ -701,21 +903,61 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
         authorName: user?.displayName || 'Arbitro',
       });
 
+      // 2. Salva anche la Note di testo nel dossier anagrafico (giocatore o squadra)
+      const createdNote = DbService.addNote({
+        targetType: isPlayer ? 'giocatore' : 'squadra',
+        targetId,
+        targetName,
+        content: noteContent.trim() || titleToUse,
+        minute: cleanStart,
+        endMinute: cleanEnd || undefined,
+        minuteSeconds: parseTimeToSeconds(cleanStart) ?? undefined,
+        endMinuteSeconds: cleanEnd ? parseTimeToSeconds(cleanEnd) ?? undefined : undefined,
+        videoId: createdVideo.id,
+        videoTitle: titleToUse,
+        videoUrl: media?.url,
+        priority: notePriority,
+        isPublic: noteIsPublic,
+        authorId: user?.username || 'arbitro',
+        authorName: user?.displayName || 'Arbitro',
+        authorRole: user?.refereeRole || 'AE',
+        authorSection: user?.sectionAia || '',
+      });
+
       // Feedback visivo immediato
-      setSaveSuccessMessage(`Nota video salvata con successo nella sezione "Note Video" di ${teamName}!`);
+      if (isPlayer && targetPlayer) {
+        setSaveSuccessMessage(
+          `Nota e clip video salvate con successo per il calciatore ${targetPlayer.lastName} ${targetPlayer.firstName} (${teamName})!`
+        );
+      } else {
+        setSaveSuccessMessage(`Nota video salvata con successo nella sezione "Note Video" di ${teamName}!`);
+      }
+
       setNoteContent('');
       setNoteClipTitle('');
+      setSelectedPlayerId('');
+      setPlayerSearchQuery('');
       setIsAddingNote(false);
       setNoteFormError(null);
       setActiveTab('NOTE_SQUADRE');
 
-      // Notifica globale multi-componente (aggiorna la scheda squadra istantaneamente)
+      // Notifica globale multi-componente (aggiorna la scheda squadra e dossier giocatore istantaneamente)
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { videoCreated: createdVideo } }));
+        window.dispatchEvent(
+          new CustomEvent('refstudio-sync-update', {
+            detail: {
+              videoCreated: createdVideo,
+              noteCreated: createdNote,
+              targetType: isPlayer ? 'giocatore' : 'squadra',
+              targetId,
+              teamId: selectedNoteTeamId,
+            },
+          })
+        );
       }
 
       loadVideoNotes();
-      setTimeout(() => setSaveSuccessMessage(null), 4000);
+      setTimeout(() => setSaveSuccessMessage(null), 5000);
     } catch (err: any) {
       setNoteFormError(err.message || 'Errore durante il salvataggio della nota video.');
     }
@@ -934,7 +1176,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
         togglePlay();
       } else if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        handleOpenAddNote();
+        handleOpenAddNote(e.shiftKey ? 'giocatore' : noteTargetType);
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
         jumpSeconds(e.shiftKey ? 60 : 5);
@@ -986,6 +1228,27 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   if (!isOpen || !media) return null;
 
   const currentClock = getMatchClock(currentTime);
+
+  const filteredTeamPlayers = teamPlayers.filter((p) => {
+    if (!playerSearchQuery.trim()) return true;
+    const q = playerSearchQuery.toLowerCase().trim();
+    const numMatch = p.kitNumber !== undefined && String(p.kitNumber).includes(q);
+    const nameMatch =
+      `${p.lastName} ${p.firstName}`.toLowerCase().includes(q) ||
+      `${p.firstName} ${p.lastName}`.toLowerCase().includes(q);
+    const roleMatch = p.role.toLowerCase().includes(q);
+    return numMatch || nameMatch || roleMatch;
+  });
+
+  const selectedPlayer =
+    teamPlayers.find((p) => p.id === selectedPlayerId) ||
+    allDbPlayers.find((p) => p.id === selectedPlayerId);
+
+  const displayedClips = recordedClips.filter((c) => {
+    if (clipFilterType === 'SQUADRA') return c.targetType !== 'giocatore';
+    if (clipFilterType === 'GIOCATORE') return c.targetType === 'giocatore';
+    return true;
+  });
 
   return (
     <div
@@ -1041,7 +1304,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
         {/* Action Header: Tasto rapido Acquisisci Nota & Chiudi */}
         <div className="flex items-center gap-2 sm:gap-3">
           <button
-            onClick={handleOpenAddNote}
+            onClick={() => handleOpenAddNote()}
             className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all active:scale-95 cursor-pointer"
             title="Acquisisci clip / nota video associata a una squadra (Tasto N)"
           >
@@ -1404,42 +1667,129 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   <button
                     onClick={() => setIsAddingBookmark(!isAddingBookmark)}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-[#141824] hover:bg-[#1C2233] text-slate-300 border border-[#212638] text-xs font-bold transition-all active:scale-95"
+                    title="Aggiungi segnalibro rapido locale"
                   >
                     <BookmarkPlus className="w-3.5 h-3.5 text-slate-400" />
                     <span>Segnalibro ({formatSecondsToTime(currentTime)})</span>
                   </button>
 
-                  {/* Primary Note Acquisition Trigger Button */}
+                  {/* Pulsanti Rapidi Nota Squadra (un pulsante per ogni squadra associata della gara) */}
+                  {associatedTeams.length > 0 ? (
+                    associatedTeams.map((item) => (
+                      <button
+                        key={item.team.id}
+                        type="button"
+                        onClick={() => handleOpenAddNote('squadra', undefined, item.team.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black transition-all active:scale-95 cursor-pointer shadow-xs border ${
+                          item.role === 'CASA'
+                            ? 'bg-[#181D2D] hover:bg-[#222A40] text-[#CCFF00] border-[#CCFF00]/40'
+                            : item.role === 'OSPITE'
+                            ? 'bg-[#181D2D] hover:bg-[#222A40] text-sky-400 border-sky-400/40'
+                            : 'bg-[#181D2D] hover:bg-[#222A40] text-[#CCFF00] border-[#CCFF00]/40'
+                        }`}
+                        title={`Registra una nota o clip video associata a ${item.team.name}`}
+                      >
+                        <Shield className="w-3.5 h-3.5" />
+                        <span>Nota {item.shortRole || ''}{item.team.name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenAddNote('squadra')}
+                      className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#181D2D] hover:bg-[#222A40] text-[#CCFF00] border border-[#CCFF00]/40 text-xs font-black transition-all active:scale-95 cursor-pointer shadow-xs"
+                      title="Registra una nota o clip video associata all'intera squadra"
+                    >
+                      <Shield className="w-3.5 h-3.5" />
+                      <span>Nota Squadra</span>
+                    </button>
+                  )}
+
+                  {/* Pulsante Nota Calciatore */}
                   <button
-                    onClick={handleOpenAddNote}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all active:scale-95 cursor-pointer"
+                    type="button"
+                    onClick={() => handleOpenAddNote('giocatore')}
+                    className="flex items-center gap-1.5 px-3.5 py-1 rounded-xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black text-xs font-black shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all active:scale-95 cursor-pointer"
+                    title="Registra una nota o clip specifica per un calciatore di una delle due squadre"
                   >
-                    <PenTool className="w-3.5 h-3.5 fill-black" />
-                    <span>Registra Nota Video Squadra</span>
+                    <User className="w-3.5 h-3.5 fill-black" />
+                    <span>Registra Nota Calciatore</span>
                   </button>
                 </div>
               </div>
 
-              {/* Inline Form ACQUISIZIONE NOTA VIDEO & CLIP PER LA SQUADRA */}
+              {/* Inline Form ACQUISIZIONE NOTA VIDEO & CLIP PER SQUADRA O CALCIATORE */}
               {isAddingNote && (
                 <div className="p-4 bg-[#111420] border-2 border-[#CCFF00]/50 rounded-2xl space-y-3.5 shadow-2xl animate-in fade-in duration-200">
-                  <div className="flex items-center justify-between border-b border-[#21283D] pb-2">
-                    <span className="font-black text-white flex items-center gap-2 text-xs sm:text-sm">
-                      <PenTool className="w-4 h-4 text-[#CCFF00]" />
-                      Acquisisci Nota Video / Clip per la Squadra
-                    </span>
-                    <button
-                      onClick={() => setIsAddingNote(false)}
-                      className="text-slate-400 hover:text-white p-1"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#21283D] pb-2.5 gap-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-[#CCFF00]/15 text-[#CCFF00]">
+                        {noteTargetType === 'giocatore' ? (
+                          <User className="w-4 h-4 text-[#CCFF00]" />
+                        ) : (
+                          <Shield className="w-4 h-4 text-[#CCFF00]" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="font-black text-white text-xs sm:text-sm">
+                          {noteTargetType === 'giocatore'
+                            ? 'Acquisisci Nota & Clip per Calciatore'
+                            : 'Acquisisci Nota & Clip per la Squadra'}
+                        </h4>
+                        <p className="text-[10px] text-slate-400">
+                          {noteTargetType === 'giocatore'
+                            ? 'Registra l\'episodio della gara a carico di uno specifico calciatore di una delle due squadre'
+                            : 'Archivia l\'episodio della gara nella scheda tattica della squadra'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {/* Segmented Control Destinatario: Squadra vs Calciatore */}
+                      <div className="flex bg-[#141824] border border-[#232B40] rounded-xl p-0.5">
+                        <button
+                          type="button"
+                          onClick={() => setNoteTargetType('squadra')}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            noteTargetType === 'squadra'
+                              ? 'bg-[#CCFF00] text-black font-black shadow-xs'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          <Shield className="w-3 h-3" />
+                          <span>Squadra</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setNoteTargetType('giocatore')}
+                          className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            noteTargetType === 'giocatore'
+                              ? 'bg-[#CCFF00] text-black font-black shadow-xs'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          <User className="w-3 h-3" />
+                          <span>Calciatore</span>
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={() => setIsAddingNote(false)}
+                        className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors cursor-pointer"
+                        title="Chiudi"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* 1. Selezione della squadra di riferimento (Obbligatoria) */}
+                  {/* 1. Selezione della squadra di riferimento */}
                   <div>
                     <label className="block text-[11px] font-black text-slate-300 uppercase tracking-wider mb-1.5">
-                      Squadra a cui associare la clip (Seleziona):
+                      {noteTargetType === 'giocatore'
+                        ? '1. Seleziona la squadra del calciatore:'
+                        : '1. Squadra a cui associare la clip:'}
                     </label>
 
                     {associatedTeams.length > 0 ? (
@@ -1450,8 +1800,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                             <button
                               key={item.team.id}
                               type="button"
-                              onClick={() => setSelectedNoteTeamId(item.team.id)}
-                              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all ${
+                              onClick={() => {
+                                setSelectedNoteTeamId(item.team.id);
+                                setSelectedPlayerId('');
+                              }}
+                              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
                                 isSelected
                                   ? item.role === 'CASA'
                                     ? 'bg-[#CCFF00] text-black shadow-[0_0_15px_rgba(204,255,0,0.4)] scale-102 ring-2 ring-[#CCFF00]'
@@ -1472,10 +1825,28 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                         <div className="flex-1 min-w-[200px]">
                           <select
                             value={selectedNoteTeamId}
-                            onChange={(e) => setSelectedNoteTeamId(e.target.value)}
+                            onChange={(e) => {
+                              const newId = e.target.value;
+                              setSelectedNoteTeamId(newId);
+                              setSelectedPlayerId('');
+                              if (newId) {
+                                const found = allDbTeams.find((t) => t.id === newId);
+                                if (found && !associatedTeams.some((at) => at.team.id === found.id)) {
+                                  setAssociatedTeams((prev) => [
+                                    ...prev,
+                                    {
+                                      team: found,
+                                      role: prev.length === 1 ? 'OSPITE' : 'SQUADRA',
+                                      label: prev.length === 1 ? `Ospite: ${found.name}` : found.name,
+                                      shortRole: prev.length === 1 ? 'Ospite: ' : '',
+                                    },
+                                  ]);
+                                }
+                              }
+                            }}
                             className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00]"
                           >
-                            <option value="">-- Altra Squadra dal Database --</option>
+                            <option value="">-- Altra Squadra / Avversaria --</option>
                             {allDbTeams.map((team) => (
                               <option key={team.id} value={team.id}>
                                 {team.name}
@@ -1487,7 +1858,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     ) : (
                       <select
                         value={selectedNoteTeamId}
-                        onChange={(e) => setSelectedNoteTeamId(e.target.value)}
+                        onChange={(e) => {
+                          setSelectedNoteTeamId(e.target.value);
+                          setSelectedPlayerId('');
+                        }}
                         className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-bold"
                       >
                         <option value="">-- Seleziona Squadra dal Database --</option>
@@ -1500,7 +1874,138 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     )}
                   </div>
 
-                  {/* 2. Dettagli Intervallo Temporale Clip (Minuto Iniziale e Minuto Finale) */}
+                  {/* 2. Selezione Calciatore (Solo quando noteTargetType === 'giocatore') */}
+                  {noteTargetType === 'giocatore' && (
+                    <div className="p-3 bg-[#141824] rounded-2xl border border-[#232B40] space-y-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="text-[11px] font-black text-[#CCFF00] uppercase tracking-wider flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5" /> 2. Seleziona Calciatore ({teamPlayers.length} in rosa):
+                        </label>
+
+                        {/* Ricerca Rapida per Numero o Nome */}
+                        <div className="relative w-full sm:w-64">
+                          <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            value={playerSearchQuery}
+                            onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                            placeholder="Cerca per n° maglia, cognome o ruolo..."
+                            className="w-full pl-8 pr-2.5 py-1.5 bg-[#181D2D] border border-[#2B354F] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#CCFF00]"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Roster Calciatori a Griglia Selezionabile */}
+                      {teamPlayers.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-48 overflow-y-auto p-1">
+                          {filteredTeamPlayers.map((player) => {
+                            const isSelected = selectedPlayerId === player.id;
+                            const roleColor =
+                              player.role === 'POR'
+                                ? 'text-amber-400 bg-amber-400/10 border-amber-400/30'
+                                : player.role === 'DIF'
+                                ? 'text-sky-400 bg-sky-400/10 border-sky-400/30'
+                                : player.role === 'CEN'
+                                ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30'
+                                : player.role === 'ATT'
+                                ? 'text-rose-400 bg-rose-400/10 border-rose-400/30'
+                                : 'text-slate-400 bg-slate-400/10 border-slate-400/30';
+
+                            return (
+                              <button
+                                key={player.id}
+                                type="button"
+                                onClick={() => setSelectedPlayerId(player.id)}
+                                className={`flex items-center justify-between p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                                  isSelected
+                                    ? 'bg-[#CCFF00]/15 border-[#CCFF00] shadow-[0_0_12px_rgba(204,255,0,0.25)] ring-1 ring-[#CCFF00]'
+                                    : 'bg-[#181D2D] border-[#262F46] hover:border-slate-500 hover:bg-[#1E2538]'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {/* Kit number or role indicator */}
+                                  <div
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center font-mono font-black text-xs border flex-shrink-0 ${
+                                      player.kitNumber
+                                        ? isSelected
+                                          ? 'bg-[#CCFF00] text-black border-[#CCFF00]'
+                                          : 'bg-[#121622] text-[#CCFF00] border-[#2A344C]'
+                                        : roleColor
+                                    }`}
+                                  >
+                                    {player.kitNumber ? `#${player.kitNumber}` : player.role.substring(0, 3)}
+                                  </div>
+
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span
+                                        className={`text-xs font-black truncate ${
+                                          isSelected ? 'text-[#CCFF00]' : 'text-white'
+                                        }`}
+                                      >
+                                        {player.lastName} {player.firstName}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                      <span className="font-semibold">{player.role}</span>
+                                      {player.disciplinaryStatus === 'DIFFIDATO' && (
+                                        <span className="text-amber-400 font-bold">⚠️ Diffidato</span>
+                                      )}
+                                      {player.yellowCards > 0 && (
+                                        <span className="text-amber-300">🟨 {player.yellowCards}</span>
+                                      )}
+                                      {player.redCards > 0 && (
+                                        <span className="text-rose-400">🟥 {player.redCards}</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {isSelected && (
+                                  <div className="w-5 h-5 rounded-full bg-[#CCFF00] text-black flex items-center justify-center flex-shrink-0 ml-1">
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-3 text-center text-xs text-slate-400 bg-[#181D2D] rounded-xl border border-dashed border-[#2B354F]">
+                          Nessun calciatore trovato per questa squadra.
+                        </div>
+                      )}
+
+                      {/* Calciatore Attualmente Selezionato Card */}
+                      {selectedPlayer && (
+                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/40 text-xs">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-[#CCFF00] text-black font-black font-mono text-xs flex items-center justify-center">
+                              {selectedPlayer.kitNumber ? `#${selectedPlayer.kitNumber}` : selectedPlayer.role}
+                            </span>
+                            <div>
+                              <span className="font-black text-white">
+                                {selectedPlayer.lastName} {selectedPlayer.firstName}
+                              </span>
+                              <span className="text-slate-400 ml-1.5 font-medium">
+                                ({selectedPlayer.role} • {selectedPlayer.teamName})
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedPlayerId('')}
+                            className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                          >
+                            Cambia
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3. Dettagli Intervallo Temporale Clip (Minuto Iniziale e Minuto Finale) */}
                   <div className="space-y-1.5 p-3 rounded-xl bg-[#141824] border border-[#232B40]">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
@@ -1576,7 +2081,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     </div>
                   </div>
 
-                  {/* 3. Titolo Clip, Priorità e Visibilità */}
+                  {/* 4. Titolo Clip, Priorità e Visibilità */}
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="sm:col-span-1">
                       <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
@@ -1586,7 +2091,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                         type="text"
                         value={noteClipTitle}
                         onChange={(e) => setNoteClipTitle(e.target.value)}
-                        placeholder="Es. Contrasto in area, Pressing..."
+                        placeholder={
+                          noteTargetType === 'giocatore'
+                            ? 'Es. Fallo tattico, Proteste animate, Simulazione...'
+                            : 'Es. Contrasto in area, Pressing offensivo...'
+                        }
                         className="w-full bg-[#181D2D] border border-[#2B354F] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00]"
                       />
                     </div>
@@ -1633,14 +2142,18 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     </div>
                   </div>
 
-                  {/* 4. Contenuto dell'Osservazione Arbitrale */}
+                  {/* 5. Contenuto dell'Osservazione Arbitrale */}
                   <div>
                     <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">
                       Osservazione Arbitrale
                     </label>
                     <textarea
                       rows={3}
-                      placeholder="Descrivi l'episodio (fallo tattico, ammonizione, proteste, comportamento panchina, fuorigioco, ecc.)..."
+                      placeholder={
+                        noteTargetType === 'giocatore'
+                          ? "Descrivi l'atteggiamento o l'episodio del calciatore (fallo tattico, proteste, reazione, gestione disciplinare, ecc.)..."
+                          : "Descrivi l'episodio (fallo tattico, ammonizione, proteste, comportamento panchina, fuorigioco, ecc.)..."
+                      }
                       value={noteContent}
                       onChange={(e) => setNoteContent(e.target.value)}
                       className="w-full px-3 py-2 bg-[#181D2D] border border-[#2B354F] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#CCFF00] leading-relaxed"
@@ -1655,9 +2168,17 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     </div>
                   )}
 
-                  <div className="flex items-center justify-between pt-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1">
                     <span className="text-[11px] text-slate-400">
-                      La clip verrà archiviata direttamente nella sezione <strong className="text-white">&quot;Note Video&quot;</strong> della squadra.
+                      {noteTargetType === 'giocatore' ? (
+                        <>
+                          La nota e clip verranno collegate al calciatore <strong className="text-white">{selectedPlayer ? `${selectedPlayer.lastName} ${selectedPlayer.firstName}` : 'selezionato'}</strong>.
+                        </>
+                      ) : (
+                        <>
+                          La clip verrà archiviata direttamente nella sezione <strong className="text-white">&quot;Note Video&quot;</strong> della squadra.
+                        </>
+                      )}
                     </span>
 
                     <div className="flex items-center gap-2">
@@ -1670,11 +2191,13 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                       </button>
                       <button
                         type="button"
-                        onClick={handleSaveTeamNote}
+                        onClick={handleSaveNote}
                         className="px-4 py-1.5 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        Salva nella Sezione &quot;Note Video&quot; della Squadra
+                        {noteTargetType === 'giocatore'
+                          ? 'Salva Nota & Clip Calciatore'
+                          : 'Salva nella Sezione "Note Video" della Squadra'}
                       </button>
                     </div>
                   </div>
@@ -1722,7 +2245,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               {/* Tabs Navigazione: Note Squadre / Tempi Gara / Highlights / Segnalibri */}
               <div className="pt-2 border-t border-[#1C2133]">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  {/* Tab Note Video Squadre */}
+                  {/* Tab Note Video & Clip */}
                   <button
                     onClick={() => setActiveTab('NOTE_SQUADRE')}
                     className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -1732,7 +2255,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     }`}
                   >
                     <Film className="w-3.5 h-3.5 text-[#CCFF00]" />
-                    <span>Note Video Squadre</span>
+                    <span>Note & Clip Gara</span>
                     <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#CCFF00]/20 text-[#CCFF00] font-mono">
                       {recordedClips.length}
                     </span>
@@ -1790,14 +2313,77 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   </button>
                 </div>
 
-                {/* Tab 1: NOTE VIDEO SQUADRE GARA */}
+                {/* Tab 1: NOTE & CLIP GARA (Squadre e Calciatori) */}
                 {activeTab === 'NOTE_SQUADRE' && (
                   <div className="space-y-3">
-                    {recordedClips.length > 0 ? (
+                    {/* Filtri Rapidi & Trigger Note */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-[#1C2233]">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">
+                          Mostra:
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setClipFilterType('ALL')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            clipFilterType === 'ALL'
+                              ? 'bg-[#CCFF00] text-black font-black shadow-xs'
+                              : 'bg-[#141824] text-slate-400 hover:text-white border border-[#212638]'
+                          }`}
+                        >
+                          Tutte ({recordedClips.length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClipFilterType('SQUADRA')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                            clipFilterType === 'SQUADRA'
+                              ? 'bg-[#CCFF00] text-black font-black shadow-xs'
+                              : 'bg-[#141824] text-slate-400 hover:text-white border border-[#212638]'
+                          }`}
+                        >
+                          <Shield className="w-3 h-3" />
+                          Squadre ({recordedClips.filter((c) => c.targetType !== 'giocatore').length})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setClipFilterType('GIOCATORE')}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                            clipFilterType === 'GIOCATORE'
+                              ? 'bg-[#00E5FF] text-black font-black shadow-xs'
+                              : 'bg-[#141824] text-slate-400 hover:text-white border border-[#212638]'
+                          }`}
+                        >
+                          <User className="w-3 h-3" />
+                          Calciatori ({recordedClips.filter((c) => c.targetType === 'giocatore').length})
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddNote('giocatore')}
+                          className="px-2.5 py-1 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+                        >
+                          <Plus className="w-3 h-3" /> Nota Calciatore
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddNote('squadra')}
+                          className="px-2.5 py-1 bg-[#1A2030] hover:bg-[#252E46] text-[#CCFF00] font-bold text-xs rounded-lg border border-[#CCFF00]/40 transition-all flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3 h-3" /> Nota Squadra
+                        </button>
+                      </div>
+                    </div>
+
+                    {displayedClips.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto p-1">
-                        {recordedClips.map((clip) => {
+                        {displayedClips.map((clip) => {
                           const isMine = user && clip.authorId && clip.authorId.toLowerCase() === user.username.toLowerCase();
                           const hasInterval = Boolean(clip.timestampMark && clip.endTimestampMark);
+                          const isPlayerClip = clip.targetType === 'giocatore';
+                          const player = isPlayerClip ? allDbPlayers.find((p) => p.id === clip.targetId) : null;
 
                           return (
                             <div
@@ -1807,9 +2393,17 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                             >
                               <div>
                                 <div className="flex items-center justify-between gap-1 text-[10px] border-b border-[#1C2233] pb-1.5 mb-1.5">
-                                  <span className="font-black text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded truncate max-w-[130px]">
-                                    {clip.targetName}
-                                  </span>
+                                  {isPlayerClip ? (
+                                    <span className="font-black text-[#00E5FF] bg-[#00E5FF]/10 border border-[#00E5FF]/30 px-2 py-0.5 rounded truncate max-w-[150px] flex items-center gap-1">
+                                      <User className="w-2.5 h-2.5 flex-shrink-0" />
+                                      {player?.kitNumber ? `#${player.kitNumber} ` : ''}{clip.targetName}
+                                    </span>
+                                  ) : (
+                                    <span className="font-black text-[#CCFF00] bg-[#CCFF00]/10 border border-[#CCFF00]/30 px-2 py-0.5 rounded truncate max-w-[150px] flex items-center gap-1">
+                                      <Shield className="w-2.5 h-2.5 flex-shrink-0" />
+                                      {clip.targetName}
+                                    </span>
+                                  )}
 
                                   <div className="flex items-center gap-1.5">
                                     {clip.timestampMark && (
@@ -1823,7 +2417,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                                       <button
                                         onClick={(e) => handleDeleteRecordedClip(clip.id, e)}
                                         className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
-                                        title="Elimina clip da Note Video"
+                                        title="Elimina clip"
                                       >
                                         <Trash2 className="w-3 h-3" />
                                       </button>
@@ -1854,17 +2448,25 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                       </div>
                     ) : (
                       <div className="flex flex-col sm:flex-row items-center justify-between gap-2 p-3 rounded-xl bg-[#121622] border border-[#212638] text-xs text-slate-400">
-                        <span>Nessuna clip archiviata nella sezione &quot;Note Video&quot; per questa gara. Clicca &quot;Registra Nota Video Squadra&quot; per salvare una clip con intervallo.</span>
-                        <button
-                          onClick={handleOpenAddNote}
-                          className="px-3 py-1 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg transition-all flex items-center gap-1 flex-shrink-0 cursor-pointer"
-                        >
-                          <Plus className="w-3.5 h-3.5" /> Registra Nota Video
-                        </button>
+                        <span>Nessuna clip registrata per questo filtro. Registra una nota per un calciatore o per una squadra.</span>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => handleOpenAddNote('giocatore')}
+                            className="px-3 py-1 bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Nota Calciatore
+                          </button>
+                          <button
+                            onClick={() => handleOpenAddNote('squadra')}
+                            className="px-3 py-1 bg-[#181D2D] hover:bg-[#252C42] text-[#CCFF00] font-bold text-xs rounded-lg border border-[#CCFF00]/40 transition-all flex items-center gap-1 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Nota Squadra
+                          </button>
+                        </div>
                       </div>
                     )}
 
-                    {/* Eventuali note arbitrali testuali legacy */}
+                    {/* Note arbitrali testuali registrate */}
                     {videoNotes.length > 0 && (
                       <div className="pt-2 border-t border-[#1C2233]">
                         <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-1.5 block">
@@ -1874,6 +2476,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                           {videoNotes.map((n) => {
                             const isMine = user && n.authorId && n.authorId.toLowerCase() === user.username.toLowerCase();
                             const seekSec = n.minuteSeconds ?? (n.minute ? parseTimeToSeconds(n.minute) : null);
+                            const isPlayerNote = n.targetType === 'giocatore';
                             return (
                               <div
                                 key={n.id}
@@ -1885,7 +2488,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                                 className="p-2 rounded-xl bg-[#121520] border border-[#1E2536] hover:border-[#CCFF00]/40 transition-all cursor-pointer text-xs"
                               >
                                 <div className="flex items-center justify-between text-[10px] pb-1 mb-1 border-b border-[#1A1F2C]">
-                                  <span className="text-[#CCFF00] font-bold truncate max-w-[120px]">{n.targetName}</span>
+                                  <span className={`font-bold truncate max-w-[130px] flex items-center gap-1 ${
+                                    isPlayerNote ? 'text-[#00E5FF]' : 'text-[#CCFF00]'
+                                  }`}>
+                                    {isPlayerNote ? <User className="w-2.5 h-2.5" /> : <Shield className="w-2.5 h-2.5" />}
+                                    {n.targetName}
+                                  </span>
                                   <div className="flex items-center gap-1">
                                     {n.minute && <span className="text-slate-400 font-mono font-bold">{n.minute}</span>}
                                     {isMine && (
