@@ -259,15 +259,25 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
       allPlayerVideos
     );
 
-    // High risk / Flagged players
+    // Calciatori sotto osservazione: con note, video didattici, tag o criticità disciplinari
     const getWatchPlayers = (players: Player[]) => {
-      return players.filter(
-        (p) =>
-          p.customTags.length > 0 ||
-          (p.yellowCards && p.yellowCards >= 3) ||
-          (p.redCards && p.redCards >= 1) ||
-          p.refereeNotes
-      );
+      return players
+        .filter((p) => {
+          const summary = playersMediaMap?.get(p.id);
+          const hasNotesOrClips = Boolean(summary?.hasMedia);
+          const hasPersonalNotes = Boolean(p.refereeNotes && p.refereeNotes.trim());
+          const hasTags = Boolean(p.customTags && p.customTags.length > 0);
+          const hasDisciplinary = (p.yellowCards && p.yellowCards >= 3) || (p.redCards && p.redCards >= 1);
+
+          return hasNotesOrClips || hasPersonalNotes || hasTags || hasDisciplinary;
+        })
+        .sort((a, b) => {
+          const summaryA = playersMediaMap?.get(a.id);
+          const summaryB = playersMediaMap?.get(b.id);
+          const countA = (summaryA?.totalCount || 0) * 10 + (a.customTags?.length || 0) + (a.yellowCards || 0) + (a.redCards || 0) * 2;
+          const countB = (summaryB?.totalCount || 0) * 10 + (b.customTags?.length || 0) + (b.yellowCards || 0) + (b.redCards || 0) * 2;
+          return countB - countA;
+        });
     };
 
     const homeWatchPlayers = getWatchPlayers(homePlayers);
@@ -655,69 +665,287 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
         </div>
 
         {/* 2. CALCIATORI SOTTO OSSERVAZIONE ARBITRALE */}
-        <div className="rounded-2xl bg-[#0D0F16] border border-[#1F2433] p-4 sm:p-5 space-y-3 shadow-lg">
-          <div className="flex items-center justify-between border-b border-[#1A1F2C] pb-3">
+        <div className="rounded-2xl bg-[#0D0F16] border border-[#1F2433] p-4 sm:p-5 space-y-3.5 shadow-lg">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1A1F2C] pb-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber-400" />
-              <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider">
-                Calciatori Attenzionati & Disciplina ({watchPlayers.length})
-              </h4>
+              <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+              <div>
+                <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                  <span>Calciatori Sotto Osservazione & Note della Rosa</span>
+                  <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold">
+                    {watchPlayers.length}
+                  </span>
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Note arbitrali, clip video didattiche, tag comportamentali (proteste, da osservare) e cartellini
+                </p>
+              </div>
             </div>
-            <span className="text-[10px] text-slate-400">Cartellini accumulati, proteste e profili particolari</span>
           </div>
 
           {watchPlayers.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 pt-1">
-              {watchPlayers.map((p) => (
-                <div
-                  key={p.id}
-                  className="p-3.5 rounded-xl bg-[#11141D] border border-[#212638] space-y-2 hover:border-amber-400/40 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-sm text-white truncate max-w-[150px]">
-                        {p.firstName} {p.lastName}
-                      </span>
-                      {(() => {
-                        const summary = playersMediaMap?.get(p.id);
-                        if (!summary || !summary.hasMedia) return null;
-                        return (
-                          <PlayerNotesBadge
-                            textCount={summary.textCount}
-                            videoCount={summary.videoCount}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
+              {watchPlayers.map((p) => {
+                const summary = playersMediaMap?.get(p.id);
+                const hasPersonalNote = Boolean(summary?.refereeNotes || (p.refereeNotes && p.refereeNotes.trim()));
+                const textNotes = summary?.textNotes || [];
+                const videoNotes = summary?.videoNotes || [];
+                const hasNotesOrVideos = textNotes.length > 0 || videoNotes.length > 0 || hasPersonalNote;
+
+                return (
+                  <div
+                    key={p.id}
+                    className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] space-y-3 hover:border-amber-400/40 transition-all shadow-md flex flex-col justify-between"
+                  >
+                    <div className="space-y-3">
+                      {/* Riga Superiore: Avatar, Dati Calciatore, Cartellini & Badge */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <PlayerBadge
+                            firstName={p.firstName}
+                            lastName={p.lastName}
+                            photoUrl={p.photoUrl}
+                            role={p.role}
+                            size="md"
+                            className="cursor-pointer shrink-0"
                             onClick={() => setSelectedPlayerForDossier(p)}
                           />
-                        );
-                      })()}
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <RoleBadge role={p.role} />
+                              {p.kitNumber && (
+                                <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-1.5 py-0.5 rounded border border-[#CCFF00]/20">
+                                  #{p.kitNumber}
+                                </span>
+                              )}
+                              <span className="text-[10px] font-mono text-slate-400">
+                                {team.name}
+                              </span>
+                            </div>
+                            <h5
+                              onClick={() => setSelectedPlayerForDossier(p)}
+                              className="font-bold text-sm sm:text-base text-white hover:text-[#CCFF00] transition-colors cursor-pointer mt-0.5"
+                            >
+                              {p.firstName} {p.lastName}
+                            </h5>
+                          </div>
+                        </div>
+
+                        {/* Disciplina e Presenze */}
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <div className="flex items-center gap-1 text-[11px] font-mono">
+                            <span className="text-yellow-400 font-bold bg-yellow-400/10 px-1.5 py-0.5 rounded border border-yellow-400/20">
+                              {p.yellowCards || 0} 🟨
+                            </span>
+                            <span className="text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">
+                              {p.redCards || 0} 🟥
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            {p.appearances || 0} pres.
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Tag Comportamentali (Proteste frequenti, da osservare, simulatore, ecc.) */}
+                      {p.customTags && p.customTags.length > 0 && (
+                        <div className="p-2.5 rounded-xl bg-[#141824] border border-[#212638] space-y-1.5">
+                          <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
+                            Tag & Caratteristiche Arbitrali:
+                          </span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {p.customTags.map((t, idx) => (
+                              <TagBadge key={idx} tag={t} size="sm" />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Appunto / Osservazione Arbitrale Personale */}
+                      {hasPersonalNote && (
+                        <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-1">
+                          <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-400">
+                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                            <span>Osservazione Arbitrale Personale</span>
+                          </div>
+                          <p className="text-xs text-slate-200 italic leading-relaxed whitespace-pre-line">
+                            &quot;{summary?.refereeNotes || p.refereeNotes}&quot;
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Tutte le Note di Testo Registrate per il Calciatore */}
+                      {textNotes.length > 0 && (
+                        <div className="space-y-2 pt-0.5">
+                          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-[#CCFF00]">
+                            <span className="flex items-center gap-1.5">
+                              <FileText className="w-3.5 h-3.5 text-[#CCFF00]" />
+                              Note di Testo Registrate ({textNotes.length})
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {textNotes.map((n) => (
+                              <div
+                                key={n.id}
+                                className="p-3 rounded-xl bg-[#141824] border border-[#212638] space-y-1.5 text-xs shadow-sm hover:border-[#CCFF00]/30 transition-colors"
+                              >
+                                <div className="flex items-center justify-between text-[10px] text-slate-400 border-b border-[#1C2232] pb-1.5">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-[#CCFF00]">{n.authorName || 'Arbitro'}</span>
+                                    {n.authorRole && (
+                                      <span className="px-1 py-0.2 rounded bg-[#1F2538] text-[9px] font-mono text-[#CCFF00] font-bold">
+                                        {n.authorRole}
+                                      </span>
+                                    )}
+                                    {n.priority === 'HIGH' && (
+                                      <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[9px] font-bold border border-rose-500/30 uppercase">
+                                        Urgente
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className="font-mono text-[10px]">
+                                    {new Date(n.createdAt).toLocaleDateString('it-IT')}
+                                  </span>
+                                </div>
+                                <p className="text-slate-200 whitespace-pre-line leading-relaxed text-xs">
+                                  {n.content}
+                                </p>
+                                {n.attachments && n.attachments.length > 0 && (
+                                  <div className="flex flex-wrap gap-1.5 pt-1.5 border-t border-[#1C2232]">
+                                    {n.attachments.map((att, i) => (
+                                      <button
+                                        key={i}
+                                        type="button"
+                                        onClick={() => {
+                                          const isImg = att.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i);
+                                          openMedia({
+                                            url: att,
+                                            title: `${p.firstName} ${p.lastName} - Allegato ${i + 1}`,
+                                            subtitle: `Nota di ${n.authorName || 'Arbitro'}`,
+                                            description: n.content,
+                                            mediaType: isImg ? 'image' : 'video',
+                                          });
+                                        }}
+                                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#CCFF00] bg-[#10131B] border border-[#212638] px-2 py-0.5 rounded-lg hover:border-[#CCFF00]/50 transition-colors cursor-pointer"
+                                      >
+                                        <Paperclip className="w-2.5 h-2.5" /> Allegato {i + 1}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Tutte le Note Video & Clip Registrate */}
+                      {videoNotes.length > 0 && (
+                        <div className="space-y-2 pt-0.5">
+                          <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-[#00E5FF]">
+                            <span className="flex items-center gap-1.5">
+                              <Film className="w-3.5 h-3.5 text-[#00E5FF]" />
+                              Clip Video Didattiche ({videoNotes.length})
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            {videoNotes.map((v) => (
+                              <div
+                                key={v.id}
+                                className="p-3 rounded-xl bg-[#0E131F] border border-[#1E293B] space-y-2 text-xs shadow-sm hover:border-[#00E5FF]/40 transition-colors"
+                              >
+                                <div className="flex items-center justify-between text-[10px]">
+                                  <span className="font-bold text-white truncate max-w-[200px]">{v.title}</span>
+                                  {v.timestampMark && (
+                                    <span className="px-1.5 py-0.5 rounded bg-[#00E5FF]/10 text-[#00E5FF] font-mono font-bold text-[9px] border border-[#00E5FF]/30">
+                                      {v.endTimestampMark ? `${v.timestampMark} → ${v.endTimestampMark}` : `Min. ${v.timestampMark}`}
+                                    </span>
+                                  )}
+                                </div>
+                                {v.description && (
+                                  <p className="text-slate-300 text-[11px] leading-relaxed line-clamp-2">
+                                    {v.description}
+                                  </p>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (v.externalUrl) {
+                                      openMedia({
+                                        id: v.id,
+                                        url: v.externalUrl,
+                                        title: v.title,
+                                        subtitle: `${p.firstName} ${p.lastName} • ${team.name}`,
+                                        description: v.description,
+                                        timestampMark: v.timestampMark,
+                                        endTimestampMark: v.endTimestampMark,
+                                        mediaType: v.mediaType,
+                                        targetType: 'giocatore',
+                                        targetId: p.id,
+                                        targetName: `${p.firstName} ${p.lastName} (${team.name})`,
+                                        homeTeamId: homeTeam.id,
+                                        homeTeamName: homeTeam.name,
+                                        awayTeamId: awayTeam.id,
+                                        awayTeamName: awayTeam.name,
+                                      });
+                                    }
+                                  }}
+                                  className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-[#00E5FF]/15 hover:bg-[#00E5FF]/25 text-[#00E5FF] border border-[#00E5FF]/40 text-[11px] font-bold transition-all cursor-pointer shadow-sm"
+                                >
+                                  <Play className="w-3 h-3 fill-[#00E5FF]" /> Guarda Clip in App
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Calciatore attenzionato ma senza note inserite ancora */}
+                      {!hasNotesOrVideos && (
+                        <div className="p-3 rounded-xl bg-[#141824]/60 border border-dashed border-[#212638] text-[11px] text-slate-400 italic text-center">
+                          Nessuna nota personale o video registrata. Attenzionato per diffida o cartellini.
+                        </div>
+                      )}
                     </div>
-                    <RoleBadge role={p.role} />
-                  </div>
 
-                  <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                    <span>{p.appearances || 0} pres.</span>
-                    <span className="text-yellow-400 font-bold">{p.yellowCards || 0} 🟨</span>
-                    <span className="text-rose-400 font-bold">{p.redCards || 0} 🟥</span>
-                  </div>
+                    {/* Footer della card: Azioni Rapide */}
+                    <div className="pt-3 border-t border-[#1C2130] flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddNote(p.id, `${p.firstName} ${p.lastName} (${team.name})`, 'giocatore')}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] border border-[#CCFF00]/30 text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                          title="Aggiungi una nuova nota per questo calciatore"
+                        >
+                          <Plus className="w-3.5 h-3.5" /> Nuova Nota
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddVideo(p.id, `${p.firstName} ${p.lastName} (${team.name})`, 'giocatore', isHome)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#00E5FF]/10 hover:bg-[#00E5FF]/20 text-[#00E5FF] border border-[#00E5FF]/30 text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                          title="Aggiungi clip video didattica"
+                        >
+                          <Film className="w-3.5 h-3.5" /> Clip Video
+                        </button>
+                      </div>
 
-                  {p.customTags && p.customTags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-0.5">
-                      {p.customTags.map((t, idx) => (
-                        <TagBadge key={idx} tag={t} size="sm" />
-                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPlayerForDossier(p)}
+                        className="text-xs text-slate-400 hover:text-white flex items-center gap-1 font-bold transition-colors cursor-pointer px-2 py-1 rounded-lg hover:bg-[#181D2C]"
+                        title="Apri dossier anagrafico e disciplinare completo"
+                      >
+                        <span>Dossier</span>
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                      </button>
                     </div>
-                  )}
-
-                  {p.refereeNotes && (
-                    <p className="text-[11px] text-slate-300 italic pt-1 border-t border-[#1C2232] line-clamp-2">
-                      &quot;{p.refereeNotes}&quot;
-                    </p>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="text-xs text-slate-500 italic py-4 text-center bg-[#11141D] rounded-xl border border-dashed border-[#212638]">
-              Nessun calciatore con criticità disciplinari segnalate in archivio per {team.name}.
+              Nessun calciatore con note o criticità disciplinari segnalate in archivio per {team.name}.
             </p>
           )}
         </div>
@@ -990,14 +1218,35 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                                 );
                               })()}
                             </div>
+                            {p.customTags && p.customTags.length > 0 && (
+                              <div className="hidden lg:flex items-center gap-1">
+                                {p.customTags.slice(0, 2).map((t, idx) => (
+                                  <TagBadge key={idx} tag={t} size="sm" />
+                                ))}
+                                {p.customTags.length > 2 && (
+                                  <span className="text-[9px] font-mono text-slate-500">+{p.customTags.length - 2}</span>
+                                )}
+                              </div>
+                            )}
                             {(birthYear > 0 || age !== undefined) && (
-                              <span className="text-slate-400 font-mono text-[11px]">
+                              <span className="text-slate-400 font-mono text-[11px] hidden sm:inline">
                                 ({age ? `${age} anni` : ''}{birthYear > 0 ? (age ? ` • ${birthYear}` : `Nato: ${birthYear}`) : ''})
                               </span>
                             )}
                           </div>
 
                           <div className="flex items-center gap-2 font-mono text-slate-400 text-[11px]">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAddNote(p.id, `${p.firstName} ${p.lastName} (${team.name})`, 'giocatore');
+                              }}
+                              className="opacity-0 group-hover/rosterrow:opacity-100 p-1 rounded bg-[#CCFF00]/10 hover:bg-[#CCFF00]/25 text-[#CCFF00] border border-[#CCFF00]/30 transition-all cursor-pointer mr-1"
+                              title={`Aggiungi nota per ${p.firstName} ${p.lastName}`}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
                             <span className={prepRosterSortField === 'APPEARANCES' ? 'text-[#CCFF00] font-bold' : ''}>
                               {p.appearances || 0} pres
                             </span>
@@ -1252,6 +1501,216 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                 </p>
               )}
             </div>
+
+            {/* Calciatori con Note & Attenzionati nelle due Squadre */}
+            {(homeWatchPlayers.length > 0 || awayWatchPlayers.length > 0) && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-[#0D0F16] border border-[#1F2433] space-y-3.5 shadow-lg">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1A1F2C] pb-3">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        <span>Calciatori Sotto Osservazione & Note della Rosa</span>
+                        <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 font-bold">
+                          {homeWatchPlayers.length + awayWatchPlayers.length}
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-slate-400 mt-0.5">
+                        Riepilogo immediato delle note arbitrali, clip video e profili attenzionati per entrambe le squadre
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                  {/* Casa */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-black text-[#CCFF00] border-b border-[#1C2232] pb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5" /> {homeTeam.name} ({homeWatchPlayers.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('HOME')}
+                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-0.5 font-bold cursor-pointer"
+                      >
+                        Vedi tutti nella scheda Casa <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {homeWatchPlayers.length > 0 ? (
+                      <div className="space-y-2">
+                        {homeWatchPlayers.slice(0, 4).map((p) => {
+                          const summary = playersMediaMap?.get(p.id);
+                          const hasNotes = Boolean(summary && summary.hasMedia);
+                          const hasPersonal = Boolean(summary?.refereeNotes || (p.refereeNotes && p.refereeNotes.trim()));
+
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => setSelectedPlayerForDossier(p)}
+                              className="p-3 rounded-xl bg-[#11141D] border border-[#212638] hover:border-[#CCFF00]/40 transition-colors cursor-pointer space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-white">
+                                    {p.firstName} {p.lastName}
+                                  </span>
+                                  {hasNotes && summary && (
+                                    <PlayerNotesBadge
+                                      textCount={summary.textCount}
+                                      videoCount={summary.videoCount}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedPlayerForDossier(p);
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <RoleBadge role={p.role} />
+                                  <span className="text-[10px] font-mono text-yellow-400">{p.yellowCards || 0} 🟨</span>
+                                  <span className="text-[10px] font-mono text-rose-400">{p.redCards || 0} 🟥</span>
+                                </div>
+                              </div>
+
+                              {p.customTags && p.customTags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {p.customTags.map((t, idx) => (
+                                    <TagBadge key={idx} tag={t} size="sm" />
+                                  ))}
+                                </div>
+                              )}
+
+                              {hasPersonal && (
+                                <p className="text-[11px] text-amber-300/90 italic line-clamp-2">
+                                  &quot;{summary?.refereeNotes || p.refereeNotes}&quot;
+                                </p>
+                              )}
+
+                              {summary && summary.textNotes.length > 0 && (
+                                <div className="text-[11px] text-slate-300 line-clamp-2 bg-[#141824] p-2 rounded-lg border border-[#23293D]">
+                                  <span className="text-[#CCFF00] font-bold">📝 {summary.textNotes[0].authorName || 'Arbitro'}: </span>
+                                  <span>{summary.textNotes[0].content}</span>
+                                </div>
+                              )}
+
+                              {summary && summary.videoNotes.length > 0 && (
+                                <div className="text-[11px] text-[#00E5FF] flex items-center justify-between bg-[#0E131F] p-2 rounded-lg border border-[#1E293B]">
+                                  <span className="truncate">🎬 {summary.videoNotes[0].title}</span>
+                                  {summary.videoNotes[0].timestampMark && (
+                                    <span className="font-mono text-[9px] bg-[#00E5FF]/10 px-1 py-0.5 rounded shrink-0">
+                                      {summary.videoNotes[0].timestampMark}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic py-2 text-center bg-[#11141D] rounded-xl border border-dashed border-[#212638]">
+                        Nessun calciatore con note per {homeTeam.name}.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Trasferta */}
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-black text-[#FF334B] border-b border-[#1C2232] pb-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <Shield className="w-3.5 h-3.5" /> {awayTeam.name} ({awayWatchPlayers.length})
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('AWAY')}
+                        className="text-[10px] text-slate-400 hover:text-white flex items-center gap-0.5 font-bold cursor-pointer"
+                      >
+                        Vedi tutti nella scheda Trasferta <ChevronRight className="w-3 h-3" />
+                      </button>
+                    </div>
+
+                    {awayWatchPlayers.length > 0 ? (
+                      <div className="space-y-2">
+                        {awayWatchPlayers.slice(0, 4).map((p) => {
+                          const summary = playersMediaMap?.get(p.id);
+                          const hasNotes = Boolean(summary && summary.hasMedia);
+                          const hasPersonal = Boolean(summary?.refereeNotes || (p.refereeNotes && p.refereeNotes.trim()));
+
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => setSelectedPlayerForDossier(p)}
+                              className="p-3 rounded-xl bg-[#11141D] border border-[#212638] hover:border-[#FF334B]/40 transition-colors cursor-pointer space-y-1.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-xs text-white">
+                                    {p.firstName} {p.lastName}
+                                  </span>
+                                  {hasNotes && summary && (
+                                    <PlayerNotesBadge
+                                      textCount={summary.textCount}
+                                      videoCount={summary.videoCount}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedPlayerForDossier(p);
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                <div className="flex items-center gap-1.5">
+                                  <RoleBadge role={p.role} />
+                                  <span className="text-[10px] font-mono text-yellow-400">{p.yellowCards || 0} 🟨</span>
+                                  <span className="text-[10px] font-mono text-rose-400">{p.redCards || 0} 🟥</span>
+                                </div>
+                              </div>
+
+                              {p.customTags && p.customTags.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                  {p.customTags.map((t, idx) => (
+                                    <TagBadge key={idx} tag={t} size="sm" />
+                                  ))}
+                                </div>
+                              )}
+
+                              {hasPersonal && (
+                                <p className="text-[11px] text-amber-300/90 italic line-clamp-2">
+                                  &quot;{summary?.refereeNotes || p.refereeNotes}&quot;
+                                </p>
+                              )}
+
+                              {summary && summary.textNotes.length > 0 && (
+                                <div className="text-[11px] text-slate-300 line-clamp-2 bg-[#141824] p-2 rounded-lg border border-[#23293D]">
+                                  <span className="text-[#CCFF00] font-bold">📝 {summary.textNotes[0].authorName || 'Arbitro'}: </span>
+                                  <span>{summary.textNotes[0].content}</span>
+                                </div>
+                              )}
+
+                              {summary && summary.videoNotes.length > 0 && (
+                                <div className="text-[11px] text-[#00E5FF] flex items-center justify-between bg-[#0E131F] p-2 rounded-lg border border-[#1E293B]">
+                                  <span className="truncate">🎬 {summary.videoNotes[0].title}</span>
+                                  {summary.videoNotes[0].timestampMark && (
+                                    <span className="font-mono text-[9px] bg-[#00E5FF]/10 px-1 py-0.5 rounded shrink-0">
+                                      {summary.videoNotes[0].timestampMark}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-500 italic py-2 text-center bg-[#11141D] rounded-xl border border-dashed border-[#212638]">
+                        Nessun calciatore con note per {awayTeam.name}.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Precedenti Diretti */}
             {headToHead.length > 0 && (

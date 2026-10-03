@@ -24,12 +24,17 @@ export function matchNoteToPlayer(note: Note, player: Player): boolean {
     return true;
   }
 
-  // Matching tramite nome e cognome
-  if (note.targetName && player.lastName && player.firstName) {
+  // Matching tramite nome e cognome, o cognome e squadra
+  if (note.targetName && player.lastName) {
     const tName = note.targetName.toLowerCase();
     const lName = player.lastName.toLowerCase().trim();
-    const fName = player.firstName.toLowerCase().trim();
+    const fName = player.firstName ? player.firstName.toLowerCase().trim() : '';
+
     if (lName && fName && tName.includes(lName) && tName.includes(fName)) {
+      return true;
+    }
+
+    if (lName && player.teamName && tName.includes(lName) && tName.includes(player.teamName.toLowerCase().trim())) {
       return true;
     }
   }
@@ -51,11 +56,17 @@ export function matchVideoToPlayer(video: VideoClip, player: Player): boolean {
     return true;
   }
 
-  if (video.targetName && player.lastName && player.firstName) {
+  // Matching tramite nome e cognome, o cognome e squadra
+  if (video.targetName && player.lastName) {
     const tName = video.targetName.toLowerCase();
     const lName = player.lastName.toLowerCase().trim();
-    const fName = player.firstName.toLowerCase().trim();
+    const fName = player.firstName ? player.firstName.toLowerCase().trim() : '';
+
     if (lName && fName && tName.includes(lName) && tName.includes(fName)) {
+      return true;
+    }
+
+    if (lName && player.teamName && tName.includes(lName) && tName.includes(player.teamName.toLowerCase().trim())) {
       return true;
     }
   }
