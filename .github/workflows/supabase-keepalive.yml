@@ -1,0 +1,34 @@
+﻿name: Supabase Keep-Alive Ping
+
+on:
+  schedule:
+    # Esegue ogni 3 giorni alle 06:00 UTC (previene la disattivazione dopo 7 giorni di inattivita)
+    - cron: '0 6 */3 * *'
+  workflow_dispatch: # Permette l'avvio manuale con 1 clic dalla scheda Actions su GitHub
+
+jobs:
+  keepalive:
+    name: Ping Supabase REST API
+    runs-on: ubuntu-latest
+    steps:
+      - name: Esegui richiesta keep-alive a Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://pbhvpsdjeuxtuobghiwz.supabase.co' }}
+          SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiaHZwc2RqZXV4dHVvYmdoaXd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkyMjA2MTAsImV4cCI6MjEwNDc5NjYxMH0.mSK8yghWM3qBuTjC8mtcZx4reOIfEx-QCweXm7r6Y48' }}
+        run: |
+          echo "Invio richiesta keep-alive a Supabase..."
+          HTTP_STATUS=$(curl -s -o /tmp/response.json -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/teams?select=id&limit=1")
+
+          echo "Codice HTTP ricevuto: $HTTP_STATUS"
+          cat /tmp/response.json
+          echo ""
+
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "Successo: Supabase e attivo e funzionante!"
+          else
+            echo "Errore: risposta non valida da Supabase ($HTTP_STATUS)"
+            exit 1
+          fi
