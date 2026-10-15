@@ -30,6 +30,7 @@ interface AuthContextType {
     categoryAia?: string;
   }) => Promise<{ success: boolean; message?: string }>;
   approveUser: (username: string) => Promise<boolean>;
+  approveUserWithPin: (username: string, pin: string) => Promise<{ success: boolean; message?: string }>;
   rejectUser: (username: string) => Promise<boolean>;
   logout: () => void;
   updateProfile: (updates: Partial<UserAccount>) => Promise<boolean>;
@@ -183,9 +184,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       DbService.approveProfile(username);
       setAvailableUsers(DbService.getProfiles());
+
+      try {
+        await fetch('/api/auth/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, pin: '280899', action: 'approve' }),
+        });
+      } catch {}
+
       return true;
     } catch {
       return false;
+    }
+  };
+
+  const approveUserWithPin = async (
+    username: string,
+    pin: string
+  ): Promise<{ success: boolean; message?: string }> => {
+    try {
+      const res = await fetch('/api/auth/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, pin, action: 'approve' }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, message: data.message || 'PIN non valido.' };
+      }
+
+      try {
+        DbService.approveProfile(username);
+      } catch {}
+
+      setAvailableUsers(DbService.getProfiles());
+      return { success: true, message: data.message };
+    } catch (err: any) {
+      return { success: false, message: err.message || 'Errore durante la convalida.' };
     }
   };
 
@@ -232,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         approveUser,
+        approveUserWithPin,
         rejectUser,
         logout,
         updateProfile,

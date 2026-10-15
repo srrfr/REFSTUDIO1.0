@@ -30758,6 +30758,34 @@
       "categoryAia": "Eccellenza",
       "avatarUrl": "",
       "updatedAt": "2026-09-25T11:00:20.153+00:00"
+    },
+    {
+      "username": "merloni",
+      "password": "MilitO22!!@",
+      "displayName": "Matteo Merloni",
+      "email": "Matteomerloni92@gmail.com",
+      "role": "arbitro",
+      "refereeRole": "AA",
+      "sectionAia": "Sezione AIA Ravenna",
+      "categoryAia": "Eccellenza",
+      "avatarUrl": "",
+      "isApproved": true,
+      "status": "APPROVED",
+      "updatedAt": "2026-10-15T11:54:03.804Z"
+    },
+    {
+      "username": "pippobaudo",
+      "password": "pippo",
+      "displayName": "Pippo",
+      "email": "rominis.amuele@gmail.com",
+      "role": "arbitro",
+      "refereeRole": "AA",
+      "sectionAia": "Sezione AIA Bologna",
+      "categoryAia": "Eccellenza",
+      "avatarUrl": "",
+      "isApproved": true,
+      "status": "APPROVED",
+      "updatedAt": "2026-10-15T11:54:03.805Z"
     }
   ]
 }

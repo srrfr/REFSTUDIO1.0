@@ -307,6 +307,18 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
+                      onClick={() => {
+                        const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                        navigator.clipboard.writeText(`${origin}/api/auth/approve?username=${encodeURIComponent(p.username)}`);
+                        alert(`Link di approvazione rapida per @${p.username} copiato negli appunti!`);
+                      }}
+                      title="Copia link rapido approvazione"
+                      className="px-3 py-2 rounded-xl bg-[#1C2130] hover:bg-[#252C40] text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                    >
+                      Copia Link
+                    </button>
+                    <button
+                      type="button"
                       onClick={async () => {
                         await approveUser(p.username);
                         setPendingUsers(DbService.getPendingProfiles());

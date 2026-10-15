@@ -1,5 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { DbService } from '@/lib/repository/db-service';
+import { createClient } from '@supabase/supabase-js';
+
+function getDirectSupabaseClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const supabaseKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY;
+
+  if (supabaseUrl && supabaseKey) {
+    return createClient(supabaseUrl, supabaseKey);
+  }
+  return null;
+}
 
 export async function GET(req: NextRequest) {
   const username = req.nextUrl.searchParams.get('username');
@@ -8,8 +22,51 @@ export async function GET(req: NextRequest) {
     return new NextResponse('Parametro username mancante.', { status: 400 });
   }
 
+  const cleanUser = username.trim().toLowerCase();
+
   try {
-    const updated = DbService.approveProfile(username);
+    let displayName = cleanUser;
+    let sectionAia = 'Sezione AIA';
+    let refereeRole = 'AE';
+
+    // 1. Aggiornamento diretto su Supabase Cloud (se configurato)
+    const supabase = getDirectSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({
+          role: 'arbitro',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('username', cleanUser)
+        .select()
+        .single();
+
+      if (!error && data) {
+        displayName = data.display_name || displayName;
+        sectionAia = data.section_aia || sectionAia;
+        refereeRole = data.referee_role || refereeRole;
+      }
+    }
+
+    // 2. Aggiornamento in DbService locale
+    try {
+      const updated = DbService.approveProfile(cleanUser);
+      displayName = updated.displayName || displayName;
+      sectionAia = updated.sectionAia || sectionAia;
+      refereeRole = updated.refereeRole || refereeRole;
+    } catch {
+      // Se non era ancora presente nell'istanza server, registralo come già approvato
+      try {
+        DbService.registerProfile({
+          username: cleanUser,
+          displayName,
+          sectionAia,
+          refereeRole: refereeRole as any,
+        });
+        DbService.approveProfile(cleanUser);
+      } catch {}
+    }
 
     const html = `
       <!DOCTYPE html>
@@ -21,7 +78,7 @@ export async function GET(req: NextRequest) {
         <style>
           body {
             margin: 0;
-            padding: 0;
+            padding: 20px;
             background-color: #0A0C10;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             color: #FFFFFF;
@@ -29,13 +86,15 @@ export async function GET(req: NextRequest) {
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            box-sizing: border-box;
           }
           .card {
             background: #0D0F16;
             border: 1px solid #212638;
             border-radius: 24px;
-            padding: 40px;
+            padding: 36px 30px;
             max-width: 480px;
+            width: 100%;
             text-align: center;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
           }
@@ -66,7 +125,7 @@ export async function GET(req: NextRequest) {
             background: #12151F;
             border: 1px solid #1E2333;
             border-radius: 14px;
-            padding: 15px;
+            padding: 16px;
             margin-bottom: 25px;
             text-align: left;
             font-size: 13px;
@@ -89,15 +148,15 @@ export async function GET(req: NextRequest) {
           <div class="badge">AIA RefStudio Access Control</div>
           <h1>Profilo Arbitro Validato!</h1>
           <p>
-            L'accesso per l'utente <strong>${updated.displayName}</strong> è stato verificato e abilitato con successo.
+            L'accesso per l'utente <strong>${displayName}</strong> è stato verificato e abilitato con successo.
           </p>
 
           <div class="user-box">
-            <div><strong style="color:#FFF;">Nome:</strong> ${updated.displayName}</div>
-            <div style="margin-top:4px;"><strong style="color:#FFF;">Username:</strong> <code style="color:#CCFF00;">@${updated.username}</code></div>
-            <div style="margin-top:4px;"><strong style="color:#FFF;">Sezione:</strong> ${updated.sectionAia}</div>
-            <div style="margin-top:4px;"><strong style="color:#FFF;">Ruolo:</strong> ${updated.refereeRole}</div>
-            <div style="margin-top:4px;"><strong style="color:#FFF;">Stato:</strong> <span style="color:#34D399; font-weight:bold;">ATTIVO & CONVALIDATO ✓</span></div>
+            <div><strong style="color:#FFF;">Nome:</strong> ${displayName}</div>
+            <div style="margin-top:6px;"><strong style="color:#FFF;">Username:</strong> <code style="color:#CCFF00;">@${cleanUser}</code></div>
+            <div style="margin-top:6px;"><strong style="color:#FFF;">Sezione:</strong> ${sectionAia}</div>
+            <div style="margin-top:6px;"><strong style="color:#FFF;">Ruolo:</strong> ${refereeRole}</div>
+            <div style="margin-top:6px;"><strong style="color:#FFF;">Stato:</strong> <span style="color:#34D399; font-weight:bold;">ATTIVO & ABILITATO ✓</span></div>
           </div>
 
           <a href="/" class="btn">Apri RefStudio</a>
@@ -112,5 +171,67 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     return new NextResponse(`Errore validazione profilo: ${error.message}`, { status: 500 });
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { username, pin, action } = body;
+
+    if (!username) {
+      return NextResponse.json(
+        { success: false, message: 'Nome utente obbligatorio.' },
+        { status: 400 }
+      );
+    }
+
+    const cleanUser = username.trim().toLowerCase();
+    const adminPin = process.env.ADMIN_PIN_SECRET || '280899';
+
+    if (pin !== adminPin) {
+      return NextResponse.json(
+        { success: false, message: 'Codice PIN Amministratore non valido.' },
+        { status: 403 }
+      );
+    }
+
+    const isReject = action === 'reject';
+    const newRole = isReject ? 'rejected' : 'arbitro';
+
+    // 1. Aggiorna Supabase
+    const supabase = getDirectSupabaseClient();
+    if (supabase) {
+      await supabase
+        .from('profiles')
+        .update({
+          role: newRole,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('username', cleanUser);
+    }
+
+    // 2. Aggiorna DbService
+    try {
+      if (isReject) {
+        DbService.rejectProfile(cleanUser);
+      } else {
+        DbService.approveProfile(cleanUser);
+      }
+    } catch {
+      // Se non presente in memoria locale, non blocchiamo
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: isReject
+        ? `Profilo @${cleanUser} rifiutato.`
+        : `Profilo @${cleanUser} validato ed abilitato con successo!`,
+    });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, message: error.message || 'Errore durante la convalida.' },
+      { status: 500 }
+    );
   }
 }

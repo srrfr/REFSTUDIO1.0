@@ -677,6 +677,26 @@ export class DbService {
           });
         }
 
+        // Unione difensiva profili Cloud e Locali
+        const baseProfiles = inMemoryData.profiles && inMemoryData.profiles.length > 0
+          ? inMemoryData.profiles
+          : [...DEFAULT_USERS];
+        const mergedProfiles = [...baseProfiles];
+        cloudProfiles.forEach((cp) => {
+          const idx = mergedProfiles.findIndex(
+            (p) => p.username.toLowerCase() === cp.username.toLowerCase()
+          );
+          if (idx >= 0) {
+            mergedProfiles[idx] = {
+              ...mergedProfiles[idx],
+              ...cp,
+              password: cp.password || mergedProfiles[idx].password,
+            };
+          } else {
+            mergedProfiles.push(cp);
+          }
+        });
+
         inMemoryData = {
           teams: cloudTeams,
           players: cloudPlayers.length > 0 ? cloudPlayers : inMemoryData.players,
@@ -685,7 +705,7 @@ export class DbService {
           standingsB: cloudStandings.standingsB.length > 0 ? cloudStandings.standingsB : inMemoryData.standingsB,
           notes: mergedNotes,
           videos: mergedVideos,
-          profiles: cloudProfiles.length > 0 ? cloudProfiles : inMemoryData.profiles || [...DEFAULT_USERS],
+          profiles: mergedProfiles,
           designations: currentDesignations,
         };
 
@@ -1404,25 +1424,44 @@ export class DbService {
 
   static approveProfile(username: string): UserAccount {
     this.ensureLoaded();
-    const profile = this.getProfileByUsername(username);
+    const cleanUser = username.trim().toLowerCase();
+    const profile = this.getProfileByUsername(cleanUser);
     if (!profile) throw new Error('Profilo non trovato');
 
-    return this.updateProfile(username, {
+    const updated = this.updateProfile(cleanUser, {
+      role: profile.role === 'admin' ? 'admin' : 'arbitro',
       isApproved: true,
       status: 'APPROVED',
       approvedAt: new Date().toISOString(),
     });
+
+    if (isSupabaseConfigured()) {
+      SupabaseService.approveProfile(cleanUser).catch((err) =>
+        console.warn('Errore approvazione Supabase:', err)
+      );
+    }
+
+    return updated;
   }
 
   static rejectProfile(username: string): UserAccount {
     this.ensureLoaded();
-    const profile = this.getProfileByUsername(username);
+    const cleanUser = username.trim().toLowerCase();
+    const profile = this.getProfileByUsername(cleanUser);
     if (!profile) throw new Error('Profilo non trovato');
 
-    return this.updateProfile(username, {
+    const updated = this.updateProfile(cleanUser, {
       isApproved: false,
       status: 'REJECTED',
     });
+
+    if (isSupabaseConfigured()) {
+      SupabaseService.rejectProfile(cleanUser).catch((err) =>
+        console.warn('Errore rifiuto Supabase:', err)
+      );
+    }
+
+    return updated;
   }
 
   static getPendingProfiles(): UserAccount[] {

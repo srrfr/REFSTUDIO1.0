@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
   User,
@@ -19,11 +19,12 @@ import {
   Sparkles,
   ArrowRight,
   Clock,
+  KeyRound,
 } from 'lucide-react';
 import { RefereeRole } from '@/types/refstudio';
 
 export const LoginModal: React.FC = () => {
-  const { user, authLoaded, isLoginModalOpen, closeLoginModal, login, register } = useAuth();
+  const { user, authLoaded, isLoginModalOpen, closeLoginModal, login, register, approveUserWithPin } = useAuth();
 
   const [activeTab, setActiveTab] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
 
@@ -33,6 +34,11 @@ export const LoginModal: React.FC = () => {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
+
+  // Quick PIN approval state
+  const [adminPin, setAdminPin] = useState('');
+  const [pinLoading, setPinLoading] = useState(false);
+  const [pinFeedback, setPinFeedback] = useState<{ success?: boolean; message: string } | null>(null);
 
   // Register form state
   const [regDisplayName, setRegDisplayName] = useState('');
@@ -45,6 +51,7 @@ export const LoginModal: React.FC = () => {
   const [regCategoryAia, setRegCategoryAia] = useState('Eccellenza');
   const [regError, setRegError] = useState('');
   const [regSuccess, setRegSuccess] = useState('');
+  const [registeredUserForPin, setRegisteredUserForPin] = useState('');
   const [regLoading, setRegLoading] = useState(false);
 
   // Se l'autenticazione non è ancora caricata da localStorage, non renderizzare per evitare flicker
@@ -64,6 +71,7 @@ export const LoginModal: React.FC = () => {
     }
 
     setLoginError('');
+    setPinFeedback(null);
     setLoginLoading(true);
 
     const res = await login(loginUsername, loginPassword);
@@ -77,6 +85,31 @@ export const LoginModal: React.FC = () => {
     }
   };
 
+  const handleQuickPinApprove = async (targetUsername: string) => {
+    if (!adminPin.trim()) {
+      setPinFeedback({ success: false, message: 'Inserisci il codice PIN Amministratore.' });
+      return;
+    }
+    setPinLoading(true);
+    setPinFeedback(null);
+
+    const res = await approveUserWithPin(targetUsername, adminPin.trim());
+    setPinLoading(false);
+
+    if (res.success) {
+      setPinFeedback({ success: true, message: 'Profilo approvato ed abilitato con successo!' });
+      setLoginError('');
+      setAdminPin('');
+      if (loginPassword) {
+        setTimeout(async () => {
+          await login(targetUsername, loginPassword);
+        }, 600);
+      }
+    } else {
+      setPinFeedback({ success: false, message: res.message || 'PIN non valido.' });
+    }
+  };
+
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regDisplayName.trim() || !regUsername.trim() || !regPassword.trim()) {
@@ -86,6 +119,7 @@ export const LoginModal: React.FC = () => {
 
     setRegError('');
     setRegSuccess('');
+    setPinFeedback(null);
     setRegLoading(true);
 
     const res = await register({
@@ -104,9 +138,10 @@ export const LoginModal: React.FC = () => {
       setRegError(res.message || 'Errore durante la registrazione.');
     } else {
       const registeredUsername = regUsername.trim();
+      setRegisteredUserForPin(registeredUsername);
       setRegSuccess(res.message || 'Richiesta registrata con successo.');
-      // Precompila username per il login successivo
       setLoginUsername(registeredUsername);
+      setLoginPassword(regPassword.trim());
       setRegDisplayName('');
       setRegUsername('');
       setRegPassword('');
@@ -118,7 +153,6 @@ export const LoginModal: React.FC = () => {
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-2xl p-3 sm:p-5 overflow-y-auto animate-in fade-in duration-300 select-none"
       onClick={(e) => {
-        // Se l'utente è già autenticato e ha aperto il modal volontariamente, consentiamo la chiusura
         if (!isGateMode && user && e.target === e.currentTarget) {
           closeLoginModal();
         }
@@ -128,7 +162,6 @@ export const LoginModal: React.FC = () => {
         className="relative w-full max-w-lg max-h-[94vh] overflow-y-auto rounded-3xl bg-[#0C0E15] border border-[#212638] shadow-[0_0_60px_rgba(0,0,0,0.85)] p-5 sm:p-7 text-slate-100 space-y-5"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Pulsante chiudi solo se l'utente è già loggato */}
         {!isGateMode && user && (
           <button
             type="button"
@@ -166,6 +199,7 @@ export const LoginModal: React.FC = () => {
             onClick={() => {
               setActiveTab('LOGIN');
               setLoginError('');
+              setPinFeedback(null);
             }}
             className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'LOGIN'
@@ -182,6 +216,7 @@ export const LoginModal: React.FC = () => {
               setActiveTab('REGISTER');
               setRegError('');
               setRegSuccess('');
+              setPinFeedback(null);
             }}
             className={`py-2 px-3 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeTab === 'REGISTER'
@@ -241,9 +276,69 @@ export const LoginModal: React.FC = () => {
             </div>
 
             {loginError && (
-              <div className="flex items-start gap-2.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl leading-relaxed">
-                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                <span>{loginError}</span>
+              <div className="space-y-3">
+                <div className="flex items-start gap-2.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl leading-relaxed">
+                  <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <span>{loginError}</span>
+                </div>
+
+                {/* Sblocco Rapido Amministratore per profili in sospeso */}
+                {loginError.toLowerCase().includes('attesa') && (
+                  <div className="p-3.5 rounded-2xl bg-[#121520] border border-[#212638] space-y-2.5 animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2 text-xs font-bold text-white">
+                      <Shield className="w-4 h-4 text-[#CCFF00]" />
+                      <span>Sblocco Rapido Amministratore (@samueleromini)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Se sei l&apos;amministratore, puoi validare ed abilitare immediatamente questo profilo inserendo il codice PIN:
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="password"
+                        maxLength={10}
+                        placeholder="PIN Riservato (280899)"
+                        value={adminPin}
+                        onChange={(e) => setAdminPin(e.target.value)}
+                        className="flex-1 bg-[#0A0C10] border border-[#212638] rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-[#CCFF00] focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        disabled={pinLoading}
+                        onClick={() => handleQuickPinApprove(loginUsername)}
+                        className="px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
+                      >
+                        {pinLoading ? 'Validazione...' : 'Valida ed Accedi'}
+                      </button>
+                    </div>
+
+                    {pinFeedback && (
+                      <div
+                        className={`text-xs p-2 rounded-lg ${
+                          pinFeedback.success
+                            ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                            : 'text-rose-400 bg-rose-500/10 border border-rose-500/20'
+                        }`}
+                      >
+                        {pinFeedback.message}
+                      </div>
+                    )}
+
+                    <div className="pt-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLoginUsername('samueleromini');
+                          setLoginPassword('samueleromini1');
+                          setLoginError('');
+                          setPinFeedback(null);
+                        }}
+                        className="text-[11px] text-[#CCFF00] hover:underline cursor-pointer"
+                      >
+                        Oppure compila con credenziali Amministratore &rarr;
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -263,6 +358,7 @@ export const LoginModal: React.FC = () => {
                   setActiveTab('REGISTER');
                   setRegError('');
                   setRegSuccess('');
+                  setPinFeedback(null);
                 }}
                 className="text-xs text-slate-400 hover:text-[#CCFF00] transition-colors cursor-pointer"
               >
@@ -277,32 +373,72 @@ export const LoginModal: React.FC = () => {
         {activeTab === 'REGISTER' && (
           <div className="space-y-4">
             {regSuccess ? (
-              <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-3 animate-in fade-in duration-200">
+              <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center space-y-4 animate-in fade-in duration-200">
                 <div className="w-12 h-12 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-[0_0_15px_rgba(16,185,129,0.3)]">
                   <CheckCircle2 className="w-6 h-6" />
                 </div>
-                <h4 className="text-sm font-black text-emerald-300">Richiesta Inviata con Successo!</h4>
+                <h4 className="text-sm font-black text-emerald-300">Richiesta Registrata con Successo!</h4>
                 <p className="text-xs text-slate-300 leading-relaxed">
-                  È stata recapitata la notifica a{' '}
-                  <strong className="text-white">rominisamuele@gmail.com</strong> per la validazione del tuo profilo.
-                  Non appena l&apos;amministratore confermerà l&apos;accesso, potrai entrare subito con le credenziali appena create.
+                  Il nuovo profilo per <strong className="text-white">@{registeredUserForPin}</strong> è stato salvato ed è in attesa di abilitazione.
                 </p>
+
+                {/* Validazione Immediata tramite PIN Amministratore */}
+                <div className="p-3.5 rounded-xl bg-[#11141D] border border-[#212638] text-left space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-white">
+                    <KeyRound className="w-4 h-4 text-[#CCFF00]" />
+                    <span>Sei l&apos;amministratore? Abilita subito con PIN</span>
+                  </div>
+                  <p className="text-[11px] text-slate-400">
+                    Inserisci il codice PIN amministratore per convalidare questo profilo senza attendere l&apos;email:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="password"
+                      maxLength={10}
+                      placeholder="PIN Amministratore (280899)"
+                      value={adminPin}
+                      onChange={(e) => setAdminPin(e.target.value)}
+                      className="flex-1 bg-[#0A0C10] border border-[#212638] rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-[#CCFF00] focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      disabled={pinLoading}
+                      onClick={() => handleQuickPinApprove(registeredUserForPin)}
+                      className="px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50 shrink-0"
+                    >
+                      {pinLoading ? 'Validazione...' : 'Valida Subito'}
+                    </button>
+                  </div>
+
+                  {pinFeedback && (
+                    <div
+                      className={`text-xs p-2 rounded-lg ${
+                        pinFeedback.success
+                          ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                          : 'text-rose-400 bg-rose-500/10 border border-rose-500/20'
+                      }`}
+                    >
+                      {pinFeedback.message}
+                    </div>
+                  )}
+                </div>
+
                 <div className="pt-2">
                   <button
                     type="button"
                     onClick={() => {
                       setActiveTab('LOGIN');
                       setRegSuccess('');
+                      setPinFeedback(null);
                     }}
                     className="w-full py-2.5 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all cursor-pointer"
                   >
-                    Torna alla schermata di Login
+                    Vai alla schermata di Login
                   </button>
                 </div>
               </div>
             ) : (
               <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
-                {/* Info validation notice */}
                 <div className="flex items-start gap-2.5 p-3 rounded-xl bg-[#141824] border border-[#242A3C] text-xs text-slate-300 leading-relaxed">
                   <Clock className="w-4 h-4 text-[#CCFF00] shrink-0 mt-0.5" />
                   <span>
@@ -373,7 +509,7 @@ export const LoginModal: React.FC = () => {
                       type="email"
                       value={regEmail}
                       onChange={(e) => setRegEmail(e.target.value)}
-                      placeholder="es. mario.rossi@email.it"
+                      placeholder="tua.email@aia-figc.it"
                       className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] font-medium"
                     />
                   </div>
@@ -460,6 +596,7 @@ export const LoginModal: React.FC = () => {
                     onClick={() => {
                       setActiveTab('LOGIN');
                       setLoginError('');
+                      setPinFeedback(null);
                     }}
                     className="text-xs text-slate-400 hover:text-[#CCFF00] transition-colors cursor-pointer"
                   >

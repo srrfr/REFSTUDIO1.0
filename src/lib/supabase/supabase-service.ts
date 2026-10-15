@@ -143,16 +143,24 @@ export class SupabaseService {
    * Converte una riga Supabase nel modello TypeScript UserAccount
    */
   static mapProfileFromRow(row: any): UserAccount {
+    const isPending = row.role === 'pending' || row.is_approved === false || row.status === 'PENDING';
+    const isRejected = row.role === 'rejected' || row.status === 'REJECTED';
+    const isApproved = !isPending && !isRejected;
+
     return {
       username: row.username,
       password: row.password,
       displayName: row.display_name,
       email: row.email,
-      role: row.role || 'arbitro',
+      role: row.role === 'pending' || row.role === 'rejected' ? 'arbitro' : (row.role || 'arbitro'),
       refereeRole: row.referee_role || 'AE',
       sectionAia: row.section_aia || 'Bologna',
       categoryAia: row.category_aia || 'Eccellenza',
       avatarUrl: row.avatar_url,
+      isApproved,
+      status: isPending ? 'PENDING' : (isRejected ? 'REJECTED' : 'APPROVED'),
+      requestedAt: row.requested_at || row.created_at,
+      approvedAt: row.approved_at,
       updatedAt: row.updated_at,
     };
   }
@@ -428,18 +436,60 @@ export class SupabaseService {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
+    const isPending = profile.isApproved === false || profile.status === 'PENDING';
+    const isRejected = profile.status === 'REJECTED';
+    const roleToStore = isPending ? 'pending' : (isRejected ? 'rejected' : (profile.role || 'arbitro'));
+
     await supabase.from('profiles').upsert({
       username: profile.username,
       password: profile.password || '',
       display_name: profile.displayName,
       email: profile.email || '',
-      role: profile.role || 'arbitro',
+      role: roleToStore,
       referee_role: profile.refereeRole || 'AE',
       section_aia: profile.sectionAia || '',
       category_aia: profile.categoryAia || '',
       avatar_url: profile.avatarUrl || '',
       updated_at: new Date().toISOString(),
     }, { onConflict: 'username' });
+  }
+
+  static async approveProfile(username: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        role: 'arbitro',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('username', username.trim().toLowerCase());
+
+    if (error) {
+      console.warn('Errore approvazione profilo su Supabase:', error.message);
+      return false;
+    }
+    return true;
+  }
+
+  static async rejectProfile(username: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        role: 'rejected',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('username', username.trim().toLowerCase());
+
+    if (error) {
+      console.warn('Errore rifiuto profilo su Supabase:', error.message);
+      return false;
+    }
+    return true;
   }
 
   static async fetchProfiles(): Promise<UserAccount[]> {
