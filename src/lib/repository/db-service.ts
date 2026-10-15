@@ -581,6 +581,30 @@ export class DbService {
       if (existingIdx >= 0) {
         inMemoryData.matches[existingIdx] = mapped;
       }
+
+      // Sincronizza anche la lista designazioni in memoria e realtime
+      if (mapped.observations && typeof mapped.observations === 'string' && mapped.observations.trim().startsWith('{')) {
+        try {
+          const parsedDes = JSON.parse(mapped.observations);
+          if (parsedDes && (parsedDes.userId || parsedDes.matchId)) {
+            if (!inMemoryData.designations) inMemoryData.designations = [];
+            const dIdx = inMemoryData.designations.findIndex((d) => d.matchId === parsedDes.matchId);
+            if (dIdx >= 0) {
+              inMemoryData.designations[dIdx] = parsedDes;
+            } else {
+              inMemoryData.designations.unshift(parsedDes);
+            }
+          }
+        } catch {}
+      } else if (!mapped.observations) {
+        if (inMemoryData.designations) {
+          inMemoryData.designations = inMemoryData.designations.filter((d) => d.matchId !== mapped.id);
+        }
+      }
+      this.applyDesignationsToMatches();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { matchId: mapped.id } }));
+      }
     } else if (payload.table === 'profiles' && payload.newRecord) {
       const mapped = SupabaseService.mapProfileFromRow(payload.newRecord);
       if (!inMemoryData.profiles) inMemoryData.profiles = [...DEFAULT_USERS];
@@ -697,6 +721,62 @@ export class DbService {
           }
         });
 
+        // Estrai designazioni presenti su Supabase Cloud (salvate in matches.observations)
+        const cloudDesignations: MatchDesignation[] = [];
+        cloudMatches.forEach((m) => {
+          if (m.observations && typeof m.observations === 'string' && m.observations.trim().startsWith('{')) {
+            try {
+              const parsed = JSON.parse(m.observations);
+              if (parsed && (parsed.userId || parsed.matchId)) {
+                cloudDesignations.push(parsed);
+              }
+            } catch {}
+          }
+        });
+
+        // 0. Unione difensiva DESIGNAZIONI Cloud e Locali
+        const localDesignations = Array.isArray(inMemoryData.designations)
+          ? inMemoryData.designations.filter(
+              (d: any) =>
+                d &&
+                d.id !== 'des-1' &&
+                d.id !== 'des-2' &&
+                !(d.matchId === 'match-A-5-1281681-1000471' && d.id === 'des-1') &&
+                !(d.matchId === 'match-A-1-68499-1000471' && d.id === 'des-2')
+            )
+          : [];
+
+        const mergedDesignationsMap = new Map<string, MatchDesignation>();
+        // Prima le cloud designations
+        cloudDesignations.forEach((cd) => {
+          if (cd && cd.matchId) {
+            mergedDesignationsMap.set(cd.matchId, cd);
+          }
+        });
+
+        // Se l'utente ha designazioni locali (es. create sul PC) non ancora presenti sul cloud, aggiungile e caricale su cloud
+        const toPushToCloud: MatchDesignation[] = [];
+        localDesignations.forEach((ld) => {
+          if (ld && ld.matchId) {
+            if (!mergedDesignationsMap.has(ld.matchId)) {
+              mergedDesignationsMap.set(ld.matchId, ld);
+              toPushToCloud.push(ld);
+            }
+          }
+        });
+
+        if (toPushToCloud.length > 0) {
+          toPushToCloud.forEach((des) => {
+            const m = inMemoryData.matches?.find((match) => match.id === des.matchId);
+            const refName = m?.refereeName || 'Samuele Romini';
+            SupabaseService.updateMatchDesignation(des.matchId, refName, des).catch((err) =>
+              console.warn('Sync background push designation fallito:', err)
+            );
+          });
+        }
+
+        const mergedDesignations = Array.from(mergedDesignationsMap.values());
+
         inMemoryData = {
           teams: cloudTeams,
           players: cloudPlayers.length > 0 ? cloudPlayers : inMemoryData.players,
@@ -706,7 +786,7 @@ export class DbService {
           notes: mergedNotes,
           videos: mergedVideos,
           profiles: mergedProfiles,
-          designations: currentDesignations,
+          designations: mergedDesignations,
         };
 
         // Riapplica le designazioni ai cloudMatches scaricati
@@ -1006,6 +1086,16 @@ export class DbService {
 
     this.persist();
 
+    if (isSupabaseConfigured()) {
+      SupabaseService.updateMatchDesignation(
+        matchId,
+        inMemoryData.matches[matchIdx]?.refereeName || 'Samuele Romini',
+        designation
+      ).catch((err) =>
+        console.warn('Errore salvataggio designazione su Supabase:', err)
+      );
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { matchId, userId } }));
     }
@@ -1047,6 +1137,13 @@ export class DbService {
     }
 
     this.persist();
+
+    if (isSupabaseConfigured()) {
+      SupabaseService.removeMatchDesignation(matchId).catch((err) =>
+        console.warn('Errore rimozione designazione su Supabase:', err)
+      );
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('refstudio-designations-update', { detail: { matchId, userId } }));
     }

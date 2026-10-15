@@ -1,5 +1,5 @@
 import { getSupabaseClient, isSupabaseConfigured } from './client';
-import { Team, Player, Match, StandingRow, Note, VideoClip, UserAccount } from '@/types/refstudio';
+import { Team, Player, Match, StandingRow, Note, VideoClip, UserAccount, MatchDesignation } from '@/types/refstudio';
 import { isVeoUrl } from '@/lib/services/veo-service';
 
 export class SupabaseService {
@@ -76,12 +76,26 @@ export class SupabaseService {
    * Converte una riga Supabase nel modello TypeScript Match
    */
   static mapMatchFromRow(row: any): Match {
+    let designationInfo: MatchDesignation | undefined;
+    if (row.observations) {
+      try {
+        if (typeof row.observations === 'string' && row.observations.trim().startsWith('{')) {
+          const parsed = JSON.parse(row.observations);
+          if (parsed && (parsed.userId || parsed.matchId || parsed.role)) {
+            designationInfo = parsed;
+          }
+        } else if (typeof row.observations === 'object' && row.observations !== null) {
+          designationInfo = row.observations;
+        }
+      } catch {}
+    }
+
     return {
       id: row.id,
       championshipId: row.championship_id || 'eccellenza-er',
       girone: row.girone,
       matchDay: row.match_day,
-      dateText: row.date_text,
+      dateText: designationInfo?.customDateText || row.date_text,
       matchDate: row.match_date,
       played: Boolean(row.played),
       homeTeamId: row.home_team_id,
@@ -90,10 +104,16 @@ export class SupabaseService {
       awayTeamName: row.away_team_name,
       homeScore: row.home_score,
       awayScore: row.away_score,
-      refereeName: row.referee_name,
-      matchField: row.match_field,
+      refereeName: designationInfo ? (row.referee_name || 'Samuele Romini') : row.referee_name,
+      matchField: designationInfo?.customField || row.match_field,
       observations: row.observations,
       updatedAt: row.updated_at,
+      designatedRefereeId: designationInfo?.userId,
+      refereeRole: designationInfo?.role,
+      assistant1: designationInfo?.assistant1,
+      assistant2: designationInfo?.assistant2,
+      observer: designationInfo?.observer,
+      designationNotes: designationInfo?.notes,
     };
   }
 
@@ -502,6 +522,52 @@ export class SupabaseService {
       return [];
     }
     return data.map((r: any) => this.mapProfileFromRow(r));
+  }
+
+  static async updateMatchDesignation(
+    matchId: string,
+    refereeName: string,
+    designation: MatchDesignation
+  ): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const payload = {
+      referee_name: refereeName || 'Arbitro Designato',
+      observations: JSON.stringify(designation),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from('matches')
+      .update(payload)
+      .eq('id', matchId);
+
+    if (error) {
+      console.warn('Errore salvataggio designazione su Supabase matches:', error.message);
+      return false;
+    }
+    return true;
+  }
+
+  static async removeMatchDesignation(matchId: string): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const { error } = await supabase
+      .from('matches')
+      .update({
+        referee_name: 'Da designare',
+        observations: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', matchId);
+
+    if (error) {
+      console.warn('Errore rimozione designazione su Supabase matches:', error.message);
+      return false;
+    }
+    return true;
   }
 
   static async insertVideo(video: VideoClip): Promise<void> {

@@ -25,6 +25,7 @@ import {
   Flame,
   Activity,
   UserCheck,
+  RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
 import { DbService } from '@/lib/repository/db-service';
@@ -65,6 +66,29 @@ export default function DesignazioniPage() {
 
   const [isPreparaGaraOpen, setIsPreparaGaraOpen] = useState(false);
   const [preparaGaraMatch, setPreparaGaraMatch] = useState<Match | null>(null);
+
+  const [syncingCloud, setSyncingCloud] = useState(false);
+  const [syncNotice, setSyncNotice] = useState<string | null>(null);
+
+  const handleSyncWithCloud = async () => {
+    setSyncingCloud(true);
+    setSyncNotice(null);
+    try {
+      const ok = await DbService.syncWithSupabase();
+      loadData();
+      if (ok) {
+        setSyncNotice('Designazioni sincronizzate con successo con Supabase Cloud!');
+      } else {
+        setSyncNotice('Sincronizzazione completata.');
+      }
+      setTimeout(() => setSyncNotice(null), 4000);
+    } catch {
+      setSyncNotice('Errore durante la sincronizzazione cloud.');
+      setTimeout(() => setSyncNotice(null), 4000);
+    } finally {
+      setSyncingCloud(false);
+    }
+  };
 
   const loadData = useCallback(() => {
     const list = DbService.getDesignatedMatches(currentUserId);
@@ -291,6 +315,16 @@ export default function DesignazioniPage() {
           {/* Quick Actions */}
           <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
             <button
+              onClick={handleSyncWithCloud}
+              disabled={syncingCloud}
+              title="Sincronizza designazioni con Supabase Cloud (allinea PC e Cellulare)"
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-[#141824] hover:bg-[#1D2335] text-slate-200 hover:text-[#CCFF00] font-bold text-xs border border-[#212638] transition-all cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncingCloud ? 'animate-spin text-[#CCFF00]' : 'text-slate-400'}`} />
+              <span>{syncingCloud ? 'Sincronizzazione...' : 'Sincronizza Cloud'}</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('ALL_MATCHES')}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-[#CCFF00] hover:bg-[#d8ff33] text-black font-black text-xs transition-all shadow-[0_0_20px_rgba(204,255,0,0.35)] active:scale-95 cursor-pointer"
             >
@@ -306,6 +340,13 @@ export default function DesignazioniPage() {
             </Link>
           </div>
         </div>
+
+        {syncNotice && (
+          <div className="mt-4 p-3 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-xs font-bold text-[#CCFF00] flex items-center gap-2 animate-in fade-in duration-200">
+            <CheckCircle2 className="w-4 h-4 text-[#CCFF00] shrink-0" />
+            <span>{syncNotice}</span>
+          </div>
+        )}
       </div>
 
       {/* 2. REFEREE PERSONAL KPI GRID */}
