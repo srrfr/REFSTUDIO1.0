@@ -1,6 +1,7 @@
 [
   {
     "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Dirigenti",
     "nome": "BALDUCCI CLAUDIO",
     "squadra": "PIETRACUTA A.S.D.",
@@ -11,6 +12,7 @@
   },
   {
     "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Calciatore (Espulso)",
     "nome": "YENER EMIN",
     "squadra": "CAMPAGNOLA",
@@ -21,6 +23,7 @@
   },
   {
     "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Allenatori",
     "nome": "LASAGNI OSCAR",
     "squadra": "SAN MARINO CALCIO",
@@ -31,6 +34,7 @@
   },
   {
     "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Calciatore (Espulso)",
     "nome": "BUCEAC ANDREI",
     "squadra": "SAN MARINO CALCIO",
@@ -41,6 +45,7 @@
   },
   {
     "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Calciatore (Espulso)",
     "nome": "RIZZO LUIGI",
     "squadra": "INTER SM SAMMAURESE",
@@ -51,6 +56,7 @@
   },
   {
     "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Calciatore (Espulso)",
     "nome": "FIORINI FILIPPO",
     "squadra": "S.AGOSTINO A.S.D.",
@@ -61,6 +67,7 @@
   },
   {
     "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Calciatore (Espulso)",
     "nome": "TESSE DIEGO",
     "squadra": "SAN MARINO CALCIO",
@@ -71,6 +78,7 @@
   },
   {
     "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Calciatore (Espulso)",
     "nome": "CORTESI LORENZO",
     "squadra": "SANPAIMOLA",
@@ -80,7 +88,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "PREVIATO MANUEL",
     "squadra": "CAMPAGNOLA",
@@ -90,7 +99,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "YENER EMIN",
     "squadra": "CAMPAGNOLA",
@@ -100,7 +110,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "CAVALLANTI KEVIN",
     "squadra": "CASTELLANA FONTANA",
@@ -110,7 +121,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "NEGRI CHRISTIAN",
     "squadra": "CASTELLANA FONTANA",
@@ -120,7 +132,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "DI GESU RICCARDO",
     "squadra": "CASTELLARANO",
@@ -130,7 +143,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "ZAFFERRI RICCARDO",
     "squadra": "CASTELLARANO",
@@ -140,7 +154,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "ABUSOGLU KUBILAY",
     "squadra": "MEDOLLA SAN FELICE A.S.D.",
@@ -150,7 +165,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "DOTTI RICCARDO",
     "squadra": "MEDOLLA SAN FELICE A.S.D.",
@@ -160,7 +176,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "LEOZAPPA LORENZO",
     "squadra": "MEDOLLA SAN FELICE A.S.D.",
@@ -170,7 +187,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "DIMILTA RYAN KEVIN",
     "squadra": "SAVIGNANESE",
@@ -180,7 +198,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "BOVO ALESSIO",
     "squadra": "VALSANTERNO 2009",
@@ -190,7 +209,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "FIENGO FABIO",
     "squadra": "VALSANTERNO 2009",
@@ -200,7 +220,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "ZANINI ALEX",
     "squadra": "VALSANTERNO 2009",
@@ -210,7 +231,8 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "DIFFIDA",
+    "tipo": "DIFFIDA_COPPA",
+    "competizione": "COPPA ITALIA ECCELLENZA",
     "ruolo": "CALCIATORE",
     "nome": "COBO LUKA",
     "squadra": "VIS NOVAFELTRIA CALCIO",
@@ -220,273 +242,311 @@
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7629/cu27.pdf"
   },
   {
-    "tipo": "STAFF_INIBIZIONE",
-    "ruolo": "Dirigenti",
-    "nome": "FINI MASSIMO",
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "FERRARA SALVATORE",
     "squadra": "CASTELLARANO",
-    "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 9/10/2026",
-    "motivo": "Per comportamento non regolamentare.",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Allenatori",
-    "nome": "LUPPI GIANLUCA",
-    "squadra": "MEDOLLA SAN FELICE A.S.D.",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
     "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Allenatori",
-    "nome": "MELOTTI VITO",
-    "squadra": "OSTERIA GRANDE A.S.D.",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
+    "comunicato": "CU n. 30",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
   },
   {
     "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
     "ruolo": "Calciatore (Espulso)",
-    "nome": "PICCIRILLO MICHELE",
+    "nome": "JAMMEH MARK",
+    "squadra": "CASTENASO CALCIO",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 30",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "MISURACA SAMUELE",
+    "squadra": "INTER SM SAMMAURESE",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 30",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "AJDINI ARNOLD",
+    "squadra": "PONTENURESE",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 30",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "ORLANDI MATTEO",
+    "squadra": "S.AGOSTINO A.S.D.",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 30",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "PIAGNI ANDREA",
+    "squadra": "AGAZZANESE",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "Per comportamento non regolamentare al termine della gara, inoltre rivolgeva espressioni ingiuriose",
+    "comunicato": "CU n. 30",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Dirigenti",
+    "nome": "MANFREDINI MATTIA",
+    "squadra": "CAMPAGNOLA",
+    "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 7/10/2026",
+    "motivo": "Per proteste nei confronti del direttore di gara.",
+    "comunicato": "CU n. 34",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "CANDOLI ENRICO",
+    "squadra": "FRATTA TERME",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "",
+    "comunicato": "CU n. 34",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "BREVINI MATTIA",
+    "squadra": "BRESCELLO PICCARDO ASD",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "BUFFAGNI NICOLA",
+    "squadra": "ROLO FABBRICO",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "ROVATTI MATTEO",
+    "squadra": "VIS CITTADELLA SRL",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Dirigenti",
+    "nome": "MANFREDINI MATTIA",
+    "squadra": "CAMPAGNOLA",
+    "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 19/11/2026",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "MANZOTTI LORENZO",
+    "squadra": "ARCETANA",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "ABIBA MAROUAN",
+    "squadra": "VALSANTERNO 2009",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "COLLEY LAMIN",
+    "squadra": "CAMPAGNOLA",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "SAPORI THOMAS",
+    "squadra": "PIETRACUTA A.S.D.",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "RICCI MANUEL",
+    "squadra": "ARS ET LABOR FERRARA",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "RICCI MANUEL",
+    "squadra": "ARS ET LABOR FERRARA",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "",
+    "comunicato": "CU n. 38",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "CALCIATORE",
+    "nome": "GASPERI MATTEO",
+    "squadra": "IMOLESE FOOTBALL CLUB SSD",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Dirigenti",
+    "nome": "D ANGELI SALVATORE",
+    "squadra": "SAN MARINO CALCIO",
+    "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 28/10/2026",
+    "motivo": "Per gravi proteste nei confronti dell'Arbitro.",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Massaggiatori",
+    "nome": "CIARROCCHI MATTIA",
+    "squadra": "F.C.YOUNG SANTARCANGELO",
+    "sanzione": "INIBIZIONE FINO AL 28/10/2026",
+    "motivo": "Per aver rivolto espressioni ingiuriose nei confronti di un calciatore avversario.",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "SETTI JACOPO",
+    "squadra": "CASTELLARANO",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "MURA ENRICO",
+    "squadra": "CASTENASO CALCIO",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "PAPA SOTIRI",
+    "squadra": "SAN MARINO CALCIO",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "CHIELLINI CRISTIANO DANIE",
+    "squadra": "AGAZZANESE",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "NEGRI CHRISTIAN",
+    "squadra": "CASTELLANA FONTANA",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "ROBERI VOTA SERAFIN",
     "squadra": "VIANESE CALCIO SSDARL",
     "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
     "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "SQUALIFICA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "CAVALLANTI KEVIN",
-    "squadra": "CASTELLANA FONTANA",
-    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (II INFR)",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "SQUALIFICA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "DI GESU RICCARDO",
-    "squadra": "CASTELLARANO",
-    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (II INFR)",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "SQUALIFICA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "ABUSOGLU KUBILAY",
-    "squadra": "MEDOLLA SAN FELICE A.S.D.",
-    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (II INFR)",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
   },
   {
     "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "AIOLFI THOMAS",
-    "squadra": "AGAZZANESE",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "DAPRATI LUCA",
-    "squadra": "AGAZZANESE",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "CRISTIAN MAXIM",
-    "squadra": "AGAZZANESE",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "PETROSINO CARLO",
-    "squadra": "ARCETANA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "ALIU GRASJAN",
-    "squadra": "ARS ET LABOR FERRARA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "ZUCCHINI GIANLUCA",
-    "squadra": "ARS ET LABOR FERRARA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "CUOGHI FILIPPO",
-    "squadra": "ATLETIC C.D.R. MUTINA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
     "nome": "GUEYE IBRAHIMA",
     "squadra": "BOBBIESE",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
     "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "MAFFEZZOLI MATTEO",
-    "squadra": "BRESCELLO PICCARDO ASD",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "BUONAIUTO ALESSANDRO",
-    "squadra": "CALCIO ZOLA PREDOSA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "DILETTO ROSARIO",
-    "squadra": "CALCIO ZOLA PREDOSA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "BERNAZZANI ALESSANDRO",
-    "squadra": "CASTELLANA FONTANA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "MONOPOLI MATTIA",
-    "squadra": "CASTELLANA FONTANA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "STANELLI ALESSANDRO",
-    "squadra": "CASTELLANA FONTANA",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "SIGHINOLFI CHRISTIAN",
-    "squadra": "CASTELLARANO",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "CASTELLACCI MARCO",
-    "squadra": "CASTENASO CALCIO",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "GHISELLI FABIO",
-    "squadra": "CASTENASO CALCIO",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "FUCHI LEONARDO",
-    "squadra": "F.C.YOUNG SANTARCANGELO",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "ZAGHINI LUCA",
-    "squadra": "F.C.YOUNG SANTARCANGELO",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
-  },
-  {
-    "tipo": "DIFFIDA",
-    "ruolo": "Calciatore (Non Espulso)",
-    "nome": "ANTONELLI NICOLA",
-    "squadra": "FRATTA TERME",
-    "sanzione": "I AMMONIZIONE DIFFIDA",
-    "motivo": "",
-    "comunicato": "CU n. 37",
-    "url_comunicato": "https://figccrer.it/files/announcements/2026/7716/cu37.pdf"
+    "comunicato": "CU n. 43",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
   }
 ]

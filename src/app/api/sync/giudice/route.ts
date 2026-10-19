@@ -33,6 +33,7 @@ export async function GET() {
     total: sanctions.length,
     squalifiche: sanctions.filter((s) => s.tipo === 'SQUALIFICA' || s.tipo === 'CALCIATORE_ESPULSO').length,
     diffide: sanctions.filter((s) => s.tipo === 'DIFFIDA').length,
+    diffideCoppa: sanctions.filter((s) => s.tipo === 'DIFFIDA_COPPA').length,
     staff: sanctions.filter((s) => s.tipo === 'STAFF_INIBIZIONE' || s.tipo === 'STAFF').length,
   };
 

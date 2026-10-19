@@ -215,7 +215,8 @@ def add_pages(writer, pdf_path, start_page, end_page):
 def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, cu_url):
     """
     Parser semantico a stati: estrae e struttura con precisione tutti i provvedimenti
-    (espulsioni, diffide, squalifiche, inibizioni) dall'intervallo di pagine di Eccellenza.
+    (espulsioni, diffide, squalifiche, inibizioni) dall'intervallo di pagine di Eccellenza,
+    distinguendo rigorosamente tra CAMPIONATO ECCELLENZA e COPPA ITALIA ECCELLENZA.
     """
     records = []
     try:
@@ -223,6 +224,7 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
     except Exception:
         return records
 
+    current_competition = "CAMPIONATO ECCELLENZA"
     current_role = "CALCIATORE"
     current_sanction = None
     prev_name = None
@@ -234,12 +236,25 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
         for line in page_lines:
             l_up = line.upper()
 
-            # Stop se inizia un'altra categoria
-            if any(stop in l_up for stop in [
-                "CAMPIONATO PROMOZIONE", "COPPA ITALIA PROMOZIONE",
-                "CAMPIONATO PRIMA CATEGORIA", "SETTORE GIOVANILE"
-            ]):
-                break
+            # Riconoscimento competizione corrente
+            if "COPPA ITALIA ECCELLENZA" in l_up:
+                current_competition = "COPPA ITALIA ECCELLENZA"
+                current_sanction = None
+                prev_name = None
+                continue
+            elif "CAMPIONATO ECCELLENZA" in l_up:
+                current_competition = "CAMPIONATO ECCELLENZA"
+                current_sanction = None
+                prev_name = None
+                continue
+
+            # Stop quando comincia la Giustizia Sportiva di un'altra categoria (es. Promozione, Prima Categoria, ecc.)
+            if ("CAMPIONATO" in l_up or "COPPA ITALIA" in l_up or "COPPA EMILIA" in l_up) and "ECCELLENZA" not in l_up:
+                if any(other in l_up for other in [
+                    "PROMOZIONE", "PRIMA CATEGORIA", "SECONDA CATEGORIA",
+                    "JUNIORES", "CALCIO A 5", "CALCIO FEMMINILE"
+                ]):
+                    break
 
             # Intestazioni Ruolo Staff o Calciatori
             if any(h in l_up for h in ["DIRIGENTI", "ALLENATORI", "MASSAGGIATORI", "MEDICI"]):
@@ -274,10 +289,16 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
             if m_single and current_sanction:
                 cand_name = m_single.group(1).strip()
                 cand_team = m_single.group(2).strip()
-                if len(cand_name) >= 3 and not cand_name.startswith("GARE DEL") and not cand_name.startswith("CAMPIONATO"):
-                    tipo = determine_tipo(current_sanction, current_role)
+                if (
+                    len(cand_name) >= 3
+                    and not cand_name.startswith("GARE DEL")
+                    and not cand_name.startswith("CAMPIONATO")
+                    and not cand_name.startswith("COPPA")
+                ):
+                    tipo = determine_tipo(current_sanction, current_role, current_competition)
                     rec = {
                         "tipo": tipo,
+                        "competizione": current_competition,
                         "ruolo": current_role,
                         "nome": cand_name,
                         "squadra": cand_team,
@@ -296,10 +317,16 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
             if m_team and prev_name and current_sanction:
                 cand_team = m_team.group(1).strip()
                 cand_name = prev_name.strip()
-                if len(cand_name) >= 3 and not cand_name.startswith("GARE DEL") and not cand_name.startswith("CAMPIONATO"):
-                    tipo = determine_tipo(current_sanction, current_role)
+                if (
+                    len(cand_name) >= 3
+                    and not cand_name.startswith("GARE DEL")
+                    and not cand_name.startswith("CAMPIONATO")
+                    and not cand_name.startswith("COPPA")
+                ):
+                    tipo = determine_tipo(current_sanction, current_role, current_competition)
                     rec = {
                         "tipo": tipo,
+                        "competizione": current_competition,
                         "ruolo": current_role,
                         "nome": cand_name,
                         "squadra": cand_team,
@@ -318,24 +345,30 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 re.match(r"^[A-Z\s\'.]{3,}$", line)
                 and not any(line.startswith(p) for p in [
                     "GARE DEL", "PROVVEDIMENTI", "IL GIUDICE", "IN BASE",
-                    "CAMPIONATO", "COPPA", "ART.", "COMITATO", "RECLAMO"
+                    "CAMPIONATO", "COPPA", "ART.", "COMITATO", "RECLAMO", "DELIBERE"
                 ])
             ):
                 prev_name = line
                 continue
 
-            # Eventuale motivazione aggiuntiva associata all'ultimo record inserito (es. "Per proteste...")
+            # Eventuale motivazione aggiuntiva associata all'ultimo record inserito
             if prev_record_idx is not None and (line.startswith("Per ") or line.startswith("per ")):
                 records[prev_record_idx]["motivo"] = line.strip()
 
     return records
 
 
-def determine_tipo(sanction_str, role_str):
+def determine_tipo(sanction_str, role_str, competition_str=""):
     s_up = sanction_str.upper()
     r_up = role_str.upper()
+    c_up = competition_str.upper()
+
     if "DIFFIDA" in s_up:
+        # Se la diffida è maturata in Coppa Italia, la distinguiamo come DIFFIDA_COPPA
+        if "COPPA" in c_up:
+            return "DIFFIDA_COPPA"
         return "DIFFIDA"
+
     if any(h in r_up for h in ["DIRIGENTI", "ALLENATORI", "MASSAGGIATORI", "MEDICI"]) or "INIBIZIONE" in s_up:
         return "STAFF_INIBIZIONE"
     if "SQUALIFICA" in s_up:
@@ -347,6 +380,8 @@ def sync_disciplinary_with_app(all_sanctions):
     """
     Aggiorna lo stato disciplinare dei calciatori e i profili squadra
     nel database locale (data/db-state.json e src/data/dataset.json).
+    REQUISITO: La dicitura DIFFIDATO viene inserita e considerata SOLO se il
+    provvedimento è relativo al solo CAMPIONATO ECCELLENZA e NON alla COPPA ITALIA ECCELLENZA.
     """
     db_state_path = ROOT_DIR / "data" / "db-state.json"
     dataset_path = ROOT_DIR / "src" / "data" / "dataset.json"
@@ -367,6 +402,27 @@ def sync_disciplinary_with_app(all_sanctions):
     if not players:
         return 0
 
+    # 1. Reset e ricalcolo dello status disciplinare base dal campionato (Tuttocampo: >=4 gialli = DIFFIDATO)
+    # e rimozione delle vecchie note di diffida generate erroneamente dalla Coppa Italia
+    for p in players:
+        yc = int(p.get("yellowCards") or 0)
+        rc = int(p.get("redCards") or 0)
+        if rc > 0:
+            p["disciplinaryStatus"] = "SQUALIFICATO"
+        elif yc >= 4:
+            p["disciplinaryStatus"] = "DIFFIDATO"
+        else:
+            p["disciplinaryStatus"] = "REGOLARE"
+
+        curr_notes = p.get("refereeNotes") or ""
+        if "I AMMONIZIONE DIFFIDA" in curr_notes:
+            curr_notes = re.sub(
+                r"\|?\s*\[Giudice Sportivo CU n\. \d+\]: I AMMONIZIONE DIFFIDA\s*",
+                "",
+                curr_notes
+            ).strip(" |")
+            p["refereeNotes"] = curr_notes
+
     # Indicizza calciatori per nome normalizzato e squadra
     def norm(s):
         return re.sub(r"[^a-z0-9]", "", str(s or "").lower())
@@ -377,6 +433,12 @@ def sync_disciplinary_with_app(all_sanctions):
         s_nome = norm(sanz["nome"])
         s_squadra = norm(sanz["squadra"])
         tipo = sanz["tipo"]
+        comp = sanz.get("competizione", "").upper()
+
+        # ESCLUSIONE COPPA ITALIA PER DIFFIDE:
+        # Se la diffida è relativa alla Coppa Italia, NON applicare la dicitura DIFFIDATO
+        if tipo == "DIFFIDA_COPPA" or ("COPPA" in comp and "DIFFIDA" in tipo):
+            continue
 
         if tipo not in ["DIFFIDA", "SQUALIFICA"]:
             continue
@@ -393,11 +455,12 @@ def sync_disciplinary_with_app(all_sanctions):
             if name_match and team_match:
                 if tipo == "SQUALIFICA":
                     p["disciplinaryStatus"] = "SQUALIFICATO"
+                    nota_gs = f"[Giudice Sportivo {sanz['comunicato']}]: {sanz['sanzione']}"
                 elif tipo == "DIFFIDA" and p.get("disciplinaryStatus") != "SQUALIFICATO":
+                    # Solo da CAMPIONATO ECCELLENZA
                     p["disciplinaryStatus"] = "DIFFIDATO"
+                    nota_gs = f"[Giudice Sportivo {sanz['comunicato']}]: {sanz['sanzione']} (Campionato Eccellenza)"
 
-                # Aggiunge riferimento ufficiale nelle note dell'arbitro
-                nota_gs = f"[Giudice Sportivo {sanz['comunicato']}]: {sanz['sanzione']}"
                 curr_notes = p.get("refereeNotes") or ""
                 if nota_gs not in curr_notes:
                     p["refereeNotes"] = (curr_notes + " | " + nota_gs).strip(" |")
@@ -414,7 +477,7 @@ def sync_disciplinary_with_app(all_sanctions):
             with open(dataset_path, "w", encoding="utf-8") as f:
                 json.dump(db, f, ensure_ascii=False, indent=2)
 
-        print(f" [✓] Sincronizzati {matched_count} calciatori nel database dell'app!")
+        print(f" [✓] Sincronizzati {matched_count} provvedimenti disciplinari (diffide considerate ESCLUSIVAMENTE da Campionato)!")
     except Exception as e_w:
         print(f" [!] Errore salvataggio database app: {e_w}")
 

@@ -65,13 +65,13 @@ export default function AdminSyncPage() {
     pdfUrl: string;
     csvUrl: string;
     jsonUrl: string;
-    counts: { total: number; squalifiche: number; diffide: number; staff: number };
+    counts: { total: number; squalifiche: number; diffide: number; diffideCoppa?: number; staff: number };
     recentSanctions: any[];
     logSummary: string;
   } | null>(null);
   const [giudiceLoading, setGiudiceLoading] = useState(false);
   const [showSanctionsTable, setShowSanctionsTable] = useState(false);
-  const [sanctionFilter, setSanctionFilter] = useState<'ALL' | 'SQUALIFICA' | 'DIFFIDA' | 'STAFF'>('ALL');
+  const [sanctionFilter, setSanctionFilter] = useState<'ALL' | 'SQUALIFICA' | 'DIFFIDA' | 'DIFFIDA_COPPA' | 'STAFF'>('ALL');
 
   // Supabase Cloud State
   const [supabaseStatus, setSupabaseStatus] = useState<{
@@ -428,9 +428,12 @@ export default function AdminSyncPage() {
             </span>
           </div>
           <div className="p-3.5 bg-[#11141D] rounded-xl border border-[#212638]">
-            <span className="text-[10px] uppercase font-bold text-amber-400 block">Diffide (IV Infr.)</span>
+            <span className="text-[10px] uppercase font-bold text-amber-400 block">Diffide Campionato (IV Infr.)</span>
             <span className="text-xl font-black text-amber-400 font-mono">
               {giudiceStatus?.counts?.diffide ?? 0}
+            </span>
+            <span className="text-[10px] text-slate-500 block mt-0.5">
+              +{giudiceStatus?.counts?.diffideCoppa ?? 0} in Coppa (escluse)
             </span>
           </div>
           <div className="p-3.5 bg-[#11141D] rounded-xl border border-[#212638]">
@@ -449,7 +452,7 @@ export default function AdminSyncPage() {
               <span>Sincronizzazione Automatica Disciplinare</span>
             </div>
             <p className="text-[11px] text-slate-400 leading-relaxed">
-              Il parser abbina automaticamente i nominativi sanzionati alle rose delle squadre, aggiornando lo stato disciplinare (<strong className="text-rose-400">Squalificato</strong> e <strong className="text-amber-400">Diffidato</strong>) e annotando il numero del comunicato ufficiale nei profili arbitrali.
+              Il parser abbina automaticamente i nominativi sanzionati alle rose delle squadre, aggiornando lo stato disciplinare (<strong className="text-rose-400">Squalificato</strong> e <strong className="text-amber-400">Diffidato</strong>). Come richiesto dal regolamento sportivo, la dicitura <strong className="text-amber-400">DIFFIDATO</strong> viene inserita e considerata <strong>esclusivamente</strong> per i provvedimenti del <strong className="text-white">Campionato Eccellenza</strong> (escludendo le diffide a parte maturate in Coppa Italia).
             </p>
           </div>
 
@@ -482,8 +485,8 @@ export default function AdminSyncPage() {
               </button>
 
               {showSanctionsTable && (
-                <div className="flex items-center gap-1.5 text-[10px]">
-                  {(['ALL', 'SQUALIFICA', 'DIFFIDA', 'STAFF'] as const).map((f) => (
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                  {(['ALL', 'SQUALIFICA', 'DIFFIDA', 'DIFFIDA_COPPA', 'STAFF'] as const).map((f) => (
                     <button
                       key={f}
                       onClick={() => setSanctionFilter(f)}
@@ -493,7 +496,15 @@ export default function AdminSyncPage() {
                           : 'bg-[#141824] text-slate-400 hover:text-white border border-[#212638]'
                       }`}
                     >
-                      {f === 'ALL' ? 'Tutte' : f === 'STAFF' ? 'Staff' : f}
+                      {f === 'ALL'
+                        ? 'Tutte'
+                        : f === 'DIFFIDA'
+                        ? 'Diffide Campionato'
+                        : f === 'DIFFIDA_COPPA'
+                        ? 'Diffide Coppa Italia'
+                        : f === 'STAFF'
+                        ? 'Staff'
+                        : 'Squalifiche'}
                     </button>
                   ))}
                 </div>
@@ -506,6 +517,7 @@ export default function AdminSyncPage() {
                   <thead className="bg-[#11141D] text-slate-400 sticky top-0 border-b border-[#212638]">
                     <tr>
                       <th className="p-2.5 font-bold">Tipo</th>
+                      <th className="p-2.5 font-bold">Competizione</th>
                       <th className="p-2.5 font-bold">Nominativo</th>
                       <th className="p-2.5 font-bold">Squadra</th>
                       <th className="p-2.5 font-bold">Provvedimento Deliberato</th>
@@ -518,6 +530,7 @@ export default function AdminSyncPage() {
                         if (sanctionFilter === 'ALL') return true;
                         if (sanctionFilter === 'SQUALIFICA') return s.tipo === 'SQUALIFICA' || s.tipo === 'CALCIATORE_ESPULSO';
                         if (sanctionFilter === 'DIFFIDA') return s.tipo === 'DIFFIDA';
+                        if (sanctionFilter === 'DIFFIDA_COPPA') return s.tipo === 'DIFFIDA_COPPA';
                         if (sanctionFilter === 'STAFF') return s.tipo === 'STAFF_INIBIZIONE' || s.tipo === 'STAFF';
                         return true;
                       })
@@ -530,12 +543,23 @@ export default function AdminSyncPage() {
                               </span>
                             ) : s.tipo === 'DIFFIDA' ? (
                               <span className="text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded text-[10px]">
-                                Diffida
+                                Diffida (Campionato)
+                              </span>
+                            ) : s.tipo === 'DIFFIDA_COPPA' ? (
+                              <span className="text-amber-300/70 bg-amber-500/5 border border-amber-500/20 px-2 py-0.5 rounded text-[10px]">
+                                Diffida (Coppa Italia)
                               </span>
                             ) : (
                               <span className="text-purple-400 bg-purple-500/10 border border-purple-500/30 px-2 py-0.5 rounded text-[10px]">
                                 Staff Inibito
                               </span>
+                            )}
+                          </td>
+                          <td className="p-2.5 whitespace-nowrap">
+                            {s.competizione === 'CAMPIONATO ECCELLENZA' ? (
+                              <span className="text-[#CCFF00] font-bold text-[10px]">Campionato</span>
+                            ) : (
+                              <span className="text-slate-400 text-[10px]">Coppa Italia</span>
                             )}
                           </td>
                           <td className="p-2.5 font-bold text-white whitespace-nowrap">
