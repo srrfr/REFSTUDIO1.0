@@ -375,6 +375,7 @@ function PlayersContent() {
                     lastName={player.lastName}
                     photoUrl={player.photoUrl}
                     role={player.role}
+                    teamName={player.teamName}
                     size="sm"
                   />
                   <div>
@@ -451,6 +452,7 @@ function PlayersContent() {
                     lastName={selectedPlayer.lastName}
                     photoUrl={selectedPlayer.photoUrl}
                     role={selectedPlayer.role}
+                    teamName={selectedPlayer.teamName}
                     size="xl"
                     className="shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer"
                     onClick={() => setIsAvatarModalOpen(true)}
@@ -536,6 +538,7 @@ function PlayersContent() {
                     photoUrl={editForm.photoUrl}
                     role={editForm.role || selectedPlayer.role}
                     size="md"
+                    enableZoom={false}
                   />
                 </div>
               </div>

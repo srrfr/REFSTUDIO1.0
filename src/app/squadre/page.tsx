@@ -1730,6 +1730,7 @@ function SquadreContent() {
                                   lastName={player.lastName}
                                   photoUrl={player.photoUrl}
                                   role={player.role}
+                                  teamName={selectedTeam.name}
                                   size="sm"
                                 />
                                 <RoleBadge role={player.role} />
@@ -2212,6 +2213,7 @@ function SquadreContent() {
                               coachName={editTeamForm.coachName || selectedTeam.coachName}
                               coachPhotoUrl={editTeamForm.coachPhotoUrl}
                               size="md"
+                              enableZoom={false}
                             />
                           </div>
                         </div>
@@ -2226,6 +2228,7 @@ function SquadreContent() {
                             <CoachBadge
                               coachName={selectedTeam.coachName}
                               coachPhotoUrl={selectedTeam.coachPhotoUrl}
+                              teamName={selectedTeam.name}
                               size="md"
                               className="cursor-pointer"
                               onClick={() =>
@@ -2369,6 +2372,7 @@ function SquadreContent() {
                     lastName={selectedPlayer.lastName}
                     photoUrl={selectedPlayer.photoUrl}
                     role={selectedPlayer.role}
+                    teamName={selectedPlayer.teamName}
                     size="xl"
                     className="shadow-[0_0_12px_rgba(204,255,0,0.2)] cursor-pointer"
                     onClick={() =>
@@ -2475,6 +2479,7 @@ function SquadreContent() {
                     photoUrl={editPlayerForm.photoUrl}
                     role={editPlayerForm.role || selectedPlayer.role}
                     size="md"
+                    enableZoom={false}
                   />
                 </div>
               </div>

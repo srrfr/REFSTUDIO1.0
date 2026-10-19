@@ -92,7 +92,7 @@ export const AvatarUrlModal: React.FC<AvatarUrlModalProps> = ({
           typeLabel: 'Staff Tecnico',
           placeholder: 'https://esempio.com/foto-mister.jpg',
           previewBadge: (size: 'xl' | 'md' | 'sm') => (
-            <CoachBadge coachName={title} coachPhotoUrl={cleanPreviewUrl} size={size} />
+            <CoachBadge coachName={title} coachPhotoUrl={cleanPreviewUrl} size={size} enableZoom={false} />
           ),
         };
       case 'player':
@@ -113,6 +113,7 @@ export const AvatarUrlModal: React.FC<AvatarUrlModalProps> = ({
                 photoUrl={cleanPreviewUrl}
                 role={role}
                 size={size}
+                enableZoom={false}
               />
             );
           },

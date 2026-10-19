@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, ZoomIn } from 'lucide-react';
+import { ImageLightboxModal } from '@/components/modals/ImageLightboxModal';
 
 /**
  * Pulisce e normalizza gli URL delle immagini incollate dagli utenti:
@@ -41,8 +42,9 @@ interface TeamBadgeProps {
   logoUrl?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   showEditOverlay?: boolean;
+  enableZoom?: boolean;
 }
 
 export const TeamBadge: React.FC<TeamBadgeProps> = ({
@@ -52,8 +54,10 @@ export const TeamBadge: React.FC<TeamBadgeProps> = ({
   className = '',
   onClick,
   showEditOverlay = false,
+  enableZoom = false,
 }) => {
   const [imageError, setImageError] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const formattedUrl = formatImageUrl(logoUrl);
 
   // Resetta lo stato di errore ogni volta che l'URL cambia o viene aggiornato
@@ -74,38 +78,69 @@ export const TeamBadge: React.FC<TeamBadgeProps> = ({
 
   const hasImage = Boolean(formattedUrl && !imageError);
 
-  return (
-    <div
-      onClick={onClick}
-      className={`relative flex items-center justify-center font-black shrink-0 overflow-hidden select-none border transition-all ${
-        onClick ? 'cursor-pointer hover:border-[#CCFF00] group/teambadge active:scale-95' : ''
-      } ${
-        hasImage
-          ? 'bg-[#0E1118] border-[#252B3C] p-1'
-          : 'bg-[#141824] border-[#242A3C] text-[#CCFF00]'
-      } ${sizeClasses[size]} ${className}`}
-      title={cleanName}
-    >
-      {hasImage ? (
-        <img
-          key={formattedUrl}
-          src={formattedUrl}
-          alt={cleanName}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-contain"
-          onError={() => setImageError(true)}
-          loading="lazy"
-        />
-      ) : (
-        <span>{initials}</span>
-      )}
+  const handleClick = (e: React.MouseEvent) => {
+    if (hasImage && enableZoom) {
+      e.stopPropagation();
+      setIsLightboxOpen(true);
+      return;
+    }
+    if (onClick) {
+      onClick(e);
+    }
+  };
 
-      {showEditOverlay && (
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/teambadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit]">
-          <Camera className="w-3.5 h-3.5 text-[#CCFF00]" />
-        </div>
+  return (
+    <>
+      <div
+        onClick={handleClick}
+        className={`relative flex items-center justify-center font-black shrink-0 overflow-hidden select-none border transition-all ${
+          (hasImage && enableZoom) || onClick
+            ? 'cursor-pointer hover:border-[#CCFF00] group/teambadge active:scale-95'
+            : ''
+        } ${
+          hasImage
+            ? 'bg-[#0E1118] border-[#252B3C] p-1'
+            : 'bg-[#141824] border-[#242A3C] text-[#CCFF00]'
+        } ${sizeClasses[size]} ${className}`}
+        title={hasImage && enableZoom ? `${cleanName} (Clicca per ingrandire)` : cleanName}
+      >
+        {hasImage ? (
+          <img
+            key={formattedUrl}
+            src={formattedUrl}
+            alt={cleanName}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-contain"
+            onError={() => setImageError(true)}
+            loading="lazy"
+          />
+        ) : (
+          <span>{initials}</span>
+        )}
+
+        {hasImage && enableZoom && (
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/teambadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit] pointer-events-none">
+            <ZoomIn className="w-3.5 h-3.5 text-[#CCFF00] drop-shadow-md" />
+          </div>
+        )}
+
+        {showEditOverlay && !hasImage && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/teambadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit]">
+            <Camera className="w-3.5 h-3.5 text-[#CCFF00]" />
+          </div>
+        )}
+      </div>
+
+      {hasImage && enableZoom && (
+        <ImageLightboxModal
+          isOpen={isLightboxOpen}
+          onClose={() => setIsLightboxOpen(false)}
+          imageUrl={formattedUrl}
+          title={cleanName}
+          category="team"
+        />
       )}
-    </div>
+    </>
   );
 };
 
@@ -114,10 +149,12 @@ interface PlayerBadgeProps {
   lastName: string;
   photoUrl?: string;
   role?: string;
+  teamName?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   showEditOverlay?: boolean;
+  enableZoom?: boolean;
 }
 
 export const PlayerBadge: React.FC<PlayerBadgeProps> = ({
@@ -125,12 +162,15 @@ export const PlayerBadge: React.FC<PlayerBadgeProps> = ({
   lastName,
   photoUrl,
   role,
+  teamName,
   size = 'md',
   className = '',
   onClick,
   showEditOverlay = false,
+  enableZoom = true,
 }) => {
   const [imageError, setImageError] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const formattedUrl = formatImageUrl(photoUrl);
 
   // Resetta lo stato di errore ogni volta che l'URL cambia o viene aggiornato
@@ -147,60 +187,105 @@ export const PlayerBadge: React.FC<PlayerBadgeProps> = ({
 
   const initials = lastName ? lastName.substring(0, 2).toUpperCase() : 'CAL';
   const hasImage = Boolean(formattedUrl && !imageError);
+  const fullName = `${firstName} ${lastName}`.trim() || 'Calciatore';
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (hasImage && enableZoom) {
+      e.stopPropagation();
+      setIsLightboxOpen(true);
+      return;
+    }
+    if (onClick) {
+      onClick(e);
+    }
+  };
 
   return (
-    <div
-      onClick={onClick}
-      className={`relative flex items-center justify-center font-black shrink-0 overflow-hidden select-none border transition-all ${
-        onClick ? 'cursor-pointer hover:border-[#CCFF00] group/playerbadge active:scale-95' : ''
-      } ${
-        hasImage
-          ? 'bg-[#0A0D15] border-[#252B3C]'
-          : 'bg-[#CCFF00]/15 border-[#CCFF00]/30 text-[#CCFF00]'
-      } ${sizeClasses[size]} ${className}`}
-      title={`${firstName} ${lastName}`.trim()}
-    >
-      {hasImage ? (
-        <img
-          key={formattedUrl}
-          src={formattedUrl}
-          alt={`${firstName} ${lastName}`}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
-          loading="lazy"
-        />
-      ) : (
-        <span>{initials}</span>
-      )}
+    <>
+      <div
+        onClick={handleClick}
+        className={`relative flex items-center justify-center font-black shrink-0 overflow-hidden select-none border transition-all ${
+          (hasImage && enableZoom) || onClick
+            ? 'cursor-pointer hover:border-[#CCFF00] group/playerbadge active:scale-95'
+            : ''
+        } ${
+          hasImage
+            ? 'bg-[#0A0D15] border-[#252B3C]'
+            : 'bg-[#CCFF00]/15 border-[#CCFF00]/30 text-[#CCFF00]'
+        } ${sizeClasses[size]} ${className}`}
+        title={
+          hasImage && enableZoom
+            ? `${fullName} (Clicca per ingrandire)`
+            : fullName
+        }
+      >
+        {hasImage ? (
+          <img
+            key={formattedUrl}
+            src={formattedUrl}
+            alt={fullName}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover transition-transform duration-200 group-hover/playerbadge:scale-105"
+            onError={() => setImageError(true)}
+            loading="lazy"
+          />
+        ) : (
+          <span>{initials}</span>
+        )}
 
-      {showEditOverlay && (
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/playerbadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit]">
-          <Camera className="w-3.5 h-3.5 text-[#CCFF00]" />
-        </div>
+        {/* Hover zoom cue for photos */}
+        {hasImage && enableZoom && (
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/playerbadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit] pointer-events-none">
+            <ZoomIn className="w-3.5 h-3.5 text-[#CCFF00] drop-shadow-md" />
+          </div>
+        )}
+
+        {/* Edit overlay icon for when showEditOverlay is requested and no photo yet */}
+        {showEditOverlay && !hasImage && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/playerbadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit]">
+            <Camera className="w-3.5 h-3.5 text-[#CCFF00]" />
+          </div>
+        )}
+      </div>
+
+      {hasImage && enableZoom && (
+        <ImageLightboxModal
+          isOpen={isLightboxOpen}
+          onClose={() => setIsLightboxOpen(false)}
+          imageUrl={formattedUrl}
+          title={fullName}
+          subtitle={teamName}
+          role={role}
+          category="player"
+        />
       )}
-    </div>
+    </>
   );
 };
 
 interface CoachBadgeProps {
   coachName?: string;
   coachPhotoUrl?: string;
+  teamName?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
-  onClick?: () => void;
+  onClick?: (e?: React.MouseEvent) => void;
   showEditOverlay?: boolean;
+  enableZoom?: boolean;
 }
 
 export const CoachBadge: React.FC<CoachBadgeProps> = ({
   coachName = 'Allenatore',
   coachPhotoUrl,
+  teamName,
   size = 'md',
   className = '',
   onClick,
   showEditOverlay = false,
+  enableZoom = true,
 }) => {
   const [imageError, setImageError] = useState(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const formattedUrl = formatImageUrl(coachPhotoUrl);
 
   // Resetta lo stato di errore ogni volta che l'URL cambia o viene aggiornato
@@ -215,40 +300,80 @@ export const CoachBadge: React.FC<CoachBadgeProps> = ({
     xl: 'w-12 h-12 text-sm rounded-2xl',
   };
 
-  const initials = coachName ? coachName.substring(0, 2).toUpperCase() : 'AL';
+  const cleanName = coachName || 'Allenatore';
+  const initials = cleanName ? cleanName.substring(0, 2).toUpperCase() : 'AL';
   const hasImage = Boolean(formattedUrl && !imageError);
 
-  return (
-    <div
-      onClick={onClick}
-      className={`relative flex items-center justify-center font-black shrink-0 overflow-hidden select-none border transition-all ${
-        onClick ? 'cursor-pointer hover:border-[#CCFF00] group/coachbadge active:scale-95' : ''
-      } ${
-        hasImage
-          ? 'bg-[#0A0D15] border-[#252B3C]'
-          : 'bg-[#181D2B] border-[#2B3349] text-amber-300'
-      } ${sizeClasses[size]} ${className}`}
-      title={coachName}
-    >
-      {hasImage ? (
-        <img
-          key={formattedUrl}
-          src={formattedUrl}
-          alt={coachName}
-          referrerPolicy="no-referrer"
-          className="w-full h-full object-cover"
-          onError={() => setImageError(true)}
-          loading="lazy"
-        />
-      ) : (
-        <span>{initials}</span>
-      )}
+  const handleClick = (e: React.MouseEvent) => {
+    if (hasImage && enableZoom) {
+      e.stopPropagation();
+      setIsLightboxOpen(true);
+      return;
+    }
+    if (onClick) {
+      onClick(e);
+    }
+  };
 
-      {showEditOverlay && (
-        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/coachbadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit]">
-          <Camera className="w-3.5 h-3.5 text-[#CCFF00]" />
-        </div>
+  return (
+    <>
+      <div
+        onClick={handleClick}
+        className={`relative flex items-center justify-center font-black shrink-0 overflow-hidden select-none border transition-all ${
+          (hasImage && enableZoom) || onClick
+            ? 'cursor-pointer hover:border-[#CCFF00] group/coachbadge active:scale-95'
+            : ''
+        } ${
+          hasImage
+            ? 'bg-[#0A0D15] border-[#252B3C]'
+            : 'bg-[#181D2B] border-[#2B3349] text-amber-300'
+        } ${sizeClasses[size]} ${className}`}
+        title={
+          hasImage && enableZoom
+            ? `${cleanName} (Clicca per ingrandire)`
+            : cleanName
+        }
+      >
+        {hasImage ? (
+          <img
+            key={formattedUrl}
+            src={formattedUrl}
+            alt={cleanName}
+            referrerPolicy="no-referrer"
+            className="w-full h-full object-cover transition-transform duration-200 group-hover/coachbadge:scale-105"
+            onError={() => setImageError(true)}
+            loading="lazy"
+          />
+        ) : (
+          <span>{initials}</span>
+        )}
+
+        {/* Hover zoom cue for photos */}
+        {hasImage && enableZoom && (
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/coachbadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit] pointer-events-none">
+            <ZoomIn className="w-3.5 h-3.5 text-[#CCFF00] drop-shadow-md" />
+          </div>
+        )}
+
+        {/* Edit overlay icon for when showEditOverlay is requested and no photo yet */}
+        {showEditOverlay && !hasImage && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/coachbadge:opacity-100 flex items-center justify-center transition-opacity text-white rounded-[inherit]">
+            <Camera className="w-3.5 h-3.5 text-[#CCFF00]" />
+          </div>
+        )}
+      </div>
+
+      {hasImage && enableZoom && (
+        <ImageLightboxModal
+          isOpen={isLightboxOpen}
+          onClose={() => setIsLightboxOpen(false)}
+          imageUrl={formattedUrl}
+          title={cleanName}
+          subtitle={teamName ? `${teamName} • Mister` : 'Mister / Allenatore'}
+          role="Allenatore"
+          category="coach"
+        />
       )}
-    </div>
+    </>
   );
 };

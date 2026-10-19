@@ -425,6 +425,7 @@ export default function DashboardPage() {
                     lastName={activeSpotlightPlayer.lastName}
                     photoUrl={activeSpotlightPlayer.photoUrl}
                     role={activeSpotlightPlayer.role}
+                    teamName={activeSpotlightPlayer.teamName}
                     size="xl"
                     className="shadow-md"
                   />
@@ -894,6 +895,7 @@ export default function DashboardPage() {
                     lastName={player.lastName}
                     photoUrl={player.photoUrl}
                     role={player.role}
+                    teamName={player.teamName}
                     size="md"
                   />
                   <div>

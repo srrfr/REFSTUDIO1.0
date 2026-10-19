@@ -451,6 +451,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                       <CoachBadge
                         coachName={team.coachName}
                         coachPhotoUrl={team.coachPhotoUrl}
+                        teamName={team.name}
                         size="sm"
                         className="cursor-pointer"
                         onClick={() =>
@@ -706,6 +707,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                             lastName={p.lastName}
                             photoUrl={p.photoUrl}
                             role={p.role}
+                            teamName={team.name}
                             size="md"
                             className="cursor-pointer shrink-0"
                             onClick={() => setSelectedPlayerForDossier(p)}
@@ -1166,6 +1168,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                                 lastName={p.lastName}
                                 photoUrl={p.photoUrl}
                                 role={p.role}
+                                teamName={team.name}
                                 size="sm"
                                 className="cursor-pointer"
                                 onClick={() =>
@@ -1804,6 +1807,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                       lastName={p.lastName}
                       photoUrl={p.photoUrl}
                       role={p.role}
+                      teamName={teamName}
                       size="md"
                     />
                     <div>
