@@ -25,6 +25,7 @@ import {
   Camera,
   ArrowUpDown,
   Clock,
+  Award,
 } from 'lucide-react';
 import {
   RosterSortField,
@@ -240,9 +241,9 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
     const homePlayers = DbService.getPlayers(homeTeam.id);
     const awayPlayers = DbService.getPlayers(awayTeam.id);
 
-    // Notes
-    const homeNotes = DbService.getNotes('squadra', homeTeam.id, user?.username);
-    const awayNotes = DbService.getNotes('squadra', awayTeam.id, user?.username);
+    // Notes (Squadra, Allenatore e Dirigenti/Staff)
+    const homeNotes = DbService.getNotes(undefined, homeTeam.id, user?.username);
+    const awayNotes = DbService.getNotes(undefined, awayTeam.id, user?.username);
     const matchNotes = DbService.getNotes('partita', match.id, user?.username);
 
     // Videos
@@ -491,6 +492,15 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                     <BenchAttitudeBadge attitude={team.benchAttitude} size="xs" />
                   </span>
                 )}
+                {(() => {
+                  const staffCount = notes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente').length;
+                  if (staffCount === 0) return null;
+                  return (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-300 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full ml-1">
+                      <Users className="w-2.5 h-2.5" /> {staffCount} note staff/mister
+                    </span>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -568,7 +578,20 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                   className="rounded-xl bg-[#11141D] border border-[#212638] p-4 space-y-2.5 hover:border-[#CCFF00]/40 transition-all"
                 >
                   <div className="flex items-center justify-between text-xs text-slate-400 border-b border-[#1C2232] pb-2">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {n.targetType === 'allenatore' ? (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                          <Award className="w-2.5 h-2.5 text-amber-400" /> Mister {team.coachName || 'Allenatore'}
+                        </span>
+                      ) : n.targetType === 'dirigente' ? (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                          <Users className="w-2.5 h-2.5 text-cyan-400" /> {n.targetName || 'Dirigente'}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#181C28] text-slate-300 border border-[#262C3D]">
+                          Squadra
+                        </span>
+                      )}
                       <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-[#181C28] text-slate-300 border border-[#262C3D]">
                         {n.priority}
                       </span>

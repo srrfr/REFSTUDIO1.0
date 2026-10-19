@@ -61,6 +61,7 @@ import { TagBadge } from '@/components/common/TagBadge';
 import { TeamBadge, PlayerBadge, CoachBadge } from '@/components/common/AvatarBadge';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
+import { StaffNoteModal } from '@/components/modals/StaffNoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { AvatarUrlModal } from '@/components/modals/AvatarUrlModal';
@@ -204,6 +205,11 @@ function SquadreContent() {
   const [noteModalTargetName, setNoteModalTargetName] = useState('');
   const [editingNote, setEditingNote] = useState<Note | null>(null);
 
+  // Staff / Coach Note Modal state (Profilo Arbitrale)
+  const [staffNotes, setStaffNotes] = useState<Note[]>([]);
+  const [isStaffNoteModalOpen, setIsStaffNoteModalOpen] = useState(false);
+  const [editingStaffNote, setEditingStaffNote] = useState<Note | null>(null);
+
   // Video Modal state
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [videoModalTargetType, setVideoModalTargetType] = useState<'squadra' | 'giocatore'>('squadra');
@@ -295,7 +301,11 @@ function SquadreContent() {
         setSelectedTeam(freshTeam);
       }
       setTeamRoster(DbService.getPlayers(currentTeam.id));
-      setTeamNotes(DbService.getNotes('squadra', currentTeam.id, user?.username));
+      const allTeamNotes = DbService.getNotes(undefined, currentTeam.id, user?.username);
+      setTeamNotes(allTeamNotes.filter((n) => n.targetType === 'squadra'));
+      setStaffNotes(
+        allTeamNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
+      );
       setTeamVideos(DbService.getVideos('squadra', currentTeam.id));
     }
 
@@ -326,6 +336,9 @@ function SquadreContent() {
           setAvatarModalState((prev) => ({ ...prev, isOpen: false }));
         } else if (isViewerOpen) {
           setIsViewerOpen(false);
+        } else if (isStaffNoteModalOpen) {
+          setIsStaffNoteModalOpen(false);
+          setEditingStaffNote(null);
         } else if (isNoteModalOpen) {
           setIsNoteModalOpen(false);
         } else if (isVideoModalOpen) {
@@ -339,7 +352,7 @@ function SquadreContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [avatarModalState.isOpen, isViewerOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer, selectedTeam, handleClosePlayer, handleCloseTeam]);
+  }, [avatarModalState.isOpen, isViewerOpen, isStaffNoteModalOpen, isNoteModalOpen, isVideoModalOpen, selectedPlayer, selectedTeam, handleClosePlayer, handleCloseTeam]);
 
   useEffect(() => {
     if (initialQ) {
@@ -397,7 +410,11 @@ function SquadreContent() {
     setRosterRoleFilter('ALL');
 
     setTeamRoster(DbService.getPlayers(team.id));
-    setTeamNotes(DbService.getNotes('squadra', team.id, user?.username));
+    const allNotes = DbService.getNotes(undefined, team.id, user?.username);
+    setTeamNotes(allNotes.filter((n) => n.targetType === 'squadra'));
+    setStaffNotes(
+      allNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
+    );
     setTeamVideos(DbService.getVideos('squadra', team.id));
   };
 
@@ -406,7 +423,11 @@ function SquadreContent() {
     const handleSync = () => {
       if (selectedTeam) {
         setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
-        setTeamNotes(DbService.getNotes('squadra', selectedTeam.id, user?.username));
+        const allNotes = DbService.getNotes(undefined, selectedTeam.id, user?.username);
+        setTeamNotes(allNotes.filter((n) => n.targetType === 'squadra'));
+        setStaffNotes(
+          allNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
+        );
       }
       if (selectedPlayer) {
         setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
@@ -548,12 +569,68 @@ function SquadreContent() {
         setPlayerNotes(DbService.getNotes('giocatore', selectedPlayer.id, user?.username));
       }
       if (selectedTeam && noteData.targetType === 'squadra') {
-        setTeamNotes(DbService.getNotes('squadra', selectedTeam.id, user?.username));
+        const allNotes = DbService.getNotes(undefined, selectedTeam.id, user?.username);
+        setTeamNotes(allNotes.filter((n) => n.targetType === 'squadra'));
+        setStaffNotes(
+          allNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
+        );
       }
       setIsNoteModalOpen(false);
       setEditingNote(null);
     } catch (err: any) {
       alert(err.message || 'Errore durante il salvataggio della nota');
+    }
+  };
+
+  const handleSaveStaffNote = (noteData: {
+    id?: string;
+    targetType: 'allenatore' | 'dirigente';
+    targetId: string;
+    targetName: string;
+    content: string;
+    priority: 'LOW' | 'NORMAL' | 'HIGH';
+    isPublic: boolean;
+  }) => {
+    try {
+      if (noteData.id) {
+        DbService.updateNote(noteData.id, noteData, user?.username);
+      } else {
+        DbService.addNote({
+          ...noteData,
+          authorId: user?.username || 'samueleromini',
+          authorName: user?.displayName || 'Arbitro',
+          authorRole: user?.refereeRole || 'AE',
+          authorAvatar: user?.avatarUrl || '',
+          authorSection: user?.sectionAia || '',
+        });
+      }
+
+      if (selectedTeam) {
+        const allNotes = DbService.getNotes(undefined, selectedTeam.id, user?.username);
+        setStaffNotes(
+          allNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
+        );
+      }
+      setIsStaffNoteModalOpen(false);
+      setEditingStaffNote(null);
+    } catch (err: any) {
+      alert(err.message || 'Errore durante il salvataggio della nota staff');
+    }
+  };
+
+  const handleDeleteStaffNote = async (noteId: string) => {
+    if (confirm('Sei sicuro di voler eliminare questa nota sullo staff?')) {
+      try {
+        await DbService.deleteNoteAsync(noteId, user?.username);
+        if (selectedTeam) {
+          const allNotes = DbService.getNotes(undefined, selectedTeam.id, user?.username);
+          setStaffNotes(
+            allNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
+          );
+        }
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questa nota.');
+      }
     }
   };
 
@@ -2329,6 +2406,174 @@ function SquadreContent() {
                         </button>
                       </div>
                     )}
+
+                    {/* Nuova Sezione: Note su Allenatore & Membri dello Staff */}
+                    <div className="pt-4 border-t border-[#1C2232] space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#CCFF00]" />
+                            Note su Allenatore & Membri dello Staff
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#1A2030] text-[#CCFF00] border border-[#2B354D]">
+                              {staffNotes.length}
+                            </span>
+                          </span>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Osservazioni comportamentali sul mister e sui dirigenti (con cognome del dirigente)
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingStaffNote(null);
+                            setIsStaffNoteModalOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all cursor-pointer self-start sm:self-auto shrink-0 active:scale-95"
+                        >
+                          <Plus className="w-4 h-4" /> Aggiungi Nota Staff / Mister
+                        </button>
+                      </div>
+
+                      {/* Lista Note Staff */}
+                      {staffNotes.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                          {staffNotes.map((note) => {
+                            const isCoach = note.targetType === 'allenatore';
+                            const isOwner = Boolean(
+                              !note.authorId ||
+                              (user?.username && note.authorId.toLowerCase().trim() === user.username.toLowerCase().trim()) ||
+                              user?.role === 'admin'
+                            );
+
+                            return (
+                              <div
+                                key={note.id}
+                                className="p-4 rounded-xl bg-[#090C13] border border-[#1E2436] hover:border-[#CCFF00]/40 transition-all space-y-2.5 relative group"
+                              >
+                                {/* Header Nota: Badge Soggetto + Priorità + Azioni */}
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    {isCoach ? (
+                                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-amber-500/15 text-amber-300 border border-amber-500/30 flex items-center gap-1.5 shadow-sm">
+                                        <Award className="w-3.5 h-3.5 text-amber-400" />
+                                        Mister {selectedTeam.coachName || 'Allenatore'}
+                                      </span>
+                                    ) : (
+                                      <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 shadow-sm">
+                                        <Users className="w-3.5 h-3.5 text-cyan-400" />
+                                        {note.targetName || 'Dirigente / Staff'}
+                                      </span>
+                                    )}
+
+                                    <span
+                                      className={`px-2 py-0.5 rounded text-[9px] font-mono font-black uppercase tracking-wider ${
+                                        note.priority === 'HIGH'
+                                          ? 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                                          : note.priority === 'LOW'
+                                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                                      }`}
+                                    >
+                                      {note.priority === 'HIGH'
+                                        ? 'Alta Priorità'
+                                        : note.priority === 'LOW'
+                                        ? 'Bassa'
+                                        : 'Normale'}
+                                    </span>
+
+                                    {note.isPublic === false ? (
+                                      <span className="flex items-center gap-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                        <Lock className="w-2.5 h-2.5 text-amber-400" /> Privata
+                                      </span>
+                                    ) : (
+                                      <span className="flex items-center gap-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30">
+                                        <Globe className="w-2.5 h-2.5 text-[#CCFF00]" /> Rete
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {isOwner && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setEditingStaffNote(note);
+                                          setIsStaffNoteModalOpen(true);
+                                        }}
+                                        className="p-1 rounded-lg text-slate-400 hover:text-[#CCFF00] hover:bg-[#141824] transition-all cursor-pointer"
+                                        title="Modifica Nota"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteStaffNote(note.id)}
+                                        className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                                        title="Elimina Nota"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Contenuto Nota */}
+                                <p className="text-slate-200 text-xs leading-relaxed whitespace-pre-line font-medium pt-0.5">
+                                  {note.content}
+                                </p>
+
+                                {/* Footer Nota: Autore e Data */}
+                                <div className="pt-2 border-t border-[#161B26] flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-300">
+                                      {note.authorName || note.authorId || 'Arbitro'}
+                                    </span>
+                                    {note.authorRole && (
+                                      <span className="px-1.5 py-0.2 rounded bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/20 font-black">
+                                        {note.authorRole}
+                                      </span>
+                                    )}
+                                    {note.authorSection && (
+                                      <span className="text-slate-500 hidden sm:inline">• {note.authorSection}</span>
+                                    )}
+                                  </div>
+                                  <span className="text-slate-500">
+                                    {new Date(note.createdAt).toLocaleDateString('it-IT', {
+                                      day: '2-digit',
+                                      month: '2-digit',
+                                      year: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-4 sm:p-5 rounded-xl bg-[#090C13] border border-dashed border-[#1E2436] flex flex-col items-center justify-center text-center space-y-2">
+                          <Users className="w-7 h-7 text-slate-600" />
+                          <div>
+                            <p className="text-xs font-bold text-slate-300">
+                              Nessuna nota registrata su allenatore o dirigenti
+                            </p>
+                            <p className="text-[11px] text-slate-500 max-w-md mt-0.5">
+                              Puoi inserire osservazioni sul comportamento del mister o dei membri dello staff (inserendo il cognome del dirigente se non si tratta dell&apos;allenatore) per preparare al meglio le direzioni di gara.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingStaffNote(null);
+                              setIsStaffNoteModalOpen(true);
+                            }}
+                            className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1C2232] text-[#CCFF00] hover:text-[#d8ff33] border border-[#252B3C] text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Inserisci la prima nota
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2877,6 +3122,20 @@ function SquadreContent() {
         initialTargetName={noteModalTargetName}
         existingNote={editingNote}
         onSave={handleSaveNote}
+      />
+
+      {/* Dedicated Staff & Coach Note Modal (Profilo Arbitrale) */}
+      <StaffNoteModal
+        isOpen={isStaffNoteModalOpen}
+        onClose={() => {
+          setIsStaffNoteModalOpen(false);
+          setEditingStaffNote(null);
+        }}
+        teamId={selectedTeam?.id || ''}
+        teamName={selectedTeam?.name || ''}
+        coachName={selectedTeam?.coachName}
+        existingNote={editingStaffNote}
+        onSave={handleSaveStaffNote}
       />
 
       {/* Video Modal */}
