@@ -33,6 +33,7 @@ import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { RatingStars } from '@/components/common/RatingStars';
 import { TeamBadge, PlayerBadge } from '@/components/common/AvatarBadge';
+import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
 import { PreparaGaraModal } from '@/components/modals/PreparaGaraModal';
 import { MediaViewerModal, MediaViewerItem } from '@/components/media/MediaViewerModal';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
@@ -96,10 +97,14 @@ export default function DashboardPage() {
     setAllTeams(teams);
     setRecentTeams(teams.slice(0, 4));
 
-    // Flagged players
+    // Flagged players: prioritizza squalificati, diffidati e profili con tag/cartellini
     const players = DbService.getPlayers();
     const flagged = players
-      .filter((p) => p.customTags.length > 0 || p.yellowCards >= 2 || p.redCards > 0)
+      .filter((p) => p.disciplinaryStatus === 'SQUALIFICATO' || p.disciplinaryStatus === 'DIFFIDATO' || p.customTags.length > 0 || p.yellowCards >= 2 || p.redCards > 0)
+      .sort((a, b) => {
+        const order = { SQUALIFICATO: 1, DIFFIDATO: 2, IN_DUBBIO: 3, REGOLARE: 4 };
+        return (order[a.disciplinaryStatus] || 4) - (order[b.disciplinaryStatus] || 4);
+      })
       .slice(0, 6);
     setFlaggedPlayers(flagged);
     if (flagged.length > 0) {
@@ -887,10 +892,17 @@ export default function DashboardPage() {
             {flaggedPlayers.slice(0, 4).map((player) => (
               <div
                 key={player.id}
-                className="p-3.5 rounded-xl bg-[#12151E] border border-[#212638] hover:border-[#CCFF00]/40 transition-all flex items-center justify-between group"
+                className={`p-3.5 rounded-xl border transition-all flex items-center justify-between group ${
+                  player.disciplinaryStatus === 'SQUALIFICATO'
+                    ? 'bg-rose-950/20 border-rose-500/50 hover:border-rose-400'
+                    : player.disciplinaryStatus === 'DIFFIDATO'
+                    ? 'bg-amber-950/20 border-amber-500/50 hover:border-amber-400'
+                    : 'bg-[#12151E] border border-[#212638] hover:border-[#CCFF00]/40'
+                }`}
               >
-                <div className="flex items-center gap-3">
+                <div className="flex items-start gap-3 min-w-0">
                   <PlayerBadge
+                    player={player}
                     firstName={player.firstName}
                     lastName={player.lastName}
                     photoUrl={player.photoUrl}
@@ -898,14 +910,23 @@ export default function DashboardPage() {
                     teamName={player.teamName}
                     size="md"
                   />
-                  <div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
                         {player.firstName} {player.lastName}
                       </span>
                       <RoleBadge role={player.role} />
+                      <PlayerDisciplinaryAlert player={player} variant="badge" />
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">{player.teamName}</p>
+
+                    {/* Squalifica con motivazione o Alert Diffida */}
+                    {(player.disciplinaryStatus === 'SQUALIFICATO' || player.disciplinaryStatus === 'DIFFIDATO') && (
+                      <div className="mt-2 max-w-sm">
+                        <PlayerDisciplinaryAlert player={player} variant="compact" />
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {player.customTags.map((tag, idx) => (
                         <TagBadge key={idx} tag={tag} size="sm" />

@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Camera, ZoomIn } from 'lucide-react';
 import { ImageLightboxModal } from '@/components/modals/ImageLightboxModal';
+import { Player } from '@/types/refstudio';
 
 /**
  * Pulisce e normalizza gli URL delle immagini incollate dagli utenti:
@@ -150,6 +151,7 @@ interface PlayerBadgeProps {
   photoUrl?: string;
   role?: string;
   teamName?: string;
+  player?: Player;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   onClick?: (e?: React.MouseEvent) => void;
@@ -163,6 +165,7 @@ export const PlayerBadge: React.FC<PlayerBadgeProps> = ({
   photoUrl,
   role,
   teamName,
+  player,
   size = 'md',
   className = '',
   onClick,
@@ -257,6 +260,7 @@ export const PlayerBadge: React.FC<PlayerBadgeProps> = ({
           subtitle={teamName}
           role={role}
           category="player"
+          player={player}
         />
       )}
     </>

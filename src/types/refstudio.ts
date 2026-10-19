@@ -72,6 +72,15 @@ export interface Team {
   updatedAt?: string;
 }
 
+export interface PlayerDisciplinaryDetail {
+  tipo: 'SQUALIFICA' | 'DIFFIDA' | 'DIFFIDA_COPPA' | 'AMMONIZIONE';
+  sanzione: string;
+  motivo?: string;
+  comunicato?: string;
+  competizione?: string;
+  urlComunicato?: string;
+}
+
 export interface Player {
   id: string; // slug, e.g. "vianese-calcio-ascone-salvatore"
   teamId: string;
@@ -94,6 +103,7 @@ export interface Player {
   redCards: number;
   // Campi arbitrali
   disciplinaryStatus: DisciplinaryStatus;
+  disciplinaryDetails?: PlayerDisciplinaryDetail;
   customTags: RefereeCustomTag[];
   refereeNotes?: string;
   updatedAt?: string;

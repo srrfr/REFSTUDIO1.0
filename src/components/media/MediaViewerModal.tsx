@@ -52,6 +52,7 @@ import {
 } from '@/lib/services/veo-service';
 import { DbService } from '@/lib/repository/db-service';
 import { Note, Team, VideoClip, Player } from '@/types/refstudio';
+import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
 import { useAuth } from '@/lib/auth/auth-context';
 
 export interface MediaViewerItem {
@@ -1946,11 +1947,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                                         {player.lastName} {player.firstName}
                                       </span>
                                     </div>
-                                    <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                    <div className="flex flex-wrap items-center gap-1.5 text-[10px] text-slate-400">
                                       <span className="font-semibold">{player.role}</span>
-                                      {player.disciplinaryStatus === 'DIFFIDATO' && (
-                                        <span className="text-amber-400 font-bold">⚠️ Diffidato</span>
-                                      )}
+                                      <PlayerDisciplinaryAlert player={player} variant="badge" />
                                       {player.yellowCards > 0 && (
                                         <span className="text-amber-300">🟨 {player.yellowCards}</span>
                                       )}
@@ -1978,28 +1977,35 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
 
                       {/* Calciatore Attualmente Selezionato Card */}
                       {selectedPlayer && (
-                        <div className="flex items-center justify-between p-2.5 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/40 text-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-[#CCFF00] text-black font-black font-mono text-xs flex items-center justify-center">
-                              {selectedPlayer.kitNumber ? `#${selectedPlayer.kitNumber}` : selectedPlayer.role}
-                            </span>
-                            <div>
-                              <span className="font-black text-white">
-                                {selectedPlayer.lastName} {selectedPlayer.firstName}
+                        <div className="p-2.5 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/40 text-xs space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-lg bg-[#CCFF00] text-black font-black font-mono text-xs flex items-center justify-center">
+                                {selectedPlayer.kitNumber ? `#${selectedPlayer.kitNumber}` : selectedPlayer.role}
                               </span>
-                              <span className="text-slate-400 ml-1.5 font-medium">
-                                ({selectedPlayer.role} • {selectedPlayer.teamName})
-                              </span>
+                              <div>
+                                <span className="font-black text-white">
+                                  {selectedPlayer.lastName} {selectedPlayer.firstName}
+                                </span>
+                                <span className="text-slate-400 ml-1.5 font-medium">
+                                  ({selectedPlayer.role} • {selectedPlayer.teamName})
+                                </span>
+                              </div>
                             </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setSelectedPlayerId('')}
+                              className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
+                            >
+                              Cambia
+                            </button>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => setSelectedPlayerId('')}
-                            className="text-xs text-slate-400 hover:text-white underline cursor-pointer"
-                          >
-                            Cambia
-                          </button>
+                          {/* Provvedimenti Disciplinari: Squalifica con motivazione o Alert Diffida */}
+                          {(selectedPlayer.disciplinaryStatus === 'SQUALIFICATO' || selectedPlayer.disciplinaryStatus === 'DIFFIDATO') && (
+                            <PlayerDisciplinaryAlert player={selectedPlayer} variant="compact" />
+                          )}
                         </div>
                       )}
                     </div>

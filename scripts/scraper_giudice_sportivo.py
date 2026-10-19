@@ -351,9 +351,33 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 prev_name = line
                 continue
 
-            # Eventuale motivazione aggiuntiva associata all'ultimo record inserito
-            if prev_record_idx is not None and (line.startswith("Per ") or line.startswith("per ")):
-                records[prev_record_idx]["motivo"] = line.strip()
+            # Motivazione testuale associata all'ultimo record inserito (cattura anche frasi multilinea)
+            if prev_record_idx is not None:
+                is_header_or_name = (
+                    any(h in l_up for h in [
+                        "DIRIGENTI", "ALLENATORI", "MASSAGGIATORI", "MEDICI",
+                        "CALCIATORI ESPULSI", "CALCIATORI NON ESPULSI", "SOCIETA",
+                        "INIBIZIONE", "SQUALIFICA", "AMMONIZIONE",
+                        "GARE DEL", "CAMPIONATO", "COPPA"
+                    ])
+                    or re.match(r"^[A-Z\s\'.]{3,}$", line)
+                    or re.match(r"^\([^)]+\)$", line)
+                    or line.isdigit()
+                )
+
+                if not is_header_or_name:
+                    curr_motivo = records[prev_record_idx].get("motivo", "")
+                    records[prev_record_idx]["motivo"] = (curr_motivo + " " + line).strip()
+
+    # Assegna motivazioni contestuali predefinite se non esplicitate nel testo del bollettino
+    for r in records:
+        if not r.get("motivo"):
+            if "CALCIATORE (ESPULSO)" in r.get("ruolo", "").upper():
+                r["motivo"] = "Espulsione dal campo da parte del Direttore di Gara durante la partita"
+            elif "CALCIATORE (NON ESPULSO)" in r.get("ruolo", "").upper():
+                r["motivo"] = "Recidività in ammonizione (cumulo di cartellini gialli in campionato)"
+            elif r.get("tipo") == "DIFFIDA":
+                r["motivo"] = "IV infrazione per cumulo di ammonizioni in campionato (diffida attiva)"
 
     return records
 
@@ -382,6 +406,7 @@ def sync_disciplinary_with_app(all_sanctions):
     nel database locale (data/db-state.json e src/data/dataset.json).
     REQUISITO: La dicitura DIFFIDATO viene inserita e considerata SOLO se il
     provvedimento è relativo al solo CAMPIONATO ECCELLENZA e NON alla COPPA ITALIA ECCELLENZA.
+    Le squalifiche vengono salvate con la nota e motivazione.
     """
     db_state_path = ROOT_DIR / "data" / "db-state.json"
     dataset_path = ROOT_DIR / "src" / "data" / "dataset.json"
@@ -409,10 +434,25 @@ def sync_disciplinary_with_app(all_sanctions):
         rc = int(p.get("redCards") or 0)
         if rc > 0:
             p["disciplinaryStatus"] = "SQUALIFICATO"
+            p["disciplinaryDetails"] = {
+                "tipo": "SQUALIFICA",
+                "sanzione": "Squalifica per espulsione sul campo",
+                "motivo": "Cartellino rosso diretto o doppia ammonizione durante la gara",
+                "comunicato": "Referto Gara",
+                "competizione": "Campionato Eccellenza"
+            }
         elif yc >= 4:
             p["disciplinaryStatus"] = "DIFFIDATO"
+            p["disciplinaryDetails"] = {
+                "tipo": "DIFFIDA",
+                "sanzione": "Ammonizione con diffida (IV infrazione)",
+                "motivo": "Cumulo di 4 cartellini gialli in campionato (squalifica al prossimo giallo)",
+                "comunicato": "Statistiche Campionato",
+                "competizione": "Campionato Eccellenza"
+            }
         else:
             p["disciplinaryStatus"] = "REGOLARE"
+            p.pop("disciplinaryDetails", None)
 
         curr_notes = p.get("refereeNotes") or ""
         if "I AMMONIZIONE DIFFIDA" in curr_notes:
@@ -455,10 +495,29 @@ def sync_disciplinary_with_app(all_sanctions):
             if name_match and team_match:
                 if tipo == "SQUALIFICA":
                     p["disciplinaryStatus"] = "SQUALIFICATO"
+                    p["disciplinaryDetails"] = {
+                        "tipo": "SQUALIFICA",
+                        "sanzione": sanz["sanzione"],
+                        "motivo": sanz.get("motivo") or "Espulsione dal campo durante la gara",
+                        "comunicato": sanz["comunicato"],
+                        "competizione": sanz.get("competizione") or "Campionato Eccellenza",
+                        "urlComunicato": sanz.get("url_comunicato") or ""
+                    }
                     nota_gs = f"[Giudice Sportivo {sanz['comunicato']}]: {sanz['sanzione']}"
+                    if sanz.get("motivo"):
+                        nota_gs += f" - Motivo: {sanz['motivo']}"
+
                 elif tipo == "DIFFIDA" and p.get("disciplinaryStatus") != "SQUALIFICATO":
                     # Solo da CAMPIONATO ECCELLENZA
                     p["disciplinaryStatus"] = "DIFFIDATO"
+                    p["disciplinaryDetails"] = {
+                        "tipo": "DIFFIDA",
+                        "sanzione": sanz["sanzione"],
+                        "motivo": sanz.get("motivo") or "Cumulo di ammonizioni nel Campionato di Eccellenza (squalifica al prossimo giallo)",
+                        "comunicato": sanz["comunicato"],
+                        "competizione": "Campionato Eccellenza",
+                        "urlComunicato": sanz.get("url_comunicato") or ""
+                    }
                     nota_gs = f"[Giudice Sportivo {sanz['comunicato']}]: {sanz['sanzione']} (Campionato Eccellenza)"
 
                 curr_notes = p.get("refereeNotes") or ""

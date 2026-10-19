@@ -41,6 +41,7 @@ import {
 import { TagBadge } from '@/components/common/TagBadge';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TeamBadge, PlayerBadge, CoachBadge } from '@/components/common/AvatarBadge';
+import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
 import { BenchAttitudeBadge } from '@/components/common/BenchAttitudeBadge';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { VideoModal } from '@/components/modals/VideoModal';
@@ -268,15 +269,21 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
           const hasNotesOrClips = Boolean(summary?.hasMedia);
           const hasPersonalNotes = Boolean(p.refereeNotes && p.refereeNotes.trim());
           const hasTags = Boolean(p.customTags && p.customTags.length > 0);
-          const hasDisciplinary = (p.yellowCards && p.yellowCards >= 3) || (p.redCards && p.redCards >= 1);
+          const hasDisciplinary =
+            (p.yellowCards && p.yellowCards >= 3) ||
+            (p.redCards && p.redCards >= 1) ||
+            p.disciplinaryStatus === 'SQUALIFICATO' ||
+            p.disciplinaryStatus === 'DIFFIDATO';
 
           return hasNotesOrClips || hasPersonalNotes || hasTags || hasDisciplinary;
         })
         .sort((a, b) => {
+          const discA = a.disciplinaryStatus === 'SQUALIFICATO' ? 100 : a.disciplinaryStatus === 'DIFFIDATO' ? 50 : 0;
+          const discB = b.disciplinaryStatus === 'SQUALIFICATO' ? 100 : b.disciplinaryStatus === 'DIFFIDATO' ? 50 : 0;
           const summaryA = playersMediaMap?.get(a.id);
           const summaryB = playersMediaMap?.get(b.id);
-          const countA = (summaryA?.totalCount || 0) * 10 + (a.customTags?.length || 0) + (a.yellowCards || 0) + (a.redCards || 0) * 2;
-          const countB = (summaryB?.totalCount || 0) * 10 + (b.customTags?.length || 0) + (b.yellowCards || 0) + (b.redCards || 0) * 2;
+          const countA = discA + (summaryA?.totalCount || 0) * 10 + (a.customTags?.length || 0) + (a.yellowCards || 0) + (a.redCards || 0) * 2;
+          const countB = discB + (summaryB?.totalCount || 0) * 10 + (b.customTags?.length || 0) + (b.yellowCards || 0) + (b.redCards || 0) * 2;
           return countB - countA;
         });
     };
@@ -719,13 +726,20 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                 return (
                   <div
                     key={p.id}
-                    className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] space-y-3 hover:border-amber-400/40 transition-all shadow-md flex flex-col justify-between"
+                    className={`p-4 rounded-2xl border space-y-3 transition-all shadow-md flex flex-col justify-between ${
+                      p.disciplinaryStatus === 'SQUALIFICATO'
+                        ? 'bg-gradient-to-b from-rose-950/30 to-[#11141D] border-rose-500/50 hover:border-rose-400'
+                        : p.disciplinaryStatus === 'DIFFIDATO'
+                        ? 'bg-gradient-to-b from-amber-950/30 to-[#11141D] border-amber-500/50 hover:border-amber-400'
+                        : 'bg-[#11141D] border-[#212638] hover:border-amber-400/40'
+                    }`}
                   >
                     <div className="space-y-3">
                       {/* Riga Superiore: Avatar, Dati Calciatore, Cartellini & Badge */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <PlayerBadge
+                            player={p}
                             firstName={p.firstName}
                             lastName={p.lastName}
                             photoUrl={p.photoUrl}
@@ -747,12 +761,15 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                                 {team.name}
                               </span>
                             </div>
-                            <h5
-                              onClick={() => setSelectedPlayerForDossier(p)}
-                              className="font-bold text-sm sm:text-base text-white hover:text-[#CCFF00] transition-colors cursor-pointer mt-0.5"
-                            >
-                              {p.firstName} {p.lastName}
-                            </h5>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                              <h5
+                                onClick={() => setSelectedPlayerForDossier(p)}
+                                className="font-bold text-sm sm:text-base text-white hover:text-[#CCFF00] transition-colors cursor-pointer"
+                              >
+                                {p.firstName} {p.lastName}
+                              </h5>
+                              <PlayerDisciplinaryAlert player={p} variant="badge" />
+                            </div>
                           </div>
                         </div>
 
@@ -771,6 +788,11 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                           </span>
                         </div>
                       </div>
+
+                      {/* Provvedimenti Disciplinari: Squalifica con motivazione o Alert Diffida */}
+                      {(p.disciplinaryStatus === 'SQUALIFICATO' || p.disciplinaryStatus === 'DIFFIDATO') && (
+                        <PlayerDisciplinaryAlert player={p} variant="compact" />
+                      )}
 
                       {/* Tag Comportamentali (Proteste frequenti, da osservare, simulatore, ecc.) */}
                       {p.customTags && p.customTags.length > 0 && (
@@ -1187,6 +1209,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                           <div className="flex items-center gap-2.5">
                             <div className="relative group/playerlogo shrink-0">
                               <PlayerBadge
+                                player={p}
                                 firstName={p.firstName}
                                 lastName={p.lastName}
                                 photoUrl={p.photoUrl}
@@ -1225,10 +1248,11 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                               </button>
                             </div>
                             <RoleBadge role={p.role} />
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
                               <span className="font-bold text-white">
                                 {p.firstName} {p.lastName}
                               </span>
+                              <PlayerDisciplinaryAlert player={p} variant="badge" />
                               {(() => {
                                 const summary = playersMediaMap?.get(p.id);
                                 if (!summary || !summary.hasMedia) return null;
@@ -1826,6 +1850,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                 <div className="flex items-center justify-between p-4 sm:p-5 border-b border-[#1C2130] bg-[#0A0D15]">
                   <div className="flex items-center gap-3">
                     <PlayerBadge
+                      player={p}
                       firstName={p.firstName}
                       lastName={p.lastName}
                       photoUrl={p.photoUrl}
@@ -1843,9 +1868,12 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                         )}
                         <span className="text-xs text-slate-400 font-mono">{teamName}</span>
                       </div>
-                      <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
-                        {p.firstName} {p.lastName}
-                      </h3>
+                      <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                        <h3 className="text-base sm:text-lg font-black text-white">
+                          {p.firstName} {p.lastName}
+                        </h3>
+                        <PlayerDisciplinaryAlert player={p} variant="badge" />
+                      </div>
                     </div>
                   </div>
 
@@ -1860,6 +1888,8 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
 
                 {/* Contenuto Dossier */}
                 <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4">
+                  {/* Provvedimenti Disciplinari: Squalifiche (nota con motivazione) e Diffide (alert evidente) */}
+                  <PlayerDisciplinaryAlert player={p} variant="banner" />
                   {/* Statistiche Disciplinari e Generali */}
                   <div className="grid grid-cols-4 gap-2 text-center p-3 rounded-xl bg-[#11141D] border border-[#212638] text-xs font-mono">
                     <div>

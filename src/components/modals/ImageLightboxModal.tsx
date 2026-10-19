@@ -16,6 +16,8 @@ import {
   Award,
 } from 'lucide-react';
 import { RoleBadge } from '@/components/common/RoleBadge';
+import { Player } from '@/types/refstudio';
+import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
 
 export interface ImageLightboxModalProps {
   isOpen: boolean;
@@ -25,6 +27,7 @@ export interface ImageLightboxModalProps {
   subtitle?: string;
   role?: string;
   category?: 'player' | 'coach' | 'team';
+  player?: Player;
 }
 
 export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
@@ -35,6 +38,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   subtitle,
   role,
   category = 'player',
+  player,
 }) => {
   const [mounted, setMounted] = useState(false);
   const [isZoomed, setIsZoomed] = useState(false);
@@ -248,6 +252,13 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
             </div>
           )}
         </div>
+
+        {/* Provvedimenti Disciplinari: Squalifiche (nota con motivazione) e Diffide (alert evidente) */}
+        {category === 'player' && player && (
+          <div className="px-4 pb-2">
+            <PlayerDisciplinaryAlert player={player} variant="compact" />
+          </div>
+        )}
 
         {/* Footer info bar */}
         <div className="flex items-center justify-between px-5 py-3 border-t border-[#1E2333] bg-[#0A0D15]/80 text-[11px] text-slate-400">

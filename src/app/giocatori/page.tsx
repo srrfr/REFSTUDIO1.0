@@ -9,6 +9,7 @@ import { RoleBadge } from '@/components/common/RoleBadge';
 import { TagBadge } from '@/components/common/TagBadge';
 import { PlayerBadge } from '@/components/common/AvatarBadge';
 import { PlayerNotesBadge } from '@/components/common/PlayerNotesBadge';
+import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
 import { buildPlayersMediaMap } from '@/lib/utils/player-notes';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
@@ -319,6 +320,17 @@ function PlayersContent() {
               </option>
             ))}
           </select>
+
+          <select
+            value={disciplinaryFilter}
+            onChange={(e) => setDisciplinaryFilter(e.target.value)}
+            className="w-full sm:w-auto bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-[#CCFF00]"
+          >
+            <option value="ALL">Tutti gli Stati Disciplinari</option>
+            <option value="DIFFIDATO">⚠️ Solo Diffidati (Alert)</option>
+            <option value="SQUALIFICATO">🔴 Solo Squalificati (Note GS)</option>
+            <option value="REGOLARE">Regolari</option>
+          </select>
         </div>
       </div>
 
@@ -348,13 +360,23 @@ function PlayersContent() {
           </button>
           <button
             onClick={() => setDisciplinaryFilter(disciplinaryFilter === 'DIFFIDATO' ? 'ALL' : 'DIFFIDATO')}
-            className={`px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${
+            className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1 ${
               disciplinaryFilter === 'DIFFIDATO'
-                ? 'bg-[#CCFF00] text-black font-black border-[#CCFF00] shadow-[0_0_10px_rgba(204,255,0,0.4)]'
-                : 'bg-[#12151E] text-[#CCFF00] border-[#CCFF00]/30'
+                ? 'bg-amber-400 text-black font-black border-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.5)] scale-105'
+                : 'bg-[#12151E] text-amber-300 border-amber-500/40 hover:border-amber-400'
             }`}
           >
-            🟨 Diffidati
+            <span>⚠️</span> Diffidati
+          </button>
+          <button
+            onClick={() => setDisciplinaryFilter(disciplinaryFilter === 'SQUALIFICATO' ? 'ALL' : 'SQUALIFICATO')}
+            className={`px-2.5 py-0.5 rounded-lg text-[11px] font-bold border transition-all flex items-center gap-1 ${
+              disciplinaryFilter === 'SQUALIFICATO'
+                ? 'bg-rose-500 text-white font-black border-rose-500 shadow-[0_0_14px_rgba(244,63,94,0.5)] scale-105'
+                : 'bg-[#12151E] text-rose-300 border-rose-500/40 hover:border-rose-400'
+            }`}
+          >
+            <span>🔴</span> Squalificati
           </button>
         </div>
       </div>
@@ -365,12 +387,19 @@ function PlayersContent() {
           <div
             key={player.id}
             onClick={() => handleSelectPlayer(player)}
-            className="group cursor-pointer rounded-2xl bg-[#0D0F16] border border-[#1F2433] p-4 hover:border-[#CCFF00]/40 hover:shadow-xl transition-all flex flex-col justify-between space-y-3"
+            className={`group cursor-pointer rounded-2xl border p-4 transition-all flex flex-col justify-between space-y-3 ${
+              player.disciplinaryStatus === 'SQUALIFICATO'
+                ? 'bg-gradient-to-b from-[#180F14] to-[#0D0F16] border-rose-500/50 hover:border-rose-400 hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]'
+                : player.disciplinaryStatus === 'DIFFIDATO'
+                ? 'bg-gradient-to-b from-[#18130B] to-[#0D0F16] border-amber-500/50 hover:border-amber-400 hover:shadow-[0_0_20px_rgba(245,158,11,0.25)]'
+                : 'bg-[#0D0F16] border-[#1F2433] hover:border-[#CCFF00]/40 hover:shadow-xl'
+            }`}
           >
-            <div>
+            <div className="space-y-2.5">
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <PlayerBadge
+                    player={player}
                     firstName={player.firstName}
                     lastName={player.lastName}
                     photoUrl={player.photoUrl}
@@ -378,11 +407,12 @@ function PlayersContent() {
                     teamName={player.teamName}
                     size="sm"
                   />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <h3 className="font-bold text-sm text-white group-hover:text-[#CCFF00] transition-colors truncate">
                         {player.firstName} {player.lastName}
                       </h3>
+                      <PlayerDisciplinaryAlert player={player} variant="badge" />
                       {(() => {
                         const summary = playersMediaMap.get(player.id);
                         if (!summary || !summary.hasMedia) return null;
@@ -402,12 +432,19 @@ function PlayersContent() {
                 <RoleBadge role={player.role} />
               </div>
 
+              {/* Squalifica con motivazione o Alert Diffida evidente direttamente sulla card */}
+              {(player.disciplinaryStatus === 'SQUALIFICATO' || player.disciplinaryStatus === 'DIFFIDATO') && (
+                <PlayerDisciplinaryAlert player={player} variant="compact" />
+              )}
+
               {/* Tags */}
-              <div className="flex flex-wrap gap-1 mt-3">
-                {player.customTags.map((tag, idx) => (
-                  <TagBadge key={idx} tag={tag} size="sm" />
-                ))}
-              </div>
+              {player.customTags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {player.customTags.map((tag, idx) => (
+                    <TagBadge key={idx} tag={tag} size="sm" />
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Bottom stats */}
@@ -448,6 +485,7 @@ function PlayersContent() {
               <div className="flex items-center gap-3">
                 <div className="relative group/playerlogo">
                   <PlayerBadge
+                    player={selectedPlayer}
                     firstName={selectedPlayer.firstName}
                     lastName={selectedPlayer.lastName}
                     photoUrl={selectedPlayer.photoUrl}
@@ -517,6 +555,9 @@ function PlayersContent() {
                 </button>
               </div>
             </div>
+
+            {/* Provvedimenti Disciplinari: Squalifiche (nota con motivazione) e Diffide (alert evidente) */}
+            <PlayerDisciplinaryAlert player={selectedPlayer} variant="banner" />
 
             {/* Campo Modifica Foto Calciatore */}
             {isEditing && (

@@ -59,6 +59,7 @@ import { RatingStars } from '@/components/common/RatingStars';
 import { RoleBadge } from '@/components/common/RoleBadge';
 import { TagBadge } from '@/components/common/TagBadge';
 import { TeamBadge, PlayerBadge, CoachBadge } from '@/components/common/AvatarBadge';
+import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
 import { useAuth } from '@/lib/auth/auth-context';
 import { NoteModal } from '@/components/modals/NoteModal';
 import { StaffNoteModal } from '@/components/modals/StaffNoteModal';
@@ -1799,10 +1800,17 @@ function SquadreContent() {
 
                             <div
                               onClick={() => handleOpenPlayerFromRoster(player)}
-                              className="p-3.5 flex items-center justify-between text-xs hover:bg-[#CCFF00]/10 cursor-pointer transition-colors group"
+                              className={`p-3.5 flex items-center justify-between text-xs hover:bg-[#CCFF00]/10 cursor-pointer transition-colors group ${
+                                player.disciplinaryStatus === 'SQUALIFICATO'
+                                  ? 'bg-rose-950/20 hover:bg-rose-950/30 border-l-2 border-rose-500'
+                                  : player.disciplinaryStatus === 'DIFFIDATO'
+                                  ? 'bg-amber-950/20 hover:bg-amber-950/30 border-l-2 border-amber-400'
+                                  : ''
+                              }`}
                             >
-                              <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
                                 <PlayerBadge
+                                  player={player}
                                   firstName={player.firstName}
                                   lastName={player.lastName}
                                   photoUrl={player.photoUrl}
@@ -1811,11 +1819,12 @@ function SquadreContent() {
                                   size="sm"
                                 />
                                 <RoleBadge role={player.role} />
-                                <div>
-                                  <div className="flex items-center gap-2">
+                                <div className="min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     <span className="font-bold text-white group-hover:text-[#CCFF00] transition-colors">
                                       {player.lastName} {player.firstName}
                                     </span>
+                                    <PlayerDisciplinaryAlert player={player} variant="badge" />
                                     {(() => {
                                       const summary = rosterMediaMap.get(player.id);
                                       if (!summary || !summary.hasMedia) return null;
@@ -1828,10 +1837,17 @@ function SquadreContent() {
                                     })()}
                                   </div>
                                   {(birthYear > 0 || age !== undefined) && (
-                                    <span className="text-slate-400 text-[11px] font-mono">
+                                    <span className="text-slate-400 text-[11px] font-mono block">
                                       ({age ? `${age} anni` : ''}
                                       {birthYear > 0 ? (age ? ` • ${birthYear}` : `Nato: ${birthYear}`) : ''})
                                     </span>
+                                  )}
+
+                                  {/* Provvedimento Disciplinare: Squalifica con motivazione o Alert Diffida */}
+                                  {(player.disciplinaryStatus === 'SQUALIFICATO' || player.disciplinaryStatus === 'DIFFIDATO') && (
+                                    <div className="mt-1.5 max-w-lg">
+                                      <PlayerDisciplinaryAlert player={player} variant="compact" />
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -2613,6 +2629,7 @@ function SquadreContent() {
               <div className="flex items-center gap-3.5">
                 <div className="relative group/playerlogo">
                   <PlayerBadge
+                    player={selectedPlayer}
                     firstName={selectedPlayer.firstName}
                     lastName={selectedPlayer.lastName}
                     photoUrl={selectedPlayer.photoUrl}
@@ -2703,6 +2720,9 @@ function SquadreContent() {
                 </button>
               </div>
             </div>
+
+            {/* Provvedimenti Disciplinari: Squalifiche (nota con motivazione) e Diffide (alert evidente) */}
+            <PlayerDisciplinaryAlert player={selectedPlayer} variant="banner" />
 
             {/* In-place Player Photo URL input when editing */}
             {isEditingPlayer && (
