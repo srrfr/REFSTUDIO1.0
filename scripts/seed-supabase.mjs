@@ -133,28 +133,35 @@ async function seed() {
   console.log('⏳ 2/7 Inserimento Calciatori in blocchi da 150...');
   const uniquePlayersMap = new Map();
   players.forEach((p) => uniquePlayersMap.set(p.id, p));
-  const playerPayload = Array.from(uniquePlayersMap.values()).map((p) => ({
-    id: p.id,
-    team_id: p.teamId,
-    team_name: p.teamName,
-    championship_id: p.championshipId || 'eccellenza-er',
-    girone: p.girone,
-    first_name: p.firstName,
-    last_name: p.lastName,
-    birth_date: p.birthDate || null,
-    age: p.age || null,
-    role: p.role || 'CEN',
-    kit_number: p.kitNumber || null,
-    height_cm: p.heightCm || null,
-    preferred_foot: p.preferredFoot || null,
-    goals: p.goals || 0,
-    appearances: p.appearances || 0,
-    yellow_cards: p.yellowCards || 0,
-    red_cards: p.redCards || 0,
-    disciplinary_status: p.disciplinaryStatus || 'REGOLARE',
-    custom_tags: p.customTags || [],
-    referee_notes: p.refereeNotes || null,
-  }));
+  const playerPayload = Array.from(uniquePlayersMap.values()).map((p) => {
+    let cleanNotes = (p.refereeNotes || '').replace(/\[PHOTO_URL:\s*[^\]]+\]\s*/gi, '').trim();
+    let combinedNotes = cleanNotes;
+    if (p.photoUrl && p.photoUrl.trim()) {
+      combinedNotes = `[PHOTO_URL: ${p.photoUrl.trim()}]\n${cleanNotes}`.trim();
+    }
+    return {
+      id: p.id,
+      team_id: p.teamId,
+      team_name: p.teamName,
+      championship_id: p.championshipId || 'eccellenza-er',
+      girone: p.girone,
+      first_name: p.firstName,
+      last_name: p.lastName,
+      birth_date: p.birthDate || null,
+      age: p.age || null,
+      role: p.role || 'CEN',
+      kit_number: p.kitNumber || null,
+      height_cm: p.heightCm || null,
+      preferred_foot: p.preferredFoot || null,
+      goals: p.goals || 0,
+      appearances: p.appearances || 0,
+      yellow_cards: p.yellowCards || 0,
+      red_cards: p.redCards || 0,
+      disciplinary_status: p.disciplinaryStatus || 'REGOLARE',
+      custom_tags: p.customTags || [],
+      referee_notes: combinedNotes || null,
+    };
+  });
 
   const CHUNK_SIZE = 150;
   for (let i = 0; i < playerPayload.length; i += CHUNK_SIZE) {

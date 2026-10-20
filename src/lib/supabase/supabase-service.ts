@@ -38,11 +38,11 @@ export class SupabaseService {
   static mapPlayerFromRow(row: any): Player {
     let photoUrl = row.photo_url || '';
     let refNotes = row.referee_notes || '';
-    if (!photoUrl && refNotes.includes('[PHOTO_URL:')) {
-      const pMatch = refNotes.match(/\[PHOTO_URL:\s*([^\]]+)\]/);
+    if (!photoUrl && refNotes && refNotes.includes('[PHOTO_URL:')) {
+      const pMatch = refNotes.match(/\[PHOTO_URL:\s*([^\]]+)\]/i);
       if (pMatch) {
         photoUrl = pMatch[1].trim();
-        refNotes = refNotes.replace(/\[PHOTO_URL:\s*[^\]]+\]\s*/, '').trim();
+        refNotes = refNotes.replace(/\[PHOTO_URL:\s*[^\]]+\]\s*/gi, '').trim();
       }
     }
 
@@ -314,7 +314,7 @@ export class SupabaseService {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
-    await supabase.from('teams').upsert({
+    const payload = {
       id: team.id,
       championship_id: team.championshipId || 'eccellenza-er',
       name: team.name,
@@ -338,19 +338,25 @@ export class SupabaseService {
         coachPhotoUrl: team.coachPhotoUrl || undefined,
       },
       updated_at: new Date().toISOString(),
-    });
+    };
+
+    const { error } = await supabase.from('teams').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('Errore upsert Supabase team:', error);
+    }
   }
 
   static async upsertPlayer(player: Player): Promise<void> {
     const supabase = getSupabaseClient();
     if (!supabase) return;
 
-    let combinedNotes = player.refereeNotes || '';
-    if (player.photoUrl) {
-      combinedNotes = `[PHOTO_URL: ${player.photoUrl.trim()}]\n${combinedNotes}`.trim();
+    let cleanNotes = (player.refereeNotes || '').replace(/\[PHOTO_URL:\s*[^\]]+\]\s*/gi, '').trim();
+    let combinedNotes = cleanNotes;
+    if (player.photoUrl && player.photoUrl.trim()) {
+      combinedNotes = `[PHOTO_URL: ${player.photoUrl.trim()}]\n${cleanNotes}`.trim();
     }
 
-    await supabase.from('players').upsert({
+    const payload = {
       id: player.id,
       team_id: player.teamId,
       team_name: player.teamName,
@@ -372,7 +378,12 @@ export class SupabaseService {
       custom_tags: player.customTags,
       referee_notes: combinedNotes || null,
       updated_at: new Date().toISOString(),
-    });
+    };
+
+    const { error } = await supabase.from('players').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      console.error('Errore upsert Supabase player:', error);
+    }
   }
 
   static async upsertMatch(match: Match): Promise<void> {

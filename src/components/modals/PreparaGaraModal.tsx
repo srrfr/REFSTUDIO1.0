@@ -149,14 +149,14 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
     });
   };
 
-  const handleSaveAvatarUrl = (newUrl: string) => {
+  const handleSaveAvatarUrl = async (newUrl: string) => {
     const { type, id } = avatarModalState;
     if (type === 'team') {
-      DbService.updateTeam(id, { logoUrl: newUrl });
+      await DbService.updateTeamAsync(id, { logoUrl: newUrl });
     } else if (type === 'coach') {
-      DbService.updateTeam(id, { coachPhotoUrl: newUrl });
+      await DbService.updateTeamAsync(id, { coachPhotoUrl: newUrl });
     } else if (type === 'player') {
-      DbService.updatePlayer(id, { photoUrl: newUrl });
+      await DbService.updatePlayerAsync(id, { photoUrl: newUrl });
     }
     setRefreshKey((k) => k + 1);
   };

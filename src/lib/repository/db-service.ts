@@ -567,13 +567,24 @@ export class DbService {
       const mapped = SupabaseService.mapTeamFromRow(payload.newRecord);
       const existingIdx = inMemoryData.teams.findIndex((t) => t.id === mapped.id);
       if (existingIdx >= 0) {
-        inMemoryData.teams[existingIdx] = mapped;
+        const current = inMemoryData.teams[existingIdx];
+        inMemoryData.teams[existingIdx] = {
+          ...current,
+          ...mapped,
+          logoUrl: mapped.logoUrl || current.logoUrl,
+          coachPhotoUrl: mapped.coachPhotoUrl || current.coachPhotoUrl,
+        };
       }
     } else if (payload.table === 'players' && payload.newRecord) {
       const mapped = SupabaseService.mapPlayerFromRow(payload.newRecord);
       const existingIdx = inMemoryData.players.findIndex((p) => p.id === mapped.id);
       if (existingIdx >= 0) {
-        inMemoryData.players[existingIdx] = mapped;
+        const current = inMemoryData.players[existingIdx];
+        inMemoryData.players[existingIdx] = {
+          ...current,
+          ...mapped,
+          photoUrl: mapped.photoUrl || current.photoUrl,
+        };
       }
     } else if (payload.table === 'matches' && payload.newRecord) {
       const mapped = SupabaseService.mapMatchFromRow(payload.newRecord);
@@ -777,9 +788,137 @@ export class DbService {
 
         const mergedDesignations = Array.from(mergedDesignationsMap.values());
 
+        // 3. Unione difensiva SQUADRE (preserva logoUrl, coachPhotoUrl e note locali)
+        const localTeamsMap = new Map<string, Team>();
+        (inMemoryData.teams || []).forEach((t) => {
+          if (t && t.id) localTeamsMap.set(t.id, t);
+        });
+
+        const teamsToPushToCloud: Team[] = [];
+        const mergedTeams = (cloudTeams.length > 0 ? cloudTeams : inMemoryData.teams).map((ct) => {
+          const lt = localTeamsMap.get(ct.id);
+          if (!lt) return ct;
+
+          const localTime = lt.updatedAt ? new Date(lt.updatedAt).getTime() : 0;
+          const cloudTime = ct.updatedAt ? new Date(ct.updatedAt).getTime() : 0;
+          const localIsNewer = localTime > cloudTime;
+
+          let logoUrl = ct.logoUrl;
+          if ((!logoUrl && lt.logoUrl) || (localIsNewer && lt.logoUrl)) {
+            logoUrl = lt.logoUrl;
+          }
+
+          let coachPhotoUrl = ct.coachPhotoUrl;
+          if ((!coachPhotoUrl && lt.coachPhotoUrl) || (localIsNewer && lt.coachPhotoUrl)) {
+            coachPhotoUrl = lt.coachPhotoUrl;
+          }
+
+          let refereeNotes = ct.refereeNotes;
+          if ((!refereeNotes && lt.refereeNotes) || (localIsNewer && lt.refereeNotes)) {
+            refereeNotes = lt.refereeNotes;
+          }
+
+          const merged: Team = {
+            ...ct,
+            ...lt,
+            logoUrl,
+            coachPhotoUrl,
+            refereeNotes,
+            coachName: (localIsNewer && lt.coachName) ? lt.coachName : (ct.coachName || lt.coachName),
+            benchAttitude: (localIsNewer && lt.benchAttitude) ? lt.benchAttitude : (ct.benchAttitude || lt.benchAttitude),
+            coachAttitude: (localIsNewer && lt.coachAttitude) ? lt.coachAttitude : (ct.coachAttitude || lt.coachAttitude),
+            updatedAt: localIsNewer ? lt.updatedAt : (ct.updatedAt || lt.updatedAt),
+          };
+
+          if ((lt.logoUrl && !ct.logoUrl) || (lt.coachPhotoUrl && !ct.coachPhotoUrl) || localIsNewer) {
+            teamsToPushToCloud.push(merged);
+          }
+
+          return merged;
+        });
+
+        (inMemoryData.teams || []).forEach((lt) => {
+          if (lt && lt.id && !mergedTeams.some((t) => t.id === lt.id)) {
+            mergedTeams.push(lt);
+            teamsToPushToCloud.push(lt);
+          }
+        });
+
+        if (teamsToPushToCloud.length > 0) {
+          teamsToPushToCloud.forEach((t) => {
+            SupabaseService.upsertTeam(t).catch((err) =>
+              console.warn('Sync background push team fallito:', err)
+            );
+          });
+        }
+
+        // 4. Unione difensiva CALCIATORI (preserva photoUrl e refereeNotes locali)
+        const localPlayersMap = new Map<string, Player>();
+        (inMemoryData.players || []).forEach((p) => {
+          if (p && p.id) localPlayersMap.set(p.id, p);
+        });
+
+        const playersToPushToCloud: Player[] = [];
+        const baseCloudPlayers = cloudPlayers.length > 0 ? cloudPlayers : (inMemoryData.players || []);
+        const mergedPlayers = baseCloudPlayers.map((cp) => {
+          const lp = localPlayersMap.get(cp.id);
+          if (!lp) return cp;
+
+          const localTime = lp.updatedAt ? new Date(lp.updatedAt).getTime() : 0;
+          const cloudTime = cp.updatedAt ? new Date(cp.updatedAt).getTime() : 0;
+          const localIsNewer = localTime > cloudTime;
+
+          let photoUrl = cp.photoUrl;
+          if ((!photoUrl && lp.photoUrl) || (localIsNewer && lp.photoUrl)) {
+            photoUrl = lp.photoUrl;
+          }
+
+          let refereeNotes = cp.refereeNotes;
+          if ((!refereeNotes && lp.refereeNotes) || (localIsNewer && lp.refereeNotes)) {
+            refereeNotes = lp.refereeNotes;
+          }
+
+          let customTags = cp.customTags || [];
+          if (localIsNewer && lp.customTags && lp.customTags.length > 0) {
+            customTags = lp.customTags;
+          } else if ((!customTags || customTags.length === 0) && lp.customTags && lp.customTags.length > 0) {
+            customTags = lp.customTags;
+          }
+
+          const merged: Player = {
+            ...cp,
+            ...lp,
+            photoUrl,
+            refereeNotes,
+            customTags,
+            updatedAt: localIsNewer ? lp.updatedAt : (cp.updatedAt || lp.updatedAt),
+          };
+
+          if ((lp.photoUrl && !cp.photoUrl) || (lp.refereeNotes && !cp.refereeNotes) || localIsNewer) {
+            playersToPushToCloud.push(merged);
+          }
+
+          return merged;
+        });
+
+        (inMemoryData.players || []).forEach((lp) => {
+          if (lp && lp.id && !mergedPlayers.some((p) => p.id === lp.id)) {
+            mergedPlayers.push(lp);
+            playersToPushToCloud.push(lp);
+          }
+        });
+
+        if (playersToPushToCloud.length > 0) {
+          playersToPushToCloud.forEach((p) => {
+            SupabaseService.upsertPlayer(p).catch((err) =>
+              console.warn('Sync background push player fallito:', err)
+            );
+          });
+        }
+
         inMemoryData = {
-          teams: cloudTeams,
-          players: cloudPlayers.length > 0 ? cloudPlayers : inMemoryData.players,
+          teams: mergedTeams,
+          players: mergedPlayers,
           matches: cloudMatches.length > 0 ? cloudMatches : inMemoryData.matches,
           standingsA: cloudStandings.standingsA.length > 0 ? cloudStandings.standingsA : inMemoryData.standingsA,
           standingsB: cloudStandings.standingsB.length > 0 ? cloudStandings.standingsB : inMemoryData.standingsB,
@@ -868,6 +1007,15 @@ export class DbService {
     };
     this.persist();
 
+    // Sincronizza anche via API endpoint dedicato sul server per aggiornare immediatamente data/db-state.json
+    if (typeof window !== 'undefined') {
+      fetch(`/api/teams/${teamId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      }).catch((err) => console.warn('Errore persistenza API team:', err));
+    }
+
     // Sincronizzazione cloud asincrona verso Supabase
     if (isSupabaseConfigured()) {
       SupabaseService.upsertTeam(inMemoryData.teams[idx]).catch((err) =>
@@ -876,6 +1024,27 @@ export class DbService {
     }
 
     return inMemoryData.teams[idx];
+  }
+
+  static async updateTeamAsync(teamId: string, updates: Partial<Team>): Promise<Team> {
+    const updated = this.updateTeam(teamId, updates);
+    if (isSupabaseConfigured()) {
+      try {
+        await SupabaseService.upsertTeam(updated);
+      } catch (err) {
+        console.warn('Errore upsertTeam Supabase:', err);
+      }
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch(`/api/teams/${teamId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+      } catch {}
+    }
+    return updated;
   }
 
   static getPlayers(teamId?: string, girone?: 'A' | 'B'): Player[] {
@@ -917,6 +1086,15 @@ export class DbService {
     };
     this.persist();
 
+    // Sincronizza anche via API endpoint dedicato sul server per aggiornare immediatamente data/db-state.json
+    if (typeof window !== 'undefined') {
+      fetch(`/api/players/${playerId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      }).catch((err) => console.warn('Errore persistenza API player:', err));
+    }
+
     // Sincronizzazione cloud asincrona verso Supabase
     if (isSupabaseConfigured()) {
       SupabaseService.upsertPlayer(inMemoryData.players[idx]).catch((err) =>
@@ -925,6 +1103,27 @@ export class DbService {
     }
 
     return inMemoryData.players[idx];
+  }
+
+  static async updatePlayerAsync(playerId: string, updates: Partial<Player>): Promise<Player> {
+    const updated = this.updatePlayer(playerId, updates);
+    if (isSupabaseConfigured()) {
+      try {
+        await SupabaseService.upsertPlayer(updated);
+      } catch (err) {
+        console.warn('Errore upsertPlayer Supabase:', err);
+      }
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch(`/api/players/${playerId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates),
+        });
+      } catch {}
+    }
+    return updated;
   }
 
   static getMatches(girone?: 'A' | 'B', matchDay?: number): Match[] {

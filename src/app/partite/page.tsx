@@ -186,19 +186,35 @@ export default function MatchesPage() {
     return (
       <div className="space-y-6 max-w-5xl mx-auto animate-in fade-in duration-200">
         {/* Intestazione Fase 1 */}
-        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 sm:p-8 shadow-xl">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-[10px] font-mono uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-2.5 py-0.5 rounded-full border border-[#CCFF00]/30 font-bold">
-              Passo 1 di 3 • Selezione Competizione
+        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 sm:p-8 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#CCFF00] bg-[#CCFF00]/10 px-2.5 py-0.5 rounded-full border border-[#CCFF00]/30 font-bold">
+                Passo 1 di 3 • Selezione Competizione
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-3">
+              <Award className="w-8 h-8 text-[#CCFF00]" />
+              Seleziona la Categoria
+            </h1>
+            <p className="text-sm text-slate-400 mt-2 max-w-2xl">
+              Scegli il campionato di riferimento per accedere alla scelta del girone, consultare il calendario gare con la prossima giornata in evidenza e la classifica ufficiale.
+            </p>
+          </div>
+          <div className="hidden sm:flex flex-col items-center justify-center p-3.5 px-6 rounded-2xl bg-[#141824] border border-[#212638] shadow-lg shrink-0">
+            <img
+              src="/eccellenza-logo.svg"
+              alt="Logo Ufficiale Eccellenza"
+              className="w-16 h-16 object-contain filter drop-shadow-[0_4px_14px_rgba(0,23,158,0.5)]"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  'https://upload.wikimedia.org/wikipedia/commons/7/7d/Eccellenza_Logo_2026.svg';
+              }}
+            />
+            <span className="text-[10px] font-black text-slate-300 mt-1.5 uppercase tracking-wider font-mono">
+              Eccellenza
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-wide flex items-center gap-3">
-            <Award className="w-8 h-8 text-[#CCFF00]" />
-            Seleziona la Categoria
-          </h1>
-          <p className="text-sm text-slate-400 mt-2 max-w-2xl">
-            Scegli il campionato di riferimento per accedere alla scelta del girone, consultare il calendario gare con la prossima giornata in evidenza e la classifica ufficiale.
-          </p>
         </div>
 
         {/* Griglia Categorie */}
@@ -210,8 +226,16 @@ export default function MatchesPage() {
           >
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-12 h-12 rounded-2xl bg-[#CCFF00]/15 border border-[#CCFF00]/40 flex items-center justify-center text-[#CCFF00] group-hover:scale-110 transition-transform">
-                  <Award className="w-6 h-6" />
+                <div className="w-16 h-16 rounded-2xl bg-white/10 p-2.5 border border-[#CCFF00]/40 flex items-center justify-center group-hover:scale-110 group-hover:border-[#CCFF00] transition-all shadow-[0_0_15px_rgba(204,255,0,0.15)] overflow-hidden">
+                  <img
+                    src="/eccellenza-logo.svg"
+                    alt="Logo Ufficiale Eccellenza"
+                    className="w-full h-full object-contain filter drop-shadow"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://upload.wikimedia.org/wikipedia/commons/7/7d/Eccellenza_Logo_2026.svg';
+                    }}
+                  />
                 </div>
                 <span className="text-[10px] font-mono font-black uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
                   Attiva Ora
@@ -219,10 +243,21 @@ export default function MatchesPage() {
               </div>
 
               <div>
-                <h3 className="text-lg font-black text-white group-hover:text-[#CCFF00] transition-colors">
-                  Eccellenza
-                </h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
+                <div className="flex items-center gap-2.5">
+                  <img
+                    src="/eccellenza-logo.svg"
+                    alt="Eccellenza"
+                    className="w-6 h-6 object-contain drop-shadow"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        'https://upload.wikimedia.org/wikipedia/commons/7/7d/Eccellenza_Logo_2026.svg';
+                    }}
+                  />
+                  <h3 className="text-xl font-black text-white group-hover:text-[#CCFF00] transition-colors">
+                    Eccellenza
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-400 font-medium mt-1">
                   CRER • Emilia-Romagna (FIGC - LND)
                 </p>
               </div>
@@ -334,13 +369,26 @@ export default function MatchesPage() {
         </div>
 
         {/* Intestazione Rapida */}
-        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 text-center shadow-xl space-y-1">
-          <h1 className="text-2xl font-black text-white tracking-wide">
-            Seleziona il Girone
-          </h1>
-          <p className="text-xs text-slate-400">
-            Eccellenza Emilia-Romagna • Clicca sul girone desiderato
-          </p>
+        <div className="bg-[#0D0F16] border border-[#1F2433] rounded-3xl p-6 text-center shadow-xl space-y-3 flex flex-col items-center justify-center">
+          <div className="w-14 h-14 rounded-2xl bg-white/10 p-2 border border-[#212638] flex items-center justify-center shadow-md">
+            <img
+              src="/eccellenza-logo.svg"
+              alt="Logo Eccellenza"
+              className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(0,23,158,0.4)]"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src =
+                  'https://upload.wikimedia.org/wikipedia/commons/7/7d/Eccellenza_Logo_2026.svg';
+              }}
+            />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-white tracking-wide">
+              Seleziona il Girone
+            </h1>
+            <p className="text-xs text-slate-400 mt-1">
+              Eccellenza Emilia-Romagna • Clicca sul girone desiderato
+            </p>
+          </div>
         </div>
 
         {/* Selezione Rapida A o B (senza informazioni superflue) */}
@@ -423,8 +471,17 @@ export default function MatchesPage() {
             </button>
 
             {/* Breadcrumb info */}
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-400 ml-2">
+            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-400 ml-2">
               <span className="text-slate-600">•</span>
+              <img
+                src="/eccellenza-logo.svg"
+                alt="Logo Eccellenza"
+                className="w-4 h-4 object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    'https://upload.wikimedia.org/wikipedia/commons/7/7d/Eccellenza_Logo_2026.svg';
+                }}
+              />
               <span className="font-semibold text-slate-300">Eccellenza</span>
               <span className="text-slate-600">/</span>
               <span className="font-black text-[#CCFF00]">Girone {activeGirone}</span>
@@ -679,10 +736,20 @@ export default function MatchesPage() {
         /* TAB CLASSIFICA UFFICIALE */
         <div className="rounded-3xl bg-[#0D0F16] border border-[#1F2433] overflow-hidden shadow-xl animate-in fade-in duration-200">
           <div className="p-5 border-b border-[#1F2433] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <Trophy className="w-5 h-5 text-[#CCFF00]" />
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-white/10 p-2 border border-[#212638] flex items-center justify-center shadow-md shrink-0">
+                <img
+                  src="/eccellenza-logo.svg"
+                  alt="Logo Eccellenza"
+                  className="w-full h-full object-contain filter drop-shadow"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src =
+                      'https://upload.wikimedia.org/wikipedia/commons/7/7d/Eccellenza_Logo_2026.svg';
+                  }}
+                />
+              </div>
               <div>
-                <h3 className="font-black text-white text-base tracking-wide">
+                <h3 className="font-black text-white text-base tracking-wide flex items-center gap-2">
                   Classifica Ufficiale • Eccellenza Girone {activeGirone}
                 </h3>
                 <p className="text-xs text-slate-400">

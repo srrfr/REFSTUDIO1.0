@@ -56,10 +56,10 @@ function PlayersContent() {
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
 
-  const handleSaveAvatarUrl = (newUrl: string) => {
+  const handleSaveAvatarUrl = async (newUrl: string) => {
     if (!selectedPlayer) return;
     try {
-      const updated = DbService.updatePlayer(selectedPlayer.id, { photoUrl: newUrl });
+      const updated = await DbService.updatePlayerAsync(selectedPlayer.id, { photoUrl: newUrl });
       setSelectedPlayer(updated);
       setEditForm((prev) => ({ ...prev, photoUrl: newUrl }));
       loadPlayers();
@@ -229,10 +229,10 @@ function PlayersContent() {
     }
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!selectedPlayer) return;
     try {
-      const updated = DbService.updatePlayer(selectedPlayer.id, editForm);
+      const updated = await DbService.updatePlayerAsync(selectedPlayer.id, editForm);
       setSelectedPlayer(updated);
       setIsEditing(false);
       loadPlayers();

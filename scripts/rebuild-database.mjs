@@ -70,7 +70,7 @@ rawPlayers.forEach(p => {
       normalizedName: slugify(teamName),
       girone: girone,
       city: existing?.city || '',
-      logoUrl: existing?.logoUrl || '',
+      logoUrl: String(p['Logo Squadra'] || p['Logo URL'] || p['Logo'] || existing?.logoUrl || '').trim(),
       stadium: existing?.stadium || '',
       stadiumAddress: existing?.stadiumAddress || '',
       pitchSurface: existing?.pitchSurface || 'Erba Naturale',
@@ -190,6 +190,7 @@ rawPlayers.forEach(p => {
 
   const customTags = existingByFullName?.customTags || [];
   const refereeNotes = existingByFullName?.refereeNotes || '';
+  const photoUrl = String(p['Foto URL'] || p['Foto'] || p['Photo URL'] || existingByFullName?.photoUrl || '').trim();
 
   players.push({
     id: playerId, // ID Giocatore ufficiale univoco
@@ -199,6 +200,7 @@ rawPlayers.forEach(p => {
     girone: girone,
     firstName: firstName,
     lastName: lastName,
+    photoUrl: photoUrl || undefined,
     birthDate: birthYearStr ? `01-01-${birthYearStr}` : undefined,
     age: age,
     role: normalizeRole(p['Ruolo']),
