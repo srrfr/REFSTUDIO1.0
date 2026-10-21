@@ -256,7 +256,7 @@ export interface UserAccount {
   password?: string;
   displayName: string;
   email?: string;
-  role: 'admin' | 'arbitro';
+  role: 'admin' | 'arbitro' | 'pending' | 'rejected';
   refereeRole: RefereeRole; // AE = Arbitro Effettivo, AA = Assistente Arbitrale, OA = Osservatore Arbitrale
   sectionAia: string; // Sezione AIA (es. "Bologna", "Parma")
   categoryAia: string; // Categoria arbitrata (es. "Eccellenza", "Promozione", "CAN D")

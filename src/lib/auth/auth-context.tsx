@@ -182,19 +182,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const approveUser = async (username: string): Promise<boolean> => {
     try {
-      DbService.approveProfile(username);
-      setAvailableUsers(DbService.getProfiles());
-
       try {
         await fetch('/api/auth/approve', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, pin: '280899', action: 'approve' }),
         });
-      } catch {}
+      } catch (apiErr) {
+        console.warn('Errore chiamata /api/auth/approve:', apiErr);
+      }
+
+      DbService.approveProfile(username);
+      setAvailableUsers(DbService.getProfiles());
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { profileApproved: username } }));
+      }
 
       return true;
-    } catch {
+    } catch (err) {
+      console.error('Errore approveUser:', err);
       return false;
     }
   };
@@ -219,6 +226,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {}
 
       setAvailableUsers(DbService.getProfiles());
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { profileApproved: username } }));
+      }
+
       return { success: true, message: data.message };
     } catch (err: any) {
       return { success: false, message: err.message || 'Errore durante la convalida.' };
@@ -227,8 +239,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const rejectUser = async (username: string): Promise<boolean> => {
     try {
+      try {
+        await fetch('/api/auth/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, pin: '280899', action: 'reject' }),
+        });
+      } catch {}
+
       DbService.rejectProfile(username);
       setAvailableUsers(DbService.getProfiles());
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { profileRejected: username } }));
+      }
+
       return true;
     } catch {
       return false;

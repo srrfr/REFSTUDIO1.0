@@ -1721,15 +1721,35 @@ export class DbService {
   static approveProfile(username: string): UserAccount {
     this.ensureLoaded();
     const cleanUser = username.trim().toLowerCase();
-    const profile = this.getProfileByUsername(cleanUser);
-    if (!profile) throw new Error('Profilo non trovato');
+    let profile = this.getProfileByUsername(cleanUser);
 
-    const updated = this.updateProfile(cleanUser, {
-      role: profile.role === 'admin' ? 'admin' : 'arbitro',
-      isApproved: true,
-      status: 'APPROVED',
-      approvedAt: new Date().toISOString(),
-    });
+    if (!profile) {
+      const now = new Date().toISOString();
+      profile = {
+        username: cleanUser,
+        displayName: cleanUser,
+        role: 'arbitro',
+        refereeRole: 'AE',
+        sectionAia: 'Sezione AIA',
+        categoryAia: 'Eccellenza',
+        avatarUrl: '',
+        isApproved: true,
+        status: 'APPROVED',
+        requestedAt: now,
+        approvedAt: now,
+        updatedAt: now,
+      };
+      if (!inMemoryData.profiles) inMemoryData.profiles = [...DEFAULT_USERS];
+      inMemoryData.profiles.push(profile);
+      this.persist();
+    } else {
+      profile = this.updateProfile(cleanUser, {
+        role: profile.role === 'admin' ? 'admin' : 'arbitro',
+        isApproved: true,
+        status: 'APPROVED',
+        approvedAt: new Date().toISOString(),
+      });
+    }
 
     if (isSupabaseConfigured()) {
       SupabaseService.approveProfile(cleanUser).catch((err) =>
@@ -1737,19 +1757,40 @@ export class DbService {
       );
     }
 
-    return updated;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { profileApproved: cleanUser } }));
+    }
+
+    return profile;
   }
 
   static rejectProfile(username: string): UserAccount {
     this.ensureLoaded();
     const cleanUser = username.trim().toLowerCase();
-    const profile = this.getProfileByUsername(cleanUser);
-    if (!profile) throw new Error('Profilo non trovato');
+    let profile = this.getProfileByUsername(cleanUser);
 
-    const updated = this.updateProfile(cleanUser, {
-      isApproved: false,
-      status: 'REJECTED',
-    });
+    if (!profile) {
+      profile = {
+        username: cleanUser,
+        displayName: cleanUser,
+        role: 'arbitro',
+        refereeRole: 'AE',
+        sectionAia: 'Sezione AIA',
+        categoryAia: 'Eccellenza',
+        avatarUrl: '',
+        isApproved: false,
+        status: 'REJECTED',
+        updatedAt: new Date().toISOString(),
+      };
+      if (!inMemoryData.profiles) inMemoryData.profiles = [...DEFAULT_USERS];
+      inMemoryData.profiles.push(profile);
+      this.persist();
+    } else {
+      profile = this.updateProfile(cleanUser, {
+        isApproved: false,
+        status: 'REJECTED',
+      });
+    }
 
     if (isSupabaseConfigured()) {
       SupabaseService.rejectProfile(cleanUser).catch((err) =>
@@ -1757,12 +1798,44 @@ export class DbService {
       );
     }
 
-    return updated;
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { profileRejected: cleanUser } }));
+    }
+
+    return profile;
   }
 
   static getPendingProfiles(): UserAccount[] {
     this.ensureLoaded();
-    return this.getProfiles().filter((p) => p.status === 'PENDING' || p.isApproved === false);
+    return this.getProfiles().filter((p) => p.status === 'PENDING' || p.isApproved === false || p.role === 'pending');
+  }
+
+  static async fetchPendingProfilesAsync(): Promise<UserAccount[]> {
+    this.ensureLoaded();
+    try {
+      const res = await fetch('/api/auth/approve?action=pending');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.pendingUsers)) {
+          if (!inMemoryData.profiles) inMemoryData.profiles = [...DEFAULT_USERS];
+          data.pendingUsers.forEach((pu: UserAccount) => {
+            const idx = inMemoryData.profiles.findIndex(
+              (p) => p.username.toLowerCase() === pu.username.toLowerCase()
+            );
+            if (idx >= 0) {
+              inMemoryData.profiles[idx] = { ...inMemoryData.profiles[idx], ...pu };
+            } else {
+              inMemoryData.profiles.push(pu);
+            }
+          });
+          this.persist();
+          return data.pendingUsers;
+        }
+      }
+    } catch (err) {
+      console.warn('Errore fetchPendingProfilesAsync:', err);
+    }
+    return this.getPendingProfiles();
   }
 
   static getVideos(targetType?: string, targetId?: string, targetName?: string): VideoClip[] {

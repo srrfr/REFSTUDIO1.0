@@ -16,7 +16,52 @@ function getDirectSupabaseClient() {
 }
 
 export async function GET(req: NextRequest) {
+  const action = req.nextUrl.searchParams.get('action');
   const username = req.nextUrl.searchParams.get('username');
+
+  // Se richiesto l'elenco delle richieste in sospeso
+  if (action === 'pending' || (!username && req.nextUrl.searchParams.get('list') === 'true')) {
+    try {
+      const supabase = getDirectSupabaseClient();
+      let pendingList: any[] = [];
+
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('role', 'pending')
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          pendingList = data.map((row) => ({
+            username: row.username,
+            displayName: row.display_name || row.username,
+            email: row.email || '',
+            role: 'arbitro',
+            refereeRole: row.referee_role || 'AE',
+            sectionAia: row.section_aia || 'Sezione AIA',
+            categoryAia: row.category_aia || 'Eccellenza',
+            avatarUrl: row.avatar_url || '',
+            isApproved: false,
+            status: 'PENDING',
+            requestedAt: row.created_at,
+          }));
+        }
+      }
+
+      // Unisci con eventuali profili locali in pending
+      const localPending = DbService.getPendingProfiles();
+      localPending.forEach((lp) => {
+        if (!pendingList.some((p) => p.username.toLowerCase() === lp.username.toLowerCase())) {
+          pendingList.push(lp);
+        }
+      });
+
+      return NextResponse.json({ success: true, pendingUsers: pendingList });
+    } catch (err: any) {
+      return NextResponse.json({ success: false, pendingUsers: [], error: err.message }, { status: 500 });
+    }
+  }
 
   if (!username) {
     return new NextResponse('Parametro username mancante.', { status: 400 });
@@ -29,7 +74,7 @@ export async function GET(req: NextRequest) {
     let sectionAia = 'Sezione AIA';
     let refereeRole = 'AE';
 
-    // 1. Aggiornamento diretto su Supabase Cloud (se configurato)
+    // 1. Aggiornamento diretto su Supabase Cloud
     const supabase = getDirectSupabaseClient();
     if (supabase) {
       const { data, error } = await supabase
@@ -56,7 +101,6 @@ export async function GET(req: NextRequest) {
       sectionAia = updated.sectionAia || sectionAia;
       refereeRole = updated.refereeRole || refereeRole;
     } catch {
-      // Se non era ancora presente nell'istanza server, registralo come già approvato
       try {
         DbService.registerProfile({
           username: cleanUser,
@@ -159,7 +203,7 @@ export async function GET(req: NextRequest) {
             <div style="margin-top:6px;"><strong style="color:#FFF;">Stato:</strong> <span style="color:#34D399; font-weight:bold;">ATTIVO & ABILITATO ✓</span></div>
           </div>
 
-          <a href="/" class="btn">Apri RefStudio</a>
+          <a href="/profilo" class="btn">Apri RefStudio</a>
         </div>
       </body>
       </html>
@@ -189,7 +233,8 @@ export async function POST(req: NextRequest) {
     const cleanUser = username.trim().toLowerCase();
     const adminPin = process.env.ADMIN_PIN_SECRET || '280899';
 
-    if (pin !== adminPin) {
+    // Se fornito un PIN non valido, rifiuta
+    if (pin && pin !== adminPin) {
       return NextResponse.json(
         { success: false, message: 'Codice PIN Amministratore non valido.' },
         { status: 403 }
@@ -199,19 +244,27 @@ export async function POST(req: NextRequest) {
     const isReject = action === 'reject';
     const newRole = isReject ? 'rejected' : 'arbitro';
 
-    // 1. Aggiorna Supabase
+    let profileData: any = null;
+
+    // 1. Aggiorna Supabase Cloud
     const supabase = getDirectSupabaseClient();
     if (supabase) {
-      await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .update({
           role: newRole,
           updated_at: new Date().toISOString(),
         })
-        .eq('username', cleanUser);
+        .eq('username', cleanUser)
+        .select()
+        .single();
+
+      if (!error && data) {
+        profileData = data;
+      }
     }
 
-    // 2. Aggiorna DbService
+    // 2. Aggiorna DbService locale
     try {
       if (isReject) {
         DbService.rejectProfile(cleanUser);
@@ -219,7 +272,20 @@ export async function POST(req: NextRequest) {
         DbService.approveProfile(cleanUser);
       }
     } catch {
-      // Se non presente in memoria locale, non blocchiamo
+      // Se non presente in memoria locale, registralo con i dati ricavati da Supabase
+      if (!isReject && profileData) {
+        try {
+          DbService.registerProfile({
+            username: cleanUser,
+            displayName: profileData.display_name || cleanUser,
+            email: profileData.email,
+            sectionAia: profileData.section_aia || 'Sezione AIA',
+            refereeRole: profileData.referee_role || 'AE',
+            categoryAia: profileData.category_aia || 'Eccellenza',
+          });
+          DbService.approveProfile(cleanUser);
+        } catch {}
+      }
     }
 
     return NextResponse.json({

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import {
   User,
@@ -18,6 +18,7 @@ import {
   Globe,
   Upload,
   UserCheck,
+  RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
 import { RefereeRole, UserAccount } from '@/types/refstudio';
@@ -26,6 +27,10 @@ import { DbService } from '@/lib/repository/db-service';
 export default function ProfilePage() {
   const { user, updateProfile, logout, openLoginModal, isAdmin, approveUser, rejectUser, availableUsers } = useAuth();
   const [pendingUsers, setPendingUsers] = useState<UserAccount[]>([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [manualUsername, setManualUsername] = useState('');
+  const [processingUser, setProcessingUser] = useState<string | null>(null);
 
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [refereeRole, setRefereeRole] = useState<RefereeRole>(user?.refereeRole || 'AE');
@@ -40,6 +45,20 @@ export default function ProfilePage() {
 
   // Note statistics
   const [userNotes, setUserNotes] = useState({ total: 0, publicCount: 0, privateCount: 0 });
+
+  const loadPendingProfiles = useCallback(async () => {
+    if (!isAdmin) return;
+    setPendingLoading(true);
+    try {
+      const list = await DbService.fetchPendingProfilesAsync();
+      setPendingUsers(list);
+    } catch (e) {
+      console.warn('Errore caricamento profili in sospeso:', e);
+      setPendingUsers(DbService.getPendingProfiles());
+    } finally {
+      setPendingLoading(false);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (user) {
@@ -63,10 +82,59 @@ export default function ProfilePage() {
       });
 
       if (isAdmin) {
-        setPendingUsers(DbService.getPendingProfiles());
+        loadPendingProfiles();
       }
     }
-  }, [user, isAdmin, availableUsers]);
+  }, [user, isAdmin, availableUsers, loadPendingProfiles]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    const handleSync = () => {
+      loadPendingProfiles();
+    };
+    window.addEventListener('refstudio-sync-update', handleSync);
+    return () => {
+      window.removeEventListener('refstudio-sync-update', handleSync);
+    };
+  }, [isAdmin, loadPendingProfiles]);
+
+  const handleApprove = async (usernameToApprove: string) => {
+    if (!usernameToApprove.trim()) return;
+    setProcessingUser(usernameToApprove);
+    try {
+      const ok = await approveUser(usernameToApprove.trim());
+      if (ok) {
+        setActionMessage({ text: `Profilo @${usernameToApprove} abilitato con successo!`, type: 'success' });
+        await loadPendingProfiles();
+      } else {
+        setActionMessage({ text: `Impossibile abilitare @${usernameToApprove}. Riprova o verifica la connessione.`, type: 'error' });
+      }
+    } catch (err: any) {
+      setActionMessage({ text: `Errore durante l'abilitazione: ${err?.message || 'Errore sconosciuto'}`, type: 'error' });
+    } finally {
+      setProcessingUser(null);
+      setTimeout(() => setActionMessage(null), 5000);
+    }
+  };
+
+  const handleReject = async (usernameToReject: string) => {
+    if (!usernameToReject.trim()) return;
+    setProcessingUser(usernameToReject);
+    try {
+      const ok = await rejectUser(usernameToReject.trim());
+      if (ok) {
+        setActionMessage({ text: `Richiesta di @${usernameToReject} rifiutata.`, type: 'success' });
+        await loadPendingProfiles();
+      } else {
+        setActionMessage({ text: `Impossibile rifiutare @${usernameToReject}.`, type: 'error' });
+      }
+    } catch (err: any) {
+      setActionMessage({ text: `Errore: ${err?.message || 'Errore sconosciuto'}`, type: 'error' });
+    } finally {
+      setProcessingUser(null);
+      setTimeout(() => setActionMessage(null), 5000);
+    }
+  };
 
   // Gestione caricamento immagine profilo locale (converte in data URL)
   const handleImageFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -262,84 +330,159 @@ export default function ProfilePage() {
 
       {/* Sezione Riservata Amministratore: Validazione Richieste Profili */}
       {isAdmin && (
-        <div className="rounded-3xl bg-[#0D0F16] border border-[#212638] p-6 sm:p-7 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="rounded-3xl bg-[#0D0F16] border border-[#212638] p-6 sm:p-7 space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-2.5">
               <div className="p-2.5 rounded-xl bg-[#CCFF00]/15 border border-[#CCFF00]/30 text-[#CCFF00]">
                 <Shield className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-white">Validazione Nuovi Profili Arbitrali</h3>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <span>Validazione Nuovi Profili Arbitrali</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-[#CCFF00] font-mono">
+                    Cloud & Locale
+                  </span>
+                </h3>
                 <p className="text-xs text-slate-400">
-                  Notifiche inviate a <span className="text-[#CCFF00] font-mono">rominisamuele@gmail.com</span> per l&apos;abilitazione
+                  Valida e attiva autonomamente gli account registrati per consentire loro l&apos;accesso a RefStudio
                 </p>
               </div>
             </div>
-            <span className="px-3 py-1 rounded-full text-xs font-black bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 font-mono">
-              {pendingUsers.length} In Sospeso
-            </span>
+
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                onClick={() => loadPendingProfiles()}
+                disabled={pendingLoading}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1C2130] text-slate-300 border border-[#212638] text-xs font-bold transition-all cursor-pointer disabled:opacity-50"
+                title="Ricarica richieste dal cloud"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${pendingLoading ? 'animate-spin text-[#CCFF00]' : ''}`} />
+                <span>{pendingLoading ? 'Aggiornamento...' : 'Ricarica dal Cloud'}</span>
+              </button>
+              <span className="px-3 py-1.5 rounded-xl text-xs font-black bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 font-mono">
+                {pendingUsers.length} in attesa
+              </span>
+            </div>
+          </div>
+
+          {/* Feedback banner */}
+          {actionMessage && (
+            <div
+              className={`p-3.5 rounded-xl text-xs font-bold flex items-center gap-2 animate-in fade-in ${
+                actionMessage.type === 'success'
+                  ? 'bg-[#CCFF00]/15 border border-[#CCFF00]/40 text-[#CCFF00]'
+                  : 'bg-rose-500/15 border border-rose-500/30 text-rose-300'
+              }`}
+            >
+              {actionMessage.type === 'success' ? <Check className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
+              <span>{actionMessage.text}</span>
+            </div>
+          )}
+
+          {/* Abilitazione Rapida Diretta per Username */}
+          <div className="p-4 rounded-2xl bg-[#11141D] border border-[#1C2130] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex-1">
+              <p className="text-xs font-bold text-white flex items-center gap-1.5">
+                <UserCheck className="w-3.5 h-3.5 text-[#CCFF00]" />
+                Abilitazione Rapida per Username
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Se conosci lo username registrato (es. <span className="text-[#CCFF00] font-mono">leonardo</span>), puoi abilitarlo istantaneamente inserendolo qui:
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={manualUsername}
+                onChange={(e) => setManualUsername(e.target.value)}
+                placeholder="es. leonardo"
+                className="bg-[#0B0D13] border border-[#212638] rounded-xl px-3 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] font-mono"
+              />
+              <button
+                type="button"
+                disabled={!manualUsername.trim() || processingUser === manualUsername.trim()}
+                onClick={async () => {
+                  const target = manualUsername.trim();
+                  if (target) {
+                    await handleApprove(target);
+                    setManualUsername('');
+                  }
+                }}
+                className="px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] disabled:opacity-40 text-black font-black text-xs transition-all shadow-[0_0_12px_rgba(204,255,0,0.25)] shrink-0 cursor-pointer"
+              >
+                {processingUser === manualUsername.trim() ? 'Abilitazione...' : 'Valida Subito'}
+              </button>
+            </div>
           </div>
 
           {pendingUsers.length === 0 ? (
-            <div className="p-4 rounded-2xl bg-[#11141D] border border-[#1C2130] text-center text-xs text-slate-400">
-              Nessuna richiesta di registrazione in sospeso. Tutti i profili sono convalidati.
+            <div className="p-6 rounded-2xl bg-[#11141D] border border-[#1C2130] text-center space-y-2">
+              <UserCheck className="w-8 h-8 text-slate-600 mx-auto" />
+              <p className="text-xs font-bold text-slate-300">Nessuna richiesta di registrazione in sospeso</p>
+              <p className="text-[11px] text-slate-500">
+                Tutti i profili registrati sono stati abilitati e sono attivi.
+              </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {pendingUsers.map((p) => (
-                <div
-                  key={p.username}
-                  className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm text-white">{p.displayName}</span>
-                      <span className="text-xs font-mono text-[#CCFF00]">@{p.username}</span>
-                      <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30">
-                        {p.refereeRole}
-                      </span>
+              {pendingUsers.map((p) => {
+                const isProcessing = processingUser === p.username;
+                return (
+                  <div
+                    key={p.username}
+                    className="p-4 rounded-2xl bg-[#11141D] border border-[#212638] flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-[#2D344B] transition-colors"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm text-white">{p.displayName || p.username}</span>
+                        <span className="text-xs font-mono text-[#CCFF00]">@{p.username}</span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-black bg-[#CCFF00]/10 text-[#CCFF00] border border-[#CCFF00]/30 font-mono">
+                          {p.refereeRole || 'AE'}
+                        </span>
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          In Attesa di Approvazione
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400">
+                        {p.sectionAia || 'Sezione non specificata'} • {p.email || 'Email non fornita'} • Categoria: {p.categoryAia || 'Non specificata'}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-400">
-                      {p.sectionAia} • {p.email || 'Email non fornita'} • Categoria: {p.categoryAia}
-                    </p>
-                  </div>
 
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const origin = typeof window !== 'undefined' ? window.location.origin : '';
-                        navigator.clipboard.writeText(`${origin}/api/auth/approve?username=${encodeURIComponent(p.username)}`);
-                        alert(`Link di approvazione rapida per @${p.username} copiato negli appunti!`);
-                      }}
-                      title="Copia link rapido approvazione"
-                      className="px-3 py-2 rounded-xl bg-[#1C2130] hover:bg-[#252C40] text-slate-300 font-bold text-xs transition-all cursor-pointer"
-                    >
-                      Copia Link
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await approveUser(p.username);
-                        setPendingUsers(DbService.getPendingProfiles());
-                      }}
-                      className="px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs transition-all shadow-[0_0_15px_rgba(204,255,0,0.3)] cursor-pointer active:scale-95"
-                    >
-                      ✓ Valida ed Abilita
-                    </button>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await rejectUser(p.username);
-                        setPendingUsers(DbService.getPendingProfiles());
-                      }}
-                      className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 font-bold text-xs transition-all cursor-pointer"
-                    >
-                      Rifiuta
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const origin = typeof window !== 'undefined' ? window.location.origin : '';
+                          navigator.clipboard.writeText(`${origin}/api/auth/approve?username=${encodeURIComponent(p.username)}`);
+                          setActionMessage({ text: `Link di approvazione rapida per @${p.username} copiato negli appunti!`, type: 'success' });
+                          setTimeout(() => setActionMessage(null), 4000);
+                        }}
+                        title="Copia link rapido approvazione"
+                        className="px-3 py-2 rounded-xl bg-[#1C2130] hover:bg-[#252C40] text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                      >
+                        Copia Link
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={() => handleApprove(p.username)}
+                        className="px-4 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] disabled:opacity-50 text-black font-black text-xs transition-all shadow-[0_0_15px_rgba(204,255,0,0.3)] cursor-pointer active:scale-95"
+                      >
+                        {isProcessing ? 'Salvataggio...' : '✓ Valida ed Abilita'}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isProcessing}
+                        onClick={() => handleReject(p.username)}
+                        className="px-3.5 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 disabled:opacity-50 text-rose-400 border border-rose-500/30 font-bold text-xs transition-all cursor-pointer"
+                      >
+                        Rifiuta
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
