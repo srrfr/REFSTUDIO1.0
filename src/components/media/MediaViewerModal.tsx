@@ -40,6 +40,7 @@ import {
   User,
   Search,
   Check,
+  Edit3,
 } from 'lucide-react';
 import {
   isVeoUrl,
@@ -54,6 +55,7 @@ import { DbService } from '@/lib/repository/db-service';
 import { Note, Team, VideoClip, Player } from '@/types/refstudio';
 import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
 import { useAuth } from '@/lib/auth/auth-context';
+import { VideoModal } from '@/components/modals/VideoModal';
 
 export interface MediaViewerItem {
   id?: string;
@@ -105,9 +107,11 @@ declare global {
 }
 
 export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onClose, media }) => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [editingClip, setEditingClip] = useState<VideoClip | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
@@ -968,7 +972,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     e.stopPropagation();
     if (confirm('Sei sicuro di voler eliminare questa clip dalla sezione Note Video della squadra?')) {
       try {
-        await DbService.deleteVideoAsync(clipId);
+        await DbService.deleteVideoAsync(clipId, user?.username, user?.role);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { videoDeleted: clipId } }));
         }
@@ -977,6 +981,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
         alert(err.message || 'Non sei autorizzato a eliminare questa clip.');
       }
     }
+  };
+
+  const handleEditClip = (clip: VideoClip, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingClip(clip);
+    setIsEditModalOpen(true);
   };
 
   const handlePlayClip = (clip: VideoClip) => {
@@ -2386,7 +2396,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     {displayedClips.length > 0 ? (
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto p-1">
                         {displayedClips.map((clip) => {
-                          const isMine = user && clip.authorId && clip.authorId.toLowerCase() === user.username.toLowerCase();
+                          const isOwnerOrAdmin = Boolean(
+                            isAdmin ||
+                            user?.role === 'admin' ||
+                            !clip.authorId ||
+                            (user?.username && clip.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
+                          );
                           const hasInterval = Boolean(clip.timestampMark && clip.endTimestampMark);
                           const isPlayerClip = clip.targetType === 'giocatore';
                           const player = isPlayerClip ? allDbPlayers.find((p) => p.id === clip.targetId) : null;
@@ -2419,14 +2434,23 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                                       </span>
                                     )}
 
-                                    {isMine && (
-                                      <button
-                                        onClick={(e) => handleDeleteRecordedClip(clip.id, e)}
-                                        className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
-                                        title="Elimina clip"
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </button>
+                                    {isOwnerOrAdmin && (
+                                      <div className="flex items-center gap-1">
+                                        <button
+                                          onClick={(e) => handleEditClip(clip, e)}
+                                          className="text-slate-500 hover:text-[#CCFF00] p-0.5 rounded transition-colors cursor-pointer"
+                                          title="Modifica clip (titolo, squadre, descrizione)"
+                                        >
+                                          <Edit3 className="w-3 h-3" />
+                                        </button>
+                                        <button
+                                          onClick={(e) => handleDeleteRecordedClip(clip.id, e)}
+                                          className="text-slate-500 hover:text-rose-400 p-0.5 rounded transition-colors cursor-pointer"
+                                          title="Elimina clip"
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -2658,6 +2682,29 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
           </p>
         </div>
       )}
+      {/* Video Modal per Modifica Clip */}
+      <VideoModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingClip(null);
+        }}
+        existingVideo={editingClip}
+        onSave={async (data, existingVideoId) => {
+          if (!existingVideoId) return;
+          try {
+            await DbService.updateVideoAsync(existingVideoId, data, user?.username, user?.role);
+            setIsEditModalOpen(false);
+            setEditingClip(null);
+            loadVideoNotes();
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('refstudio-sync-update', { detail: { videoUpdated: existingVideoId } }));
+            }
+          } catch (err: any) {
+            alert(err.message || 'Errore durante la modifica della nota video');
+          }
+        }}
+      />
     </div>
   );
 };

@@ -608,6 +608,31 @@ export class SupabaseService {
     }
   }
 
+  static async updateVideo(videoId: string, updates: Partial<VideoClip>): Promise<boolean> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return false;
+
+    const payload: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (updates.title !== undefined) payload.title = updates.title;
+    if (updates.description !== undefined) payload.description = updates.description;
+    if (updates.targetType !== undefined) payload.target_type = updates.targetType;
+    if (updates.targetId !== undefined) payload.target_id = updates.targetId;
+    if (updates.targetName !== undefined) payload.target_name = updates.targetName;
+    if (updates.videoSource !== undefined) payload.video_source = updates.videoSource;
+    if (updates.externalUrl !== undefined) payload.external_url = updates.externalUrl;
+    if (updates.storagePath !== undefined) payload.storage_path = updates.storagePath;
+    if (updates.timestampMark !== undefined) payload.timestamp_mark = updates.timestampMark;
+
+    const { error } = await supabase.from('videos').update(payload).eq('id', videoId);
+    if (error) {
+      console.warn('Errore aggiornamento Supabase video:', error.message || error);
+      return false;
+    }
+    return true;
+  }
+
   static async deleteVideo(videoId: string): Promise<boolean> {
     const supabase = getSupabaseClient();
     if (!supabase) return false;

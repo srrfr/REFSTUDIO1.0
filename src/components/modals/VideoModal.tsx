@@ -15,31 +15,39 @@ import {
   Shield,
   Calendar,
   Layers,
+  Lock,
+  Edit3,
 } from 'lucide-react';
 import { MediaDropzone, UploadResult } from '@/components/media/MediaDropzone';
 import { isVeoUrl } from '@/lib/services/veo-service';
 import { DbService } from '@/lib/repository/db-service';
+import { VideoClip } from '@/types/refstudio';
+import { useAuth } from '@/lib/auth/auth-context';
 
 interface VideoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (videoData: {
-    targetType: 'squadra' | 'giocatore' | 'partita';
-    targetId: string;
-    targetName: string;
-    homeTeamId?: string;
-    homeTeamName?: string;
-    awayTeamId?: string;
-    awayTeamName?: string;
-    videoSource: VideoSource;
-    externalUrl?: string;
-    storagePath?: string;
-    title: string;
-    description?: string;
-    timestampMark?: string;
-    endTimestampMark?: string;
-    mediaType?: 'video' | 'image';
-  }) => void;
+  onSave: (
+    videoData: {
+      targetType: 'squadra' | 'giocatore' | 'partita';
+      targetId: string;
+      targetName: string;
+      homeTeamId?: string;
+      homeTeamName?: string;
+      awayTeamId?: string;
+      awayTeamName?: string;
+      videoSource: VideoSource;
+      externalUrl?: string;
+      storagePath?: string;
+      title: string;
+      description?: string;
+      timestampMark?: string;
+      endTimestampMark?: string;
+      mediaType?: 'video' | 'image';
+    },
+    existingVideoId?: string
+  ) => void;
+  existingVideo?: VideoClip | null;
   initialTargetType?: 'squadra' | 'giocatore' | 'partita';
   initialTargetId?: string;
   initialTargetName?: string;
@@ -54,6 +62,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   isOpen,
   onClose,
   onSave,
+  existingVideo = null,
   initialTargetType = 'squadra',
   initialTargetId = '',
   initialTargetName = '',
@@ -63,6 +72,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   initialTimestampMark = '',
   initialEndTimestampMark = '',
 }) => {
+  const { user, isAdmin } = useAuth();
   const [mode, setMode] = useState<'UPLOAD' | 'URL'>('UPLOAD');
   const [targetType, setTargetType] = useState<'squadra' | 'giocatore' | 'partita'>(initialTargetType);
   const [targetId, setTargetId] = useState(initialTargetId);
@@ -76,6 +86,15 @@ export const VideoModal: React.FC<VideoModalProps> = ({
   const [timestampMark, setTimestampMark] = useState(initialTimestampMark);
   const [endTimestampMark, setEndTimestampMark] = useState(initialEndTimestampMark);
   const [error, setError] = useState('');
+
+  // Verifica se l'utente corrente è proprietario della nota video o admin
+  const isOwnerOrAdmin = Boolean(
+    isAdmin ||
+    user?.role === 'admin' ||
+    !existingVideo ||
+    !existingVideo.authorId ||
+    (user?.username && existingVideo.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
+  );
 
   // Squadre dal Database & Partite
   const [dbTeams, setDbTeams] = useState<Team[]>([]);
@@ -92,56 +111,104 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       const matches = DbService.getMatches();
       setDbTeams(teams);
       setDbMatches(matches);
-
-      setTargetType(initialTargetType);
-      setTargetId(initialTargetId);
-      setTargetName(initialTargetName);
       setError('');
 
-      // Pre-popolamento squadre esplicite
-      if (initialHomeTeamId) {
-        const ht = teams.find((t) => t.id === initialHomeTeamId);
-        setHomeTeamId(initialHomeTeamId);
-        setHomeTeamName(ht?.name || '');
-      }
-      if (initialAwayTeamId) {
-        const at = teams.find((t) => t.id === initialAwayTeamId);
-        setAwayTeamId(initialAwayTeamId);
-        setAwayTeamName(at?.name || '');
-      }
+      if (existingVideo) {
+        setTargetType(existingVideo.targetType);
+        setTargetId(existingVideo.targetId);
+        setTargetName(existingVideo.targetName);
+        setTitle(existingVideo.title);
+        setDescription(existingVideo.description || '');
+        setTimestampMark(existingVideo.timestampMark || '');
+        setEndTimestampMark(existingVideo.endTimestampMark || '');
+        setVideoSource(existingVideo.videoSource);
+        setExternalUrl(existingVideo.externalUrl || '');
+        setStoragePath(existingVideo.storagePath || '');
+        setMediaType(existingVideo.mediaType || 'video');
+        setMode(existingVideo.videoSource === 'LOCAL' && !existingVideo.externalUrl ? 'UPLOAD' : 'URL');
+        setHomeTeamId(existingVideo.homeTeamId || '');
+        setHomeTeamName(existingVideo.homeTeamName || '');
+        setAwayTeamId(existingVideo.awayTeamId || '');
+        setAwayTeamName(existingVideo.awayTeamName || '');
 
-      // Pre-popolamento squadre se initialTargetType è squadra o partita (solo se non già definite esplicitamente)
-      if (!initialHomeTeamId && !initialAwayTeamId) {
-        if (initialTargetType === 'squadra' && initialTargetId) {
-          const team = teams.find((t) => t.id === initialTargetId);
-          if (team) {
-            setHomeTeamId(team.id);
-            setHomeTeamName(team.name);
-          }
-        } else if (initialTargetType === 'partita' && initialTargetId) {
-          const match = matches.find((m) => m.id === initialTargetId);
-          if (match) {
-            setSelectedMatchId(match.id);
-            setHomeTeamId(match.homeTeamId);
-            setHomeTeamName(match.homeTeamName);
-            setAwayTeamId(match.awayTeamId);
-            setAwayTeamName(match.awayTeamName);
+        if (!isOwnerOrAdmin) {
+          setError(`Non sei autorizzato a modificare questa nota video: solo il proprietario (@${existingVideo.authorId}) o l'amministratore possono farlo.`);
+        }
+      } else {
+        setTargetType(initialTargetType);
+        setTargetId(initialTargetId);
+        setTargetName(initialTargetName);
+        setTitle('');
+        setDescription('');
+        setTimestampMark(initialTimestampMark);
+        setEndTimestampMark(initialEndTimestampMark);
+        setExternalUrl('');
+        setStoragePath('');
+        setMediaType('video');
+        setVideoSource('LOCAL');
+        setMode('UPLOAD');
+
+        // Pre-popolamento squadre esplicite
+        if (initialHomeTeamId) {
+          const ht = teams.find((t) => t.id === initialHomeTeamId);
+          setHomeTeamId(initialHomeTeamId);
+          setHomeTeamName(ht?.name || '');
+        } else {
+          setHomeTeamId('');
+          setHomeTeamName('');
+        }
+        if (initialAwayTeamId) {
+          const at = teams.find((t) => t.id === initialAwayTeamId);
+          setAwayTeamId(initialAwayTeamId);
+          setAwayTeamName(at?.name || '');
+        } else {
+          setAwayTeamId('');
+          setAwayTeamName('');
+        }
+
+        // Pre-popolamento squadre se initialTargetType è squadra o partita (solo se non già definite esplicitamente)
+        if (!initialHomeTeamId && !initialAwayTeamId) {
+          if (initialTargetType === 'squadra' && initialTargetId) {
+            const team = teams.find((t) => t.id === initialTargetId);
+            if (team) {
+              setHomeTeamId(team.id);
+              setHomeTeamName(team.name);
+            }
+          } else if (initialTargetType === 'partita' && initialTargetId) {
+            const match = matches.find((m) => m.id === initialTargetId);
+            if (match) {
+              setSelectedMatchId(match.id);
+              setHomeTeamId(match.homeTeamId);
+              setHomeTeamName(match.homeTeamName);
+              setAwayTeamId(match.awayTeamId);
+              setAwayTeamName(match.awayTeamName);
+            }
           }
         }
-      }
 
-      if (initialUploadedMedia) {
-        setMode('UPLOAD');
-        setExternalUrl(initialUploadedMedia.url);
-        setStoragePath(initialUploadedMedia.localUrl);
-        setMediaType(initialUploadedMedia.mediaType);
-        setVideoSource('LOCAL');
-        if (!title) {
+        if (initialUploadedMedia) {
+          setMode('UPLOAD');
+          setExternalUrl(initialUploadedMedia.url);
+          setStoragePath(initialUploadedMedia.localUrl);
+          setMediaType(initialUploadedMedia.mediaType);
+          setVideoSource('LOCAL');
           setTitle(initialUploadedMedia.originalName.replace(/\.[^/.]+$/, ''));
         }
       }
     }
-  }, [isOpen, initialTargetType, initialTargetId, initialTargetName, initialUploadedMedia, initialHomeTeamId, initialAwayTeamId]);
+  }, [
+    isOpen,
+    existingVideo,
+    isOwnerOrAdmin,
+    initialTargetType,
+    initialTargetId,
+    initialTargetName,
+    initialUploadedMedia,
+    initialHomeTeamId,
+    initialAwayTeamId,
+    initialTimestampMark,
+    initialEndTimestampMark,
+  ]);
 
   // Chiudi con tasto Escape
   useEffect(() => {
@@ -373,6 +440,11 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       effectiveTargetId = `${effectiveHomeId}_vs_${effectiveAwayId}`;
     }
 
+    if (existingVideo && !isOwnerOrAdmin) {
+      setError(`Non sei autorizzato a modificare questa nota video: solo il proprietario (@${existingVideo.authorId}) o l'amministratore possono farlo.`);
+      return;
+    }
+
     onSave({
       targetType,
       targetId: effectiveTargetId || targetName.toLowerCase().replace(/\s+/g, '-'),
@@ -389,7 +461,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       timestampMark: timestampMark.trim() || undefined,
       endTimestampMark: endTimestampMark.trim() || undefined,
       mediaType,
-    });
+    }, existingVideo?.id);
 
     // Reset state
     setTitle('');
@@ -428,16 +500,34 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         </button>
 
         <div className="flex items-center gap-3 mb-5">
-          <div className="p-3 bg-[#FF334B]/10 border border-[#FF334B]/30 rounded-xl text-[#FF334B] shadow-[0_0_12px_rgba(255,51,75,0.2)]">
-            <Video className="w-6 h-6" />
+          <div className={`p-3 rounded-xl shadow-md ${
+            existingVideo
+              ? 'bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-[#CCFF00]'
+              : 'bg-[#FF334B]/10 border border-[#FF334B]/30 text-[#FF334B]'
+          }`}>
+            {existingVideo ? <Edit3 className="w-6 h-6" /> : <Video className="w-6 h-6" />}
           </div>
           <div>
-            <h3 className="text-lg font-black text-white">Carica Video / Gara Arbitrale</h3>
+            <h3 className="text-lg font-black text-white">
+              {existingVideo ? 'Modifica Nota Video / Clip' : 'Carica Video / Gara Arbitrale'}
+            </h3>
             <p className="text-xs text-slate-400">
-              Collega video da YouTube o Veo AI, oppure carica file dal PC associando le squadre dal database
+              {existingVideo
+                ? 'Modifica titolo, squadre associate, descrizione o minutaggio dell\'episodio'
+                : 'Collega video da YouTube o Veo AI, oppure carica file dal PC associando le squadre dal database'}
             </p>
           </div>
         </div>
+
+        {/* Banner avviso se sola lettura */}
+        {existingVideo && !isOwnerOrAdmin && (
+          <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-500/15 border border-amber-500/30 p-3 rounded-xl mb-4">
+            <Lock className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>
+              Modalità sola lettura: questa nota video appartiene all&apos;utente <strong>@{existingVideo.authorId || 'altro arbitro'}</strong>. Solo il proprietario o l&apos;amministratore possono modificarla.
+            </span>
+          </div>
+        )}
 
         {/* Tab Switcher: Carica da PC vs Link Esterno */}
         <div className="flex p-1 mb-5 rounded-xl bg-[#11141D] border border-[#212638]">
@@ -771,9 +861,14 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2 text-xs font-black bg-[#CCFF00] hover:bg-[#D8FF33] text-black rounded-xl shadow-[0_0_15px_rgba(204,255,0,0.35)] transition-all"
+              disabled={Boolean(existingVideo && !isOwnerOrAdmin)}
+              className={`px-5 py-2 text-xs font-black rounded-xl transition-all shadow-md ${
+                existingVideo && !isOwnerOrAdmin
+                  ? 'bg-slate-700 text-slate-400 cursor-not-allowed opacity-50'
+                  : 'bg-[#CCFF00] hover:bg-[#D8FF33] text-black shadow-[0_0_15px_rgba(204,255,0,0.35)] cursor-pointer'
+              }`}
             >
-              Salva Contenuto
+              {existingVideo ? 'Salva Modifiche' : 'Salva Contenuto'}
             </button>
           </div>
         </form>

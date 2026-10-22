@@ -31,7 +31,7 @@ import { useAuth } from '@/lib/auth/auth-context';
 import { isVeoUrl } from '@/lib/services/veo-service';
 
 export default function NotesVideosPage() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState<'NOTE' | 'VIDEO'>('NOTE');
   const [targetTypeFilter, setTargetTypeFilter] = useState<string>('ALL');
   const [priorityFilter, setPriorityFilter] = useState<string>('ALL');
@@ -46,6 +46,7 @@ export default function NotesVideosPage() {
 
   // Video Modal state & quick drop state
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<VideoClip | null>(null);
   const [droppedMedia, setDroppedMedia] = useState<UploadResult | null>(null);
 
   // Universal In-App Media Viewer state
@@ -104,9 +105,19 @@ export default function NotesVideosPage() {
 
   const handleDeleteVideo = async (id: string) => {
     if (confirm('Sei sicuro di voler eliminare questo video clip?')) {
-      await DbService.deleteVideoAsync(id);
-      loadContent();
+      try {
+        await DbService.deleteVideoAsync(id, user?.username, user?.role);
+        loadContent();
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questa nota video.');
+      }
     }
+  };
+
+  const handleEditVideo = (video: VideoClip) => {
+    setEditingVideo(video);
+    setDroppedMedia(null);
+    setIsVideoModalOpen(true);
   };
 
   const getYoutubeVideoId = (url?: string): string | null => {
@@ -131,6 +142,7 @@ export default function NotesVideosPage() {
   };
 
   const handleQuickUpload = (result: UploadResult) => {
+    setEditingVideo(null);
     setDroppedMedia(result);
     setIsVideoModalOpen(true);
   };
@@ -215,6 +227,7 @@ export default function NotesVideosPage() {
           ) : (
             <button
               onClick={() => {
+                setEditingVideo(null);
                 setDroppedMedia(null);
                 setIsVideoModalOpen(true);
               }}
@@ -609,7 +622,7 @@ export default function NotesVideosPage() {
                         <span>Riproduci in App</span>
                       </button>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {vid.externalUrl && (
                           <a
                             href={vid.externalUrl}
@@ -622,13 +635,35 @@ export default function NotesVideosPage() {
                           </a>
                         )}
 
-                        <button
-                          onClick={() => handleDeleteVideo(vid.id)}
-                          className="p-1.5 text-slate-500 hover:text-[#FF334B] rounded-lg hover:bg-rose-500/10 transition-colors"
-                          title="Elimina clip"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {(() => {
+                          const isOwnerOrAdmin = Boolean(
+                            isAdmin ||
+                            user?.role === 'admin' ||
+                            !vid.authorId ||
+                            (user?.username && vid.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
+                          );
+
+                          if (!isOwnerOrAdmin) return null;
+
+                          return (
+                            <>
+                              <button
+                                onClick={() => handleEditVideo(vid)}
+                                className="p-1.5 text-slate-400 hover:text-[#CCFF00] rounded-lg hover:bg-[#CCFF00]/10 transition-colors cursor-pointer"
+                                title="Modifica nota video (titolo, squadre, descrizione)"
+                              >
+                                <Edit3 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVideo(vid.id)}
+                                className="p-1.5 text-slate-500 hover:text-[#FF334B] rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer"
+                                title="Elimina nota video"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   </div>
@@ -656,17 +691,34 @@ export default function NotesVideosPage() {
         onSave={handleSaveNote}
       />
 
-      {/* Video Modal with Drag & Drop */}
+      {/* Video Modal with Drag & Drop (Supports Create and Edit) */}
       <VideoModal
         isOpen={isVideoModalOpen}
         onClose={() => {
           setIsVideoModalOpen(false);
           setDroppedMedia(null);
+          setEditingVideo(null);
         }}
+        existingVideo={editingVideo}
         initialUploadedMedia={droppedMedia}
-        onSave={(data) => {
-          DbService.addVideo(data);
-          loadContent();
+        onSave={async (data, existingVideoId) => {
+          try {
+            if (existingVideoId) {
+              await DbService.updateVideoAsync(existingVideoId, data, user?.username, user?.role);
+            } else {
+              DbService.addVideo({
+                ...data,
+                authorId: user?.username || 'samueleromini',
+                authorName: user?.displayName || 'Arbitro',
+              });
+            }
+            setIsVideoModalOpen(false);
+            setEditingVideo(null);
+            setDroppedMedia(null);
+            loadContent();
+          } catch (err: any) {
+            alert(err.message || 'Errore durante il salvataggio della nota video');
+          }
         }}
       />
 

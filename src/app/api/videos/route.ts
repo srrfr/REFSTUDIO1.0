@@ -60,12 +60,32 @@ export async function POST(request: Request) {
   }
 }
 
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json();
+    const { id, username, role, ...updates } = body;
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'ID video obbligatorio' }, { status: 400 });
+    }
+    const updated = await DbService.updateVideoAsync(id, updates, username, role);
+    return NextResponse.json({ success: true, data: updated });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, message: err.message }, { status: 403 });
+  }
+}
+
 export async function DELETE(request: Request) {
   const { searchParams } = new URL(request.url);
   const id = searchParams.get('id');
+  const username = searchParams.get('username') || undefined;
+  const role = searchParams.get('role') || undefined;
   if (!id) {
     return NextResponse.json({ success: false, message: 'ID video mancante' }, { status: 400 });
   }
-  const deleted = await DbService.deleteVideoAsync(id);
-  return NextResponse.json({ success: deleted });
+  try {
+    const deleted = await DbService.deleteVideoAsync(id, username, role);
+    return NextResponse.json({ success: deleted });
+  } catch (err: any) {
+    return NextResponse.json({ success: false, message: err.message }, { status: 403 });
+  }
 }

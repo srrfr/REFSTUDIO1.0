@@ -216,6 +216,7 @@ function SquadreContent() {
 
   // Video Modal state
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<VideoClip | null>(null);
   const [videoModalTargetType, setVideoModalTargetType] = useState<'squadra' | 'giocatore'>('squadra');
   const [videoModalTargetId, setVideoModalTargetId] = useState('');
   const [videoModalTargetName, setVideoModalTargetName] = useState('');
@@ -471,17 +472,51 @@ function SquadreContent() {
   };
 
   const handleAddVideoForPlayer = (player: Player) => {
+    setEditingVideo(null);
     setVideoModalTargetType('giocatore');
     setVideoModalTargetId(player.id);
     setVideoModalTargetName(`${player.firstName} ${player.lastName} (${player.teamName})`);
     setIsVideoModalOpen(true);
   };
 
+  const handleEditPlayerVideo = (vid: VideoClip) => {
+    setEditingVideo(vid);
+    setVideoModalTargetType('giocatore');
+    setVideoModalTargetId(vid.targetId);
+    setVideoModalTargetName(vid.targetName);
+    setIsVideoModalOpen(true);
+  };
+
   const handleDeletePlayerVideo = async (videoId: string) => {
     if (confirm('Sei sicuro di voler eliminare questa nota video?')) {
-      await DbService.deleteVideoAsync(videoId);
-      if (selectedPlayer) {
-        setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+      try {
+        await DbService.deleteVideoAsync(videoId, user?.username, user?.role);
+        if (selectedPlayer) {
+          setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+        }
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questa nota video.');
+      }
+    }
+  };
+
+  const handleEditTeamVideo = (vid: VideoClip) => {
+    setEditingVideo(vid);
+    setVideoModalTargetType('squadra');
+    setVideoModalTargetId(vid.targetId);
+    setVideoModalTargetName(vid.targetName);
+    setIsVideoModalOpen(true);
+  };
+
+  const handleDeleteTeamVideo = async (videoId: string) => {
+    if (confirm('Sei sicuro di voler eliminare questo video della squadra?')) {
+      try {
+        await DbService.deleteVideoAsync(videoId, user?.username, user?.role);
+        if (selectedTeam) {
+          setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+        }
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questo video.');
       }
     }
   };
@@ -2163,6 +2198,7 @@ function SquadreContent() {
                   </div>
                   <button
                     onClick={() => {
+                      setEditingVideo(null);
                       setVideoModalTargetType('squadra');
                       setVideoModalTargetId(selectedTeam.id);
                       setVideoModalTargetName(selectedTeam.name);
@@ -2182,15 +2218,44 @@ function SquadreContent() {
                         hasInterval ? `Min. ${vid.timestampMark} → ${vid.endTimestampMark}` : `Min. ${vid.timestampMark}`
                       ) : 'Clip Video';
 
+                      const isOwnerOrAdmin = Boolean(
+                        isAdmin ||
+                        user?.role === 'admin' ||
+                        !vid.authorId ||
+                        (user?.username && vid.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
+                      );
+
                       return (
                         <div
                           key={vid.id}
                           className="p-3.5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-2.5 flex flex-col justify-between"
                         >
                           <div>
-                            <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20">
-                              {timeLabel}
-                            </span>
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20">
+                                {timeLabel}
+                              </span>
+                              {isOwnerOrAdmin && (
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditTeamVideo(vid)}
+                                    className="text-slate-500 hover:text-[#CCFF00] p-1 rounded-md hover:bg-[#141824] transition-colors cursor-pointer"
+                                    title="Modifica video"
+                                  >
+                                    <Edit3 className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteTeamVideo(vid.id)}
+                                    className="text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-[#141824] transition-colors cursor-pointer"
+                                    title="Elimina video"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                             <h5 className="font-bold text-xs text-white mt-1.5 line-clamp-1">{vid.title}</h5>
                             {vid.description && (
                               <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{vid.description}</p>
@@ -3271,17 +3336,43 @@ function SquadreContent() {
                               <h5 className="font-bold text-xs text-white line-clamp-1 group-hover:text-[#CCFF00] transition-colors">
                                 {vid.title}
                               </h5>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeletePlayerVideo(vid.id);
-                                }}
-                                className="text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-[#141824] transition-colors shrink-0"
-                                title="Elimina Nota Video"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {(() => {
+                                const isOwnerOrAdmin = Boolean(
+                                  isAdmin ||
+                                  user?.role === 'admin' ||
+                                  !vid.authorId ||
+                                  (user?.username && vid.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
+                                );
+
+                                if (!isOwnerOrAdmin) return null;
+
+                                return (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditPlayerVideo(vid);
+                                      }}
+                                      className="text-slate-500 hover:text-[#CCFF00] p-1 rounded-md hover:bg-[#141824] transition-colors cursor-pointer"
+                                      title="Modifica Nota Video"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeletePlayerVideo(vid.id);
+                                      }}
+                                      className="text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-[#141824] transition-colors cursor-pointer"
+                                      title="Elimina Nota Video"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                );
+                              })()}
                             </div>
                             {vid.description && (
                               <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
@@ -3375,22 +3466,39 @@ function SquadreContent() {
         onSave={handleSaveStaffNote}
       />
 
-      {/* Video Modal */}
+      {/* Video Modal (Supports Create and Edit) */}
       <VideoModal
         isOpen={isVideoModalOpen}
-        onClose={() => setIsVideoModalOpen(false)}
+        onClose={() => {
+          setIsVideoModalOpen(false);
+          setEditingVideo(null);
+        }}
+        existingVideo={editingVideo}
         initialTargetType={videoModalTargetType}
         initialTargetId={videoModalTargetId}
         initialTargetName={videoModalTargetName}
-        onSave={(data) => {
-          DbService.addVideo(data);
-          if (selectedPlayer && data.targetType === 'giocatore') {
-            setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+        onSave={async (data, existingVideoId) => {
+          try {
+            if (existingVideoId) {
+              await DbService.updateVideoAsync(existingVideoId, data, user?.username, user?.role);
+            } else {
+              DbService.addVideo({
+                ...data,
+                authorId: user?.username || 'samueleromini',
+                authorName: user?.displayName || 'Arbitro',
+              });
+            }
+            if (selectedPlayer && data.targetType === 'giocatore') {
+              setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+            }
+            if (selectedTeam && data.targetType === 'squadra') {
+              setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+            }
+            setIsVideoModalOpen(false);
+            setEditingVideo(null);
+          } catch (err: any) {
+            alert(err.message || 'Errore durante il salvataggio della nota video');
           }
-          if (selectedTeam && data.targetType === 'squadra') {
-            setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
-          }
-          setIsVideoModalOpen(false);
         }}
       />
 

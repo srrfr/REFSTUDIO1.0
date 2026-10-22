@@ -1588,14 +1588,22 @@ export class DbService {
     return newNote;
   }
 
-  static updateNote(noteId: string, updates: Partial<Note>, currentUsername?: string): Note {
+  static isUserOwnerOrAdmin(itemAuthorId: string | undefined, currentUsername?: string, currentUserRole?: string): boolean {
+    if (currentUserRole === 'admin') return true;
+    if (currentUsername && (currentUsername.toLowerCase() === 'samueleromini' || currentUsername.toLowerCase() === 'admin')) return true;
+    if (!itemAuthorId) return true; // Elemento legacy senza autore registrato
+    if (currentUsername && itemAuthorId.toLowerCase().trim() === currentUsername.toLowerCase().trim()) return true;
+    return false;
+  }
+
+  static updateNote(noteId: string, updates: Partial<Note>, currentUsername?: string, currentUserRole?: string): Note {
     this.ensureLoaded();
     const idx = inMemoryData.notes.findIndex((n) => n.id === noteId);
     if (idx === -1) throw new Error('Nota non trovata');
 
     const existing = inMemoryData.notes[idx];
-    if (currentUsername && existing.authorId && existing.authorId.toLowerCase() !== currentUsername.toLowerCase()) {
-      throw new Error('Non sei autorizzato a modificare questa nota: solo il proprietario può farlo.');
+    if (currentUsername && !this.isUserOwnerOrAdmin(existing.authorId, currentUsername, currentUserRole)) {
+      throw new Error('Non sei autorizzato a modificare questa nota: solo il proprietario o l\'amministratore possono farlo.');
     }
 
     inMemoryData.notes[idx] = {
@@ -1615,13 +1623,13 @@ export class DbService {
     return inMemoryData.notes[idx];
   }
 
-  static deleteNote(noteId: string, currentUsername?: string): boolean {
+  static deleteNote(noteId: string, currentUsername?: string, currentUserRole?: string): boolean {
     this.ensureLoaded();
     const existing = inMemoryData.notes.find((n) => n.id === noteId);
     if (!existing) return false;
 
-    if (currentUsername && existing.authorId && existing.authorId.toLowerCase() !== currentUsername.toLowerCase()) {
-      throw new Error('Non sei autorizzato a eliminare questa nota: solo il proprietario può farlo.');
+    if (currentUsername && !this.isUserOwnerOrAdmin(existing.authorId, currentUsername, currentUserRole)) {
+      throw new Error('Non sei autorizzato a eliminare questa nota: solo il proprietario o l\'amministratore possono farlo.');
     }
 
     // Registra nel tombstone per impedire che risorga
@@ -1641,13 +1649,13 @@ export class DbService {
     return deleted;
   }
 
-  static async deleteNoteAsync(noteId: string, currentUsername?: string): Promise<boolean> {
+  static async deleteNoteAsync(noteId: string, currentUsername?: string, currentUserRole?: string): Promise<boolean> {
     this.ensureLoaded();
     const existing = inMemoryData.notes.find((n) => n.id === noteId);
     if (!existing) return false;
 
-    if (currentUsername && existing.authorId && existing.authorId.toLowerCase() !== currentUsername.toLowerCase()) {
-      throw new Error('Non sei autorizzato a eliminare questa nota: solo il proprietario può farlo.');
+    if (currentUsername && !this.isUserOwnerOrAdmin(existing.authorId, currentUsername, currentUserRole)) {
+      throw new Error('Non sei autorizzato a eliminare questa nota: solo il proprietario o l\'amministratore possono farlo.');
     }
 
     // Registra subito nel tombstone
@@ -1980,8 +1988,71 @@ export class DbService {
     return newVideo;
   }
 
-  static deleteVideo(videoId: string): boolean {
+  static updateVideo(videoId: string, updates: Partial<VideoClip>, currentUsername?: string, currentUserRole?: string): VideoClip {
     this.ensureLoaded();
+    const idx = inMemoryData.videos.findIndex((v) => v.id === videoId);
+    if (idx === -1) throw new Error('Nota video non trovata');
+
+    const existing = inMemoryData.videos[idx];
+    if (currentUsername && !this.isUserOwnerOrAdmin(existing.authorId, currentUsername, currentUserRole)) {
+      throw new Error('Non sei autorizzato a modificare questa nota video: solo il proprietario o l\'amministratore possono farlo.');
+    }
+
+    // Risoluzione automatica nomi squadre se modificate
+    let homeTeamId = updates.homeTeamId !== undefined ? updates.homeTeamId : existing.homeTeamId;
+    let homeTeamName = updates.homeTeamName !== undefined ? updates.homeTeamName : existing.homeTeamName;
+    let awayTeamId = updates.awayTeamId !== undefined ? updates.awayTeamId : existing.awayTeamId;
+    let awayTeamName = updates.awayTeamName !== undefined ? updates.awayTeamName : existing.awayTeamName;
+
+    if (homeTeamId && !homeTeamName) {
+      homeTeamName = this.getTeamById(homeTeamId)?.name;
+    }
+    if (awayTeamId && !awayTeamName) {
+      awayTeamName = this.getTeamById(awayTeamId)?.name;
+    }
+
+    inMemoryData.videos[idx] = {
+      ...existing,
+      ...updates,
+      homeTeamId,
+      homeTeamName,
+      awayTeamId,
+      awayTeamName,
+      updatedAt: new Date().toISOString(),
+    };
+    this.persist();
+
+    // Sincronizzazione cloud asincrona verso Supabase
+    if (isSupabaseConfigured()) {
+      SupabaseService.updateVideo(videoId, updates).catch((err) =>
+        console.warn('Errore aggiornamento Supabase video:', err)
+      );
+    }
+
+    return inMemoryData.videos[idx];
+  }
+
+  static async updateVideoAsync(videoId: string, updates: Partial<VideoClip>, currentUsername?: string, currentUserRole?: string): Promise<VideoClip> {
+    const updated = this.updateVideo(videoId, updates, currentUsername, currentUserRole);
+    if (isSupabaseConfigured()) {
+      try {
+        await SupabaseService.updateVideo(videoId, updates);
+      } catch (err) {
+        console.warn('Errore updateVideoAsync Supabase:', err);
+      }
+    }
+    return updated;
+  }
+
+  static deleteVideo(videoId: string, currentUsername?: string, currentUserRole?: string): boolean {
+    this.ensureLoaded();
+    const existing = inMemoryData.videos.find((v) => v.id === videoId);
+    if (!existing) return false;
+
+    if (currentUsername && !this.isUserOwnerOrAdmin(existing.authorId, currentUsername, currentUserRole)) {
+      throw new Error('Non sei autorizzato a eliminare questa nota video: solo il proprietario o l\'amministratore possono farlo.');
+    }
+
     this.markVideoDeleted(videoId);
 
     const lenBefore = inMemoryData.videos.length;
@@ -1998,8 +2069,15 @@ export class DbService {
     return deleted;
   }
 
-  static async deleteVideoAsync(videoId: string): Promise<boolean> {
+  static async deleteVideoAsync(videoId: string, currentUsername?: string, currentUserRole?: string): Promise<boolean> {
     this.ensureLoaded();
+    const existing = inMemoryData.videos.find((v) => v.id === videoId);
+    if (!existing) return false;
+
+    if (currentUsername && !this.isUserOwnerOrAdmin(existing.authorId, currentUsername, currentUserRole)) {
+      throw new Error('Non sei autorizzato a eliminare questa nota video: solo il proprietario o l\'amministratore possono farlo.');
+    }
+
     this.markVideoDeleted(videoId);
 
     inMemoryData.videos = inMemoryData.videos.filter((v) => v.id !== videoId);

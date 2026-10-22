@@ -52,6 +52,7 @@ function PlayersContent() {
   // Modals
   const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [editingVideo, setEditingVideo] = useState<VideoClip | null>(null);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [activeViewerMedia, setActiveViewerMedia] = useState<MediaViewerItem | null>(null);
@@ -96,11 +97,20 @@ function PlayersContent() {
 
   const handleDeleteVideo = async (id: string) => {
     if (confirm('Sei sicuro di voler eliminare questa nota video?')) {
-      await DbService.deleteVideoAsync(id);
-      if (selectedPlayer) {
-        setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+      try {
+        await DbService.deleteVideoAsync(id, user?.username, user?.role);
+        if (selectedPlayer) {
+          setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+        }
+      } catch (err: any) {
+        alert(err.message || 'Non sei autorizzato a eliminare questa nota video.');
       }
     }
+  };
+
+  const handleEditVideo = (vid: VideoClip) => {
+    setEditingVideo(vid);
+    setIsVideoModalOpen(true);
   };
 
   const loadPlayerNotes = useCallback(() => {
@@ -951,17 +961,43 @@ function PlayersContent() {
                               <h5 className="font-bold text-xs text-white line-clamp-1 group-hover:text-[#CCFF00] transition-colors">
                                 {vid.title}
                               </h5>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteVideo(vid.id);
-                                }}
-                                className="text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-[#141824] transition-colors shrink-0"
-                                title="Elimina Nota Video"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                              {(() => {
+                                const isOwnerOrAdmin = Boolean(
+                                  isAdmin ||
+                                  user?.role === 'admin' ||
+                                  !vid.authorId ||
+                                  (user?.username && vid.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
+                                );
+
+                                if (!isOwnerOrAdmin) return null;
+
+                                return (
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditVideo(vid);
+                                      }}
+                                      className="text-slate-500 hover:text-[#CCFF00] p-1 rounded-md hover:bg-[#141824] transition-colors cursor-pointer"
+                                      title="Modifica Nota Video"
+                                    >
+                                      <Edit3 className="w-3.5 h-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteVideo(vid.id);
+                                      }}
+                                      className="text-slate-500 hover:text-rose-400 p-1 rounded-md hover:bg-[#141824] transition-colors shrink-0 cursor-pointer"
+                                      title="Elimina Nota Video"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                );
+                              })()}
                             </div>
                             {vid.description && (
                               <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
@@ -1007,7 +1043,10 @@ function PlayersContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setIsVideoModalOpen(true)}
+                  onClick={() => {
+                    setEditingVideo(null);
+                    setIsVideoModalOpen(true);
+                  }}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#12151E] hover:bg-[#181C28] text-xs font-bold text-slate-200 border border-[#242B3C] transition-colors cursor-pointer"
                 >
                   <Video className="w-4 h-4 text-[#FF334B]" />
@@ -1045,16 +1084,33 @@ function PlayersContent() {
 
           <VideoModal
             isOpen={isVideoModalOpen}
-            onClose={() => setIsVideoModalOpen(false)}
+            onClose={() => {
+              setIsVideoModalOpen(false);
+              setEditingVideo(null);
+            }}
+            existingVideo={editingVideo}
             initialTargetType="giocatore"
             initialTargetId={selectedPlayer.id}
             initialTargetName={`${selectedPlayer.firstName} ${selectedPlayer.lastName} (${selectedPlayer.teamName})`}
-            onSave={(data) => {
-              DbService.addVideo(data);
-              if (selectedPlayer) {
-                setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+            onSave={async (data, existingVideoId) => {
+              try {
+                if (existingVideoId) {
+                  await DbService.updateVideoAsync(existingVideoId, data, user?.username, user?.role);
+                } else {
+                  DbService.addVideo({
+                    ...data,
+                    authorId: user?.username || 'samueleromini',
+                    authorName: user?.displayName || 'Arbitro',
+                  });
+                }
+                if (selectedPlayer) {
+                  setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
+                }
+                setIsVideoModalOpen(false);
+                setEditingVideo(null);
+              } catch (err: any) {
+                alert(err.message || 'Errore durante il salvataggio della nota video');
               }
-              setIsVideoModalOpen(false);
             }}
           />
 
