@@ -79,6 +79,10 @@ export interface PlayerDisciplinaryDetail {
   comunicato?: string;
   competizione?: string;
   urlComunicato?: string;
+  scontata?: boolean;
+  giornateSqualifica?: number;
+  giornateScontate?: number;
+  giornateResidue?: number;
 }
 
 export interface Player {

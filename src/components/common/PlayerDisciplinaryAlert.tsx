@@ -12,6 +12,9 @@ export interface DisciplinaryInfo {
   bulletin: string;
   bulletinUrl?: string;
   competition: string;
+  giornateResidue?: number;
+  giornateSqualifica?: number;
+  giornateScontate?: number;
 }
 
 /**
@@ -27,6 +30,9 @@ export function getPlayerDisciplinaryInfo(player: Player): DisciplinaryInfo {
   let bulletin = '';
   let bulletinUrl = player.disciplinaryDetails?.urlComunicato || '';
   let competition = player.disciplinaryDetails?.competizione || 'Campionato Eccellenza';
+  let giornateResidue = player.disciplinaryDetails?.giornateResidue;
+  let giornateSqualifica = player.disciplinaryDetails?.giornateSqualifica;
+  let giornateScontate = player.disciplinaryDetails?.giornateScontate;
 
   if (player.disciplinaryDetails) {
     sanction = player.disciplinaryDetails.sanzione || '';
@@ -71,6 +77,9 @@ export function getPlayerDisciplinaryInfo(player: Player): DisciplinaryInfo {
     bulletin,
     bulletinUrl,
     competition,
+    giornateResidue,
+    giornateSqualifica,
+    giornateScontate,
   };
 }
 
@@ -94,6 +103,10 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
   // 1. VARIANTE BADGE (Compatto per tabelle, liste rapide e griglia)
   if (variant === 'badge') {
     if (info.isSqualificato) {
+      const label =
+        info.giornateResidue && info.giornateSqualifica && info.giornateResidue < info.giornateSqualifica
+          ? `Squalificato (${info.giornateResidue} residua)`
+          : 'Squalificato';
       return (
         <span
           className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.35)] shrink-0 select-none ${className}`}
@@ -101,7 +114,7 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
         >
           <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
           <Ban className="w-3 h-3 text-rose-400" />
-          <span>Squalificato</span>
+          <span>{label}</span>
         </span>
       );
     }
@@ -122,6 +135,10 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
   // 2. VARIANTE COMPACT / NOTE INLINE (Per le card e i preview)
   if (variant === 'compact' || variant === 'note') {
     if (info.isSqualificato) {
+      const headerTitle =
+        info.giornateResidue && info.giornateSqualifica && info.giornateResidue < info.giornateSqualifica
+          ? `Squalifica Attiva (${info.giornateResidue} gara residua su ${info.giornateSqualifica})`
+          : 'Squalifica Attiva';
       return (
         <div
           className={`p-2.5 rounded-xl bg-gradient-to-r from-rose-950/60 via-rose-900/30 to-[#0F111A] border-2 border-rose-500/60 text-xs space-y-1.5 shadow-[0_0_15px_rgba(244,63,94,0.25)] ${className}`}
@@ -130,7 +147,7 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
             <span className="font-black text-rose-400 flex items-center gap-1.5 text-[11px] uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
               <Ban className="w-3.5 h-3.5 text-rose-400" />
-              Squalifica Attiva
+              {headerTitle}
             </span>
             {info.bulletin && (
               <span className="text-[10px] font-mono text-rose-200 bg-rose-950 border border-rose-600/60 px-2 py-0.5 rounded font-bold">
@@ -183,6 +200,10 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
 
   // 3. VARIANTE BANNER COMPLETA (Per la modale / scheda dettagliata del calciatore)
   if (info.isSqualificato) {
+    const bannerTitle =
+      info.giornateResidue && info.giornateSqualifica && info.giornateResidue < info.giornateSqualifica
+        ? `Provvedimento Disciplinare: Squalifica (${info.giornateResidue} gara residua su ${info.giornateSqualifica})`
+        : 'Provvedimento Disciplinare: Squalifica';
     return (
       <div
         className={`p-4 rounded-2xl bg-gradient-to-r from-rose-950/70 via-[#181118] to-[#0D0F16] border border-rose-500/60 shadow-[0_0_20px_rgba(244,63,94,0.25)] space-y-2.5 ${className}`}
@@ -195,7 +216,7 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
             <div>
               <span className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                Provvedimento Disciplinare: Squalifica
+                {bannerTitle}
               </span>
               <span className="text-[10px] text-slate-400 block">
                 {info.competition} • Delibera Ufficiale

@@ -463,20 +463,84 @@ def sync_disciplinary_with_app(all_sanctions):
             ).strip(" |")
             p["refereeNotes"] = curr_notes
 
-    # Indicizza calciatori per nome normalizzato e squadra
-    def norm(s):
+    # Indicizza partite disputate per squadra per ricavare l'ultima giornata disputata
+    matches = db.get("matches", [])
+    team_played_max = {}
+    def norm_team(s):
         return re.sub(r"[^a-z0-9]", "", str(s or "").lower())
 
-    matched_count = 0
+    for m in matches:
+        if m.get("played"):
+            day = int(m.get("matchDay") or 0)
+            h_team = norm_team(m.get("homeTeamName", ""))
+            a_team = norm_team(m.get("awayTeamName", ""))
+            team_played_max[h_team] = max(team_played_max.get(h_team, 0), day)
+            team_played_max[a_team] = max(team_played_max.get(a_team, 0), day)
+
+    default_max_day = max(team_played_max.values()) if team_played_max else 8
+
+    # Mappatura Comunicato Ufficiale -> Giornata di Campionato
+    CU_TO_MATCHDAY = {
+        24: 0,  # Coppa Italia pre-campionato (30/08/2026)
+        26: 1,  # Gare del 06/09/2026 (Giornata 1)
+        27: 1,  # Gare del 09/09/2026 (Recuperi/Infrasettimanale G1)
+        28: 2,  # Gare del 13/09/2026 (Giornata 2)
+        30: 3,  # Gare del 20/09/2026 (Giornata 3)
+        34: 4,  # Gare del 27/09/2026 (Giornata 4)
+        37: 4,  # Coppa Italia (30/09/2026)
+        38: 5,  # Gare del 04/10/2026 (Giornata 5)
+        43: 7,  # Gare del 11/10/2026 (Giornata 7)
+        46: 7,  # Coppa Italia (14/10/2026)
+        47: 8,  # Gare del 18/10/2026 (Giornata 8)
+    }
+
+    def get_cu_number(cu_str):
+        m = re.search(r"(\d+)", str(cu_str or ""))
+        return int(m.group(1)) if m else 0
+
+    def parse_squalifica_gare(sanz_str):
+        s = str(sanz_str or "").upper()
+        if "TRE GARE" in s:
+            return 3
+        if "DUE GARE" in s:
+            return 2
+        if "UNA GARA" in s:
+            return 1
+        m = re.search(r"(\d+)\s*GARE", s)
+        if m:
+            return int(m.group(1))
+        return 1
+
+    def team_tokens(s):
+        cleaned = re.sub(
+            r"\b(ssdarl|asd|srl|ssd|football|club|calcio|a\.s\.d\.|1909|1913|2009|2015)\b",
+            "",
+            str(s or ""),
+            flags=re.IGNORECASE,
+        )
+        cleaned = re.sub(r"[^a-z0-9\s]", "", cleaned.lower()).strip()
+        return [t for t in cleaned.split() if len(t) >= 3]
+
+    # Resetta status di base per tutti i giocatori a REGOLARE
+    for p in players:
+        p["disciplinaryStatus"] = "REGOLARE"
+        p.pop("disciplinaryDetails", None)
+        curr_notes = p.get("refereeNotes") or ""
+        # Rimuove vecchie diciture errate o temporanee
+        curr_notes = re.sub(r"\|?\s*\[Giudice Sportivo CU n\. \d+\]:\s*I AMMONIZIONE DIFFIDA\s*", "", curr_notes)
+        p["refereeNotes"] = curr_notes.strip(" |")
+
+    # Raggruppa i provvedimenti per ciascun calciatore
+    player_sanctions_map = {}
 
     for sanz in all_sanctions:
-        s_nome = norm(sanz["nome"])
-        s_squadra = norm(sanz["squadra"])
+        s_nome = norm_team(sanz["nome"])
+        s_tokens = team_tokens(sanz["squadra"])
+        s_team_norm = norm_team(sanz["squadra"])
         tipo = sanz["tipo"]
         comp = sanz.get("competizione", "").upper()
 
-        # ESCLUSIONE COPPA ITALIA PER DIFFIDE:
-        # Se la diffida è relativa alla Coppa Italia, NON applicare la dicitura DIFFIDATO
+        # Escludi le diffide da Coppa Italia
         if tipo == "DIFFIDA_COPPA" or ("COPPA" in comp and "DIFFIDA" in tipo):
             continue
 
@@ -484,48 +548,153 @@ def sync_disciplinary_with_app(all_sanctions):
             continue
 
         for p in players:
-            p_fullname = norm(f"{p.get('firstName', '')} {p.get('lastName', '')}")
-            p_revname = norm(f"{p.get('lastName', '')} {p.get('firstName', '')}")
-            p_team = norm(p.get("teamName", ""))
+            p_first = norm_team(p.get("firstName", ""))
+            p_last = norm_team(p.get("lastName", ""))
+            p_full = norm_team(f"{p.get('firstName', '')} {p.get('lastName', '')}")
+            p_rev = norm_team(f"{p.get('lastName', '')} {p.get('firstName', '')}")
 
-            # Verifica corrispondenza nome e squadra (o sottostringa squadra)
-            name_match = (s_nome == p_fullname or s_nome == p_revname)
-            team_match = (s_squadra in p_team or p_team in s_squadra)
+            name_match = (
+                s_nome == p_full
+                or s_nome == p_rev
+                or (p_last in s_nome and p_first in s_nome)
+                or s_nome in p_full
+                or s_nome in p_rev
+            )
+            if not name_match:
+                continue
 
-            if name_match and team_match:
-                if tipo == "SQUALIFICA":
-                    p["disciplinaryStatus"] = "SQUALIFICATO"
-                    p["disciplinaryDetails"] = {
-                        "tipo": "SQUALIFICA",
-                        "sanzione": sanz["sanzione"],
-                        "motivo": sanz.get("motivo") or "Espulsione dal campo durante la gara",
-                        "comunicato": sanz["comunicato"],
-                        "competizione": sanz.get("competizione") or "Campionato Eccellenza",
-                        "urlComunicato": sanz.get("url_comunicato") or ""
-                    }
-                    nota_gs = f"[Giudice Sportivo {sanz['comunicato']}]: {sanz['sanzione']}"
-                    if sanz.get("motivo"):
-                        nota_gs += f" - Motivo: {sanz['motivo']}"
+            p_team = norm_team(p.get("teamName", ""))
+            p_tokens = team_tokens(p.get("teamName", ""))
 
-                elif tipo == "DIFFIDA" and p.get("disciplinaryStatus") != "SQUALIFICATO":
-                    # Solo da CAMPIONATO ECCELLENZA
-                    p["disciplinaryStatus"] = "DIFFIDATO"
-                    p["disciplinaryDetails"] = {
-                        "tipo": "DIFFIDA",
-                        "sanzione": sanz["sanzione"],
-                        "motivo": sanz.get("motivo") or "Cumulo di ammonizioni nel Campionato di Eccellenza (squalifica al prossimo giallo)",
-                        "comunicato": sanz["comunicato"],
-                        "competizione": "Campionato Eccellenza",
-                        "urlComunicato": sanz.get("url_comunicato") or ""
-                    }
-                    nota_gs = f"[Giudice Sportivo {sanz['comunicato']}]: {sanz['sanzione']} (Campionato Eccellenza)"
+            token_overlap = any(t in p_tokens or t in p_team for t in s_tokens) or any(
+                t in s_tokens or t in s_team_norm for t in p_tokens
+            )
+            direct_sub = s_team_norm in p_team or p_team in s_team_norm
 
-                curr_notes = p.get("refereeNotes") or ""
-                if nota_gs not in curr_notes:
-                    p["refereeNotes"] = (curr_notes + " | " + nota_gs).strip(" |")
-
-                matched_count += 1
+            if token_overlap or direct_sub:
+                pid = p.get("id")
+                if pid not in player_sanctions_map:
+                    player_sanctions_map[pid] = {"player": p, "sanctions": []}
+                player_sanctions_map[pid]["sanctions"].append(sanz)
                 break
+
+    matched_count = 0
+    active_squalificati_count = 0
+    active_diffidati_count = 0
+    scontate_count = 0
+    diffide_superate_count = 0
+
+    for pid, entry in player_sanctions_map.items():
+        p = entry["player"]
+        sanctions = entry["sanctions"]
+        sanctions.sort(key=lambda x: get_cu_number(x["comunicato"]))
+
+        p_team_key = norm_team(p.get("teamName", ""))
+        team_max_day = team_played_max.get(p_team_key, default_max_day)
+
+        # 1. Analisi DIFFIDE: rimosse se subentrata successiva squalifica per recidività in ammonizione
+        active_diffida = None
+        for s in sanctions:
+            if s["tipo"] == "DIFFIDA" and "COPPA" not in s.get("competizione", "").upper():
+                cu_diffida = get_cu_number(s["comunicato"])
+                subsequent_recidivita = False
+                for sub in sanctions:
+                    if get_cu_number(sub["comunicato"]) > cu_diffida:
+                        sanz_up = (sub.get("sanzione") or "").upper()
+                        mot_up = (sub.get("motivo") or "").upper()
+                        if (
+                            "RECIDIVITA" in sanz_up
+                            or "V INFR" in sanz_up
+                            or "RECIDIVITÀ" in mot_up
+                            or "RECIDIVITA" in mot_up
+                        ):
+                            subsequent_recidivita = True
+                            diffide_superate_count += 1
+                            break
+                if not subsequent_recidivita:
+                    active_diffida = s
+
+        # 2. Analisi SQUALIFICHE: rimosse se scontate nelle gare successive al comunicato
+        active_squalifica = None
+        new_notes_list = []
+
+        for s in sanctions:
+            cu_num = get_cu_number(s["comunicato"])
+            if s["tipo"] == "SQUALIFICA":
+                matchday_sanz = CU_TO_MATCHDAY.get(cu_num, 8 if cu_num >= 47 else 7 if cu_num >= 43 else 0)
+                gare_dopo = max(0, team_max_day - matchday_sanz)
+                gare_tot = parse_squalifica_gare(s.get("sanzione"))
+                gare_res = max(0, gare_tot - gare_dopo)
+
+                if gare_res > 0:
+                    active_squalifica = {
+                        "sanction": s,
+                        "gareSqualifica": gare_tot,
+                        "gareScontate": gare_dopo,
+                        "gareResidue": gare_res,
+                    }
+                    nota_gs = f"[Giudice Sportivo {s['comunicato']}]: {s['sanzione']}"
+                    if gare_dopo > 0:
+                        nota_gs += f" ({gare_res} gara residua da scontare)"
+                    if s.get("motivo"):
+                        nota_gs += f" - Motivo: {s['motivo']}"
+                    new_notes_list.append(nota_gs)
+                else:
+                    scontate_count += 1
+                    nota_gs = f"[Giudice Sportivo {s['comunicato']} - Scontata]: {s['sanzione']}"
+                    if s.get("motivo"):
+                        nota_gs += f" - Motivo: {s['motivo']}"
+                    new_notes_list.append(nota_gs)
+
+            elif s["tipo"] == "DIFFIDA":
+                cu_diff = get_cu_number(s["comunicato"])
+                is_active = (active_diffida == s)
+                if is_active:
+                    nota_gs = f"[Giudice Sportivo {s['comunicato']}]: {s['sanzione']} (Campionato Eccellenza)"
+                    if s.get("motivo"):
+                        nota_gs += f" - Motivo: {s['motivo']}"
+                    new_notes_list.append(nota_gs)
+                else:
+                    nota_gs = f"[Giudice Sportivo {s['comunicato']} - Superata]: {s['sanzione']}"
+                    new_notes_list.append(nota_gs)
+
+        # 3. Assegnazione status finale
+        if active_squalifica:
+            p["disciplinaryStatus"] = "SQUALIFICATO"
+            s = active_squalifica["sanction"]
+            p["disciplinaryDetails"] = {
+                "tipo": "SQUALIFICA",
+                "sanzione": s["sanzione"],
+                "motivo": s.get("motivo") or "Espulsione dal campo durante la gara",
+                "comunicato": s["comunicato"],
+                "competizione": s.get("competizione") or "Campionato Eccellenza",
+                "urlComunicato": s.get("url_comunicato") or "",
+                "scontata": False,
+                "giornateSqualifica": active_squalifica["gareSqualifica"],
+                "giornateScontate": active_squalifica["gareScontate"],
+                "giornateResidue": active_squalifica["gareResidue"],
+            }
+            active_squalificati_count += 1
+        elif active_diffida:
+            p["disciplinaryStatus"] = "DIFFIDATO"
+            p["disciplinaryDetails"] = {
+                "tipo": "DIFFIDA",
+                "sanzione": active_diffida["sanzione"],
+                "motivo": active_diffida.get("motivo")
+                or "Cumulo di ammonizioni nel Campionato di Eccellenza (squalifica al prossimo giallo)",
+                "comunicato": active_diffida["comunicato"],
+                "competizione": "Campionato Eccellenza",
+                "urlComunicato": active_diffida.get("url_comunicato") or "",
+            }
+            active_diffidati_count += 1
+        else:
+            p["disciplinaryStatus"] = "REGOLARE"
+            p.pop("disciplinaryDetails", None)
+
+        if new_notes_list:
+            p["refereeNotes"] = " | ".join(new_notes_list)
+
+        matched_count += 1
 
     # Salva le modifiche
     try:
@@ -536,7 +705,13 @@ def sync_disciplinary_with_app(all_sanctions):
             with open(dataset_path, "w", encoding="utf-8") as f:
                 json.dump(db, f, ensure_ascii=False, indent=2)
 
-        print(f" [✓] Sincronizzati {matched_count} provvedimenti disciplinari (diffide considerate ESCLUSIVAMENTE da Campionato)!")
+        print(
+            f" [✓] Sincronizzati {matched_count} calciatori sanzionati: "
+            f"{active_squalificati_count} Squalifiche attive, "
+            f"{active_diffidati_count} Diffide attive, "
+            f"{scontate_count} Squalifiche scontate rimosse, "
+            f"{diffide_superate_count} Diffide superate rimosse!"
+        )
     except Exception as e_w:
         print(f" [!] Errore salvataggio database app: {e_w}")
 

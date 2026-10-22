@@ -314,6 +314,23 @@ export class DbService {
               designations: cleanDesignations,
             };
 
+            // Aggiorna lo stato disciplinare ufficiale dai dati aggiornati di dataset.json
+            if (Array.isArray(inMemoryData.players) && Array.isArray(defaultDataset.players)) {
+              const defaultPlayerMap = new Map((defaultDataset.players as any[]).map((dp) => [dp.id, dp]));
+              inMemoryData.players = inMemoryData.players.map((lp) => {
+                const dp = defaultPlayerMap.get(lp.id);
+                if (dp) {
+                  return {
+                    ...lp,
+                    disciplinaryStatus: dp.disciplinaryStatus,
+                    disciplinaryDetails: dp.disciplinaryDetails,
+                    refereeNotes: dp.refereeNotes,
+                  };
+                }
+                return lp;
+              });
+            }
+
             // Idratazione e protezione squadre Casa / Ospite per tutti i video
             if (Array.isArray(inMemoryData.videos)) {
               inMemoryData.videos = inMemoryData.videos.map((v) => {

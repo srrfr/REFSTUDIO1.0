@@ -196,14 +196,13 @@ export class ClientExcelParser {
         const yellowCards = parseInt(p['Ammonizioni'] || 0, 10);
         const redCards = parseInt(p['Espulsioni'] || 0, 10);
 
-        let disciplinaryStatus: Player['disciplinaryStatus'] = 'REGOLARE';
-        if (redCards > 0) disciplinaryStatus = 'SQUALIFICATO';
-        else if (yellowCards >= 4) disciplinaryStatus = 'DIFFIDATO';
-
         const existingByFullName =
           existingPlayersMap.get(playerId) ||
           existingPlayersMap.get(`${firstName} ${lastName}`.toLowerCase().trim()) ||
           existingPlayersMap.get(`${lastName} ${firstName}`.toLowerCase().trim());
+
+        let disciplinaryStatus: Player['disciplinaryStatus'] = existingByFullName?.disciplinaryStatus || 'REGOLARE';
+        const disciplinaryDetails = existingByFullName?.disciplinaryDetails;
 
         const customTags = existingByFullName?.customTags || [];
         const refereeNotes = existingByFullName?.refereeNotes || '';
@@ -224,6 +223,7 @@ export class ClientExcelParser {
           yellowCards: yellowCards,
           redCards: redCards,
           disciplinaryStatus: disciplinaryStatus,
+          disciplinaryDetails: disciplinaryDetails,
           customTags: customTags,
           refereeNotes: refereeNotes,
           updatedAt: new Date().toISOString(),
