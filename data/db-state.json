@@ -1970,16 +1970,24 @@
       "appearances": 4,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [
         "aggressivo",
         "proteste frequenti",
         "osservare",
         "leader squadra"
       ],
-      "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Calciatore in panchina perché sostituito, rivolgeva all'arbitro una frase ironica.",
+      "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Calciatore in panchina perché sostituito, rivolgeva all'arbitro una frase ironica. | [Giudice Sportivo CU n. 47]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7279022.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7279022.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+        "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+        "comunicato": "CU n. 47",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "8015018",
@@ -2080,15 +2088,23 @@
       "appearances": 4,
       "yellowCards": 3,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [
         "osservare",
         "aggressivo",
         "proteste frequenti"
       ],
-      "refereeNotes": "DSDSDS",
+      "refereeNotes": "DSDSDS | [Giudice Sportivo CU n. 47]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7242333.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7242333.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 47",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "8335348",
@@ -2541,11 +2557,19 @@
       "appearances": 4,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 30]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Per comportamento non regolamentare al termine della gara, inoltre rivolgeva espressioni ingiuriose nei confronti di un dirigente avversario.",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7396236.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7396236.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Per comportamento non regolamentare al termine della gara, inoltre rivolgeva espressioni ingiuriose nei confronti di un dirigente avversario.",
+        "comunicato": "CU n. 30",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+      }
     },
     {
       "id": "8690444",
@@ -3460,11 +3484,19 @@
       "appearances": 4,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 38]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8296639.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8296639.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 38",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+      }
     },
     {
       "id": "8756128",
@@ -3860,7 +3892,15 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7404196.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7404196.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 26",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+      }
     },
     {
       "id": "7855298",
@@ -4024,10 +4064,18 @@
       "appearances": 3,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-10-20T10:53:31.002Z"
+      "updatedAt": "2026-10-20T10:53:31.002Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 30",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+      }
     },
     {
       "id": "7141505",
@@ -4335,11 +4383,19 @@
       "appearances": 4,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 47]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza)",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7242928.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7242928.png",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+        "comunicato": "CU n. 47",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "7650057",
@@ -4377,11 +4433,19 @@
       "appearances": 4,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 43]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza)",
+      "refereeNotes": "[Giudice Sportivo CU n. 43]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) | [Giudice Sportivo CU n. 47]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8003927.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8003927.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+        "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+        "comunicato": "CU n. 47",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "8013429",
@@ -5324,7 +5388,14 @@
       "customTags": [],
       "refereeNotes": "",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7765034.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7765034.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "Squalifica per espulsione sul campo",
+        "motivo": "Cartellino rosso diretto o doppia ammonizione durante la gara",
+        "comunicato": "Referto Gara",
+        "competizione": "Campionato Eccellenza"
+      }
     },
     {
       "id": "7761903",
@@ -5427,11 +5498,19 @@
       "appearances": 3,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 30]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7282236.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7282236.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 30",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+      }
     },
     {
       "id": "7765010",
@@ -5615,11 +5694,19 @@
       "appearances": 3,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 43]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8477674.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8477674.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 43",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+      }
     },
     {
       "id": "8447490",
@@ -6097,11 +6184,19 @@
       "appearances": 4,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 43]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7558941.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7558941.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 43",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+      }
     },
     {
       "id": "8078006",
@@ -6809,11 +6904,19 @@
       "appearances": 2,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8576736.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8576736.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 38",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+      }
     },
     {
       "id": "8501827",
@@ -7207,11 +7310,19 @@
       "appearances": 3,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8055557.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8055557.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 30",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+      }
     },
     {
       "id": "8022928",
@@ -8333,11 +8444,19 @@
       "appearances": 2,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 47]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8546214.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8546214.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 47",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "7141822",
@@ -8625,11 +8744,19 @@
       "appearances": 0,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 43]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8814011.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8814011.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 43",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+      }
     },
     {
       "id": "7258687",
@@ -9209,11 +9336,19 @@
       "appearances": 4,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8074246.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8074246.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 38",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+      }
     },
     {
       "id": "8975341",
@@ -9375,11 +9510,19 @@
       "appearances": 1,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7683086.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7683086.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 38",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+      }
     },
     {
       "id": "8653673",
@@ -9795,7 +9938,15 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 24]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 24]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 24 agosto 2026 dalla Soc. Bellaria Igea Marina con la quale quest’ultima ha formalmente manifestato la Regionale inserito nel Girone D per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 25 agosto 2026 dalla Soc. Rapid Viadana con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 26 agosto 2026 dalla Soc. A.C. Colorno con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Associazione Calcio Dilettantistica Colorno l’ammenda di €400,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Dott. Carlo Frongillo 8. AUTORIZZAZIONE TORNEI 8.1 Autorizzazione Tornei Sgs TORNEI INTERNAZIONALI ALL’ESTERO AUTORIZZATI STAGIONE SPORTIVA 2026/2027 UNDER 12 BOLOGNA FC 1909 30.10 – 01.11.26 UNER12 – UNDER 10 04.09 – 06.09.26 UNDER 11 05.09.26 UNDER 11 02.10 – 05.10.26 STAGIONE SPORTIVA 2026/2027 UNDER 14 RA 04.09 – 06.09.26 STAGIONE SPORTIVA 2026/2027 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO BO 05.09 – 13.09.26 STAGIONE SPORTIVA 2026/2027 UNDER 17 MO 17 – 24 SETTEMBRE UNDER 17 UNDER 16 UNDER 15 UNDER 14 FE 01.09 – 29.09.26 ESORDIENTI 1°ANNO PULCINI 1°2°ANNO PRIMI CALCI BO 12.09 – 10.10.26 RE 27.09.26 RE 11.10.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI MO 12.09 – 13.09.26 UNDER 15 FEMMINILE FE 27.09.26 1° YOUNG CUP FE 12.09.26 STAGIONE SPORTIVA 2026/2027 PULCINI 1°2°ANNO BO 12.09 – 13.09.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI BO 11.09 – 12.09.26 PULCINI 2°ANNO BO 12.09.26 SASSOLEONE 2015 BO 12.09 – 13.09.26 Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 02/09/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8197082.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8197082.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 24 agosto 2026 dalla Soc. Bellaria Igea Marina con la quale quest’ultima ha formalmente manifestato la Regionale inserito nel Girone D per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 25 agosto 2026 dalla Soc. Rapid Viadana con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 26 agosto 2026 dalla Soc. A.C. Colorno con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Associazione Calcio Dilettantistica Colorno l’ammenda di €400,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Dott. Carlo Frongillo 8. AUTORIZZAZIONE TORNEI 8.1 Autorizzazione Tornei Sgs TORNEI INTERNAZIONALI ALL’ESTERO AUTORIZZATI STAGIONE SPORTIVA 2026/2027 UNDER 12 BOLOGNA FC 1909 30.10 – 01.11.26 UNER12 – UNDER 10 04.09 – 06.09.26 UNDER 11 05.09.26 UNDER 11 02.10 – 05.10.26 STAGIONE SPORTIVA 2026/2027 UNDER 14 RA 04.09 – 06.09.26 STAGIONE SPORTIVA 2026/2027 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO BO 05.09 – 13.09.26 STAGIONE SPORTIVA 2026/2027 UNDER 17 MO 17 – 24 SETTEMBRE UNDER 17 UNDER 16 UNDER 15 UNDER 14 FE 01.09 – 29.09.26 ESORDIENTI 1°ANNO PULCINI 1°2°ANNO PRIMI CALCI BO 12.09 – 10.10.26 RE 27.09.26 RE 11.10.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI MO 12.09 – 13.09.26 UNDER 15 FEMMINILE FE 27.09.26 1° YOUNG CUP FE 12.09.26 STAGIONE SPORTIVA 2026/2027 PULCINI 1°2°ANNO BO 12.09 – 13.09.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI BO 11.09 – 12.09.26 PULCINI 2°ANNO BO 12.09.26 SASSOLEONE 2015 BO 12.09 – 13.09.26 Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 02/09/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+        "comunicato": "CU n. 24",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7586/cu24.pdf"
+      }
     },
     {
       "id": "7947526",
@@ -10397,7 +10548,15 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 26]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/10435350.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/10435350.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 26",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+      }
     },
     {
       "id": "9140026",
@@ -10705,11 +10864,19 @@
       "appearances": 4,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 47]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7378639.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7378639.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 47",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "7663828",
@@ -10830,11 +10997,19 @@
       "appearances": 4,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 43]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8380619.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8380619.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 43",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+      }
     },
     {
       "id": "7413631",
@@ -10895,7 +11070,15 @@
       "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-10-20T10:53:31.003Z"
+      "updatedAt": "2026-10-20T10:53:31.003Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 26",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+      }
     },
     {
       "id": "8038737",
@@ -11268,7 +11451,15 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FUTURA FORNOVO MEDESANO)",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8138805.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8138805.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "(FUTURA FORNOVO MEDESANO)",
+        "comunicato": "CU n. 30",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+      }
     },
     {
       "id": "9631370",
@@ -11410,11 +11601,19 @@
       "appearances": 4,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 43]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7698260.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7698260.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 43",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+      }
     },
     {
       "id": "7787596",
@@ -11725,7 +11924,15 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 30]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7821925.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7821925.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 30",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf"
+      }
     },
     {
       "id": "7916120",
@@ -11829,7 +12036,15 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7571011.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7571011.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 26",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+      }
     },
     {
       "id": "7933001",
@@ -12202,7 +12417,14 @@
       "customTags": [],
       "refereeNotes": "",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7425400.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7425400.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "Squalifica per espulsione sul campo",
+        "motivo": "Cartellino rosso diretto o doppia ammonizione durante la gara",
+        "comunicato": "Referto Gara",
+        "competizione": "Campionato Eccellenza"
+      }
     },
     {
       "id": "8089866",
@@ -13566,11 +13788,19 @@
       "appearances": 4,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/9518605.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/9518605.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 38",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+      }
     },
     {
       "id": "9511772",
@@ -15630,11 +15860,19 @@
       "appearances": 4,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 47]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: (FIDENTINA BORGO S.DONNINO) (FIDENTINA BORGO S.DONNINO)",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7217962.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7217962.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "(FIDENTINA BORGO S.DONNINO) (FIDENTINA BORGO S.DONNINO)",
+        "comunicato": "CU n. 47",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "8611872",
@@ -16030,11 +16268,19 @@
       "appearances": 1,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 38]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7551627.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7551627.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 38",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+      }
     },
     {
       "id": "8424180",
@@ -17830,13 +18076,21 @@
       "appearances": 2,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [
         "osservare"
       ],
       "refereeNotes": "[Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA | [Giudice Sportivo CU n. 26]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 2 settembre 2026 dalla Soc. Felsina SSD con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone B per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Felsina SSD l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 9 settembre 2026 dalla Soc. Imolese Football Club con la quale quest’ultima ha formalmente manifestato Under 18 Regionale inserito nel Girone C per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Imolese Football Club l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza.",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8234636.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8234636.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 2 settembre 2026 dalla Soc. Felsina SSD con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone B per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Felsina SSD l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 9 settembre 2026 dalla Soc. Imolese Football Club con la quale quest’ultima ha formalmente manifestato Under 18 Regionale inserito nel Girone C per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Imolese Football Club l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza.",
+        "comunicato": "CU n. 26",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+      }
     },
     {
       "id": "8053441",
@@ -17859,7 +18113,14 @@
       ],
       "refereeNotes": "",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8053441.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8053441.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "Squalifica per espulsione sul campo",
+        "motivo": "Cartellino rosso diretto o doppia ammonizione durante la gara",
+        "comunicato": "Referto Gara",
+        "competizione": "Campionato Eccellenza"
+      }
     },
     {
       "id": "9296286",
@@ -18313,11 +18574,19 @@
       "appearances": 3,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 38]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8026875.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8026875.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 38",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+      }
     },
     {
       "id": "7128555",
@@ -19420,11 +19689,19 @@
       "appearances": 1,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 34]: SQUALIFICA PER DUE GARE EFFETTIVE | [Giudice Sportivo CU n. 34]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: (FUTURA FORNOVO MEDESANO)",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7770335.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7770335.png",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "(FUTURA FORNOVO MEDESANO)",
+        "comunicato": "CU n. 34",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
+      }
     },
     {
       "id": "8194284",

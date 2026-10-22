@@ -548,5 +548,104 @@
     "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
     "comunicato": "CU n. 43",
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "MOUSTAP",
+    "squadra": "CAMPAGNOLA",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "(FIDENTINA BORGO S.DONNINO) Per gravi proteste nei confronti dell'Arbitro (FUTURA FORNOVO MEDESANO) Per gravi proteste nei confronti dell'Arbitro",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "GADDA ANDREA",
+    "squadra": "COMACCHIESE 2015",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "(FIDENTINA BORGO S.DONNINO) (FIDENTINA BORGO S.DONNINO)",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "MECHETTI LORENZO",
+    "squadra": "SAN MARINO CALCIO",
+    "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+    "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "ZUCCHINI GIANLUCA",
+    "squadra": "ARS ET LABOR FERRARA",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "CORTESI NICOLAS",
+    "squadra": "VIANESE CALCIO SSDARL",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "RICCI MANUEL",
+    "squadra": "ARS ET LABOR FERRARA",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "GUEYE IBRAHIMA",
+    "squadra": "BOBBIESE",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "CRISTIAN MAXIM",
+    "squadra": "AGAZZANESE",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "COMPAORE ISSOUF",
+    "squadra": "BOBBIESE",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 47",
+    "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
   }
 ]
