@@ -709,8 +709,10 @@ def sync_disciplinary_with_app(all_sanctions):
             p["disciplinaryStatus"] = "REGOLARE"
             p.pop("disciplinaryDetails", None)
 
-        if new_notes_list:
-            p["refereeNotes"] = " | ".join(new_notes_list)
+        if p.get("refereeNotes") and "[Giudice Sportivo" in p["refereeNotes"]:
+            rn = p["refereeNotes"]
+            parts = [part.strip() for part in rn.split('|') if '[Giudice Sportivo' not in part]
+            p["refereeNotes"] = " | ".join(parts) if parts else ""
 
         matched_count += 1
 

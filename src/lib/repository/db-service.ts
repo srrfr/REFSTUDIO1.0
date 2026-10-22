@@ -319,16 +319,18 @@ export class DbService {
               const defaultPlayerMap = new Map((defaultDataset.players as any[]).map((dp) => [dp.id, dp]));
               inMemoryData.players = inMemoryData.players.map((lp) => {
                 const dp = defaultPlayerMap.get(lp.id);
+                const cleanLocalNotes = lp.refereeNotes && !lp.refereeNotes.includes('[Giudice Sportivo') ? lp.refereeNotes : '';
                 if (dp) {
+                  const cleanDefaultNotes = dp.refereeNotes && !dp.refereeNotes.includes('[Giudice Sportivo') ? dp.refereeNotes : '';
                   return {
                     ...lp,
                     disciplinaryStatus: dp.disciplinaryStatus,
                     disciplinaryDetails: dp.disciplinaryDetails,
                     pastSanctions: dp.pastSanctions,
-                    refereeNotes: dp.refereeNotes,
+                    refereeNotes: cleanDefaultNotes || cleanLocalNotes,
                   };
                 }
-                return lp;
+                return { ...lp, refereeNotes: cleanLocalNotes };
               });
             }
 
@@ -906,9 +908,11 @@ export class DbService {
             photoUrl = lp.photoUrl;
           }
 
-          let refereeNotes = cp.refereeNotes;
+          let refereeNotes = (cp.refereeNotes && !cp.refereeNotes.includes('[Giudice Sportivo')) ? cp.refereeNotes : '';
           if ((!refereeNotes && lp.refereeNotes) || (localIsNewer && lp.refereeNotes)) {
-            refereeNotes = lp.refereeNotes;
+            if (!lp.refereeNotes.includes('[Giudice Sportivo')) {
+              refereeNotes = lp.refereeNotes;
+            }
           }
 
           let customTags = cp.customTags || [];

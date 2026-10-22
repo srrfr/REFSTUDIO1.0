@@ -85,15 +85,15 @@ export function getPlayerMediaSummary(
   const matchedNotes = allNotes.filter((n) => matchNoteToPlayer(n, player));
   const matchedVideos = allVideos.filter((v) => matchVideoToPlayer(v, player));
 
-  const hasRefereeNotes = Boolean(player.refereeNotes && player.refereeNotes.trim());
+  const hasRefereeNotes = Boolean(
+    player.refereeNotes &&
+    player.refereeNotes.trim() &&
+    !player.refereeNotes.includes('[Giudice Sportivo')
+  );
   const refereeNotesText = hasRefereeNotes ? player.refereeNotes!.trim() : undefined;
 
-  // Se il calciatore ha refereeNotes direttamente sull'anagrafica e non è già duplicato in matchedNotes
-  const isDirectNoteAlreadyInNotes =
-    hasRefereeNotes && matchedNotes.some((n) => n.content?.trim() === refereeNotesText);
-  const directNoteBonus = hasRefereeNotes && !isDirectNoteAlreadyInNotes ? 1 : 0;
-
-  const textCount = matchedNotes.length + directNoteBonus;
+  // L'icona gialla delle note deve essere presente solo ed esclusivamente se sono registrate note testuali inserite da utenti per quel calciatore
+  const textCount = matchedNotes.length;
   const videoCount = matchedVideos.length;
   const totalCount = textCount + videoCount;
 

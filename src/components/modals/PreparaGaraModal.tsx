@@ -268,7 +268,7 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
         .filter((p) => {
           const summary = playersMediaMap?.get(p.id);
           const hasNotesOrClips = Boolean(summary?.hasMedia);
-          const hasPersonalNotes = Boolean(p.refereeNotes && p.refereeNotes.trim());
+          const hasPersonalNotes = Boolean(p.refereeNotes && p.refereeNotes.trim() && !p.refereeNotes.includes('[Giudice Sportivo'));
           const hasTags = Boolean(p.customTags && p.customTags.length > 0);
           const hasDisciplinary =
             (p.yellowCards && p.yellowCards >= 3) ||
@@ -727,7 +727,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-1">
               {watchPlayers.map((p) => {
                 const summary = playersMediaMap?.get(p.id);
-                const hasPersonalNote = Boolean(summary?.refereeNotes || (p.refereeNotes && p.refereeNotes.trim()));
+                const hasPersonalNote = Boolean(
+                  (summary?.refereeNotes && !summary.refereeNotes.includes('[Giudice Sportivo')) ||
+                  (p.refereeNotes && p.refereeNotes.trim() && !p.refereeNotes.includes('[Giudice Sportivo'))
+                );
                 const textNotes = summary?.textNotes || [];
                 const videoNotes = summary?.videoNotes || [];
                 const hasNotesOrVideos = textNotes.length > 0 || videoNotes.length > 0 || hasPersonalNote;
@@ -1602,7 +1605,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                         {homeWatchPlayers.slice(0, 4).map((p) => {
                           const summary = playersMediaMap?.get(p.id);
                           const hasNotes = Boolean(summary && summary.hasMedia);
-                          const hasPersonal = Boolean(summary?.refereeNotes || (p.refereeNotes && p.refereeNotes.trim()));
+                          const hasPersonal = Boolean(
+                            (summary?.refereeNotes && !summary.refereeNotes.includes('[Giudice Sportivo')) ||
+                            (p.refereeNotes && p.refereeNotes.trim() && !p.refereeNotes.includes('[Giudice Sportivo'))
+                          );
 
                           return (
                             <div
@@ -1695,7 +1701,10 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                         {awayWatchPlayers.slice(0, 4).map((p) => {
                           const summary = playersMediaMap?.get(p.id);
                           const hasNotes = Boolean(summary && summary.hasMedia);
-                          const hasPersonal = Boolean(summary?.refereeNotes || (p.refereeNotes && p.refereeNotes.trim()));
+                          const hasPersonal = Boolean(
+                            (summary?.refereeNotes && !summary.refereeNotes.includes('[Giudice Sportivo')) ||
+                            (p.refereeNotes && p.refereeNotes.trim() && !p.refereeNotes.includes('[Giudice Sportivo'))
+                          );
 
                           return (
                             <div
