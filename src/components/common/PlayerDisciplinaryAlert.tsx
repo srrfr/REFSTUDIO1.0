@@ -141,6 +141,97 @@ export function getPlayerDisciplinaryInfo(player: Player): DisciplinaryInfo {
   };
 }
 
+export interface SeverePastSanctionInfo {
+  hasSevere: boolean;
+  sanction: PlayerDisciplinaryDetail;
+  giornate?: number;
+  isTimeInhibition: boolean;
+  sanzione: string;
+  motivo?: string;
+  comunicato?: string;
+  badgeLabel: string;
+}
+
+/**
+ * Verifica se il calciatore ha subito espulsioni passate di almeno 2 giornate
+ * oppure inibizioni/sanzioni a tempo.
+ */
+export function getPlayerSeverePastSanction(player: Player): SeverePastSanctionInfo | null {
+  const info = getPlayerDisciplinaryInfo(player);
+
+  for (const ps of info.pastSanctions) {
+    const sanzUp = String(ps.sanzione || '').toUpperCase();
+    const isTimeInhibition =
+      sanzUp.includes('INIBIZIONE') ||
+      sanzUp.includes('A TEMPO') ||
+      sanzUp.includes('A MESI') ||
+      sanzUp.includes('FINO AL');
+
+    let gare = ps.giornateSqualifica || 0;
+    if (!gare) {
+      if (sanzUp.includes('TRE GARE')) gare = 3;
+      else if (sanzUp.includes('DUE GARE')) gare = 2;
+      else {
+        const m = sanzUp.match(/(\d+)\s*GARE/);
+        gare = m ? parseInt(m[1], 10) : 0;
+      }
+    }
+
+    if (gare >= 2 || isTimeInhibition) {
+      return {
+        hasSevere: true,
+        sanction: ps,
+        giornate: gare || undefined,
+        isTimeInhibition,
+        sanzione: ps.sanzione,
+        motivo: ps.motivo,
+        comunicato: ps.comunicato,
+        badgeLabel: isTimeInhibition ? 'Inibizione' : `${gare}G`,
+      };
+    }
+  }
+
+  return null;
+}
+
+export interface PlayerSevereHistoryIconProps {
+  player: Player;
+  className?: string;
+  showText?: boolean;
+}
+
+/**
+ * Piccola icona non invadente che segnala se il calciatore ha ricevuto
+ * espulsioni passate di almeno 2 giornate (oppure inibizioni a tempo).
+ */
+export const PlayerSevereHistoryIcon: React.FC<PlayerSevereHistoryIconProps> = ({
+  player,
+  className = '',
+  showText = true,
+}) => {
+  const severe = getPlayerSeverePastSanction(player);
+  if (!severe) return null;
+
+  const tooltip = `Precedente disciplinare grave: ${severe.sanzione}${
+    severe.comunicato ? ` (${severe.comunicato})` : ''
+  }${severe.motivo ? ` • Motivo: ${severe.motivo}` : ''}`;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold tracking-tight shadow-sm transition-all cursor-help shrink-0 select-none ${className}`}
+      title={tooltip}
+      aria-label={tooltip}
+    >
+      <ShieldAlert className="w-3 h-3 text-amber-400 shrink-0" />
+      {showText && (
+        <span className="font-mono text-[9px] uppercase font-bold text-amber-300">
+          {severe.badgeLabel}
+        </span>
+      )}
+    </span>
+  );
+};
+
 interface PlayerDisciplinaryAlertProps {
   player: Player;
   variant?: 'banner' | 'badge' | 'compact' | 'note';
@@ -156,33 +247,49 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
 
   // 1. VARIANTE BADGE (Compatto per tabelle, liste rapide e griglia)
   if (variant === 'badge') {
+    const severe = getPlayerSeverePastSanction(player);
+    const severeIcon = severe ? (
+      <PlayerSevereHistoryIcon player={player} showText={true} />
+    ) : null;
+
     if (info.isSqualificato) {
       const label =
         info.giornateResidue && info.giornateSqualifica && info.giornateResidue < info.giornateSqualifica
           ? `Squalificato (${info.giornateResidue} residua)`
           : 'Squalificato';
       return (
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.35)] shrink-0 select-none ${className}`}
-          title={`${info.sanction}${info.reason ? ` - ${info.reason}` : ''}`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-          <Ban className="w-3 h-3 text-rose-400" />
-          <span>{label}</span>
+        <span className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.35)] shrink-0 select-none"
+            title={`${info.sanction}${info.reason ? ` - ${info.reason}` : ''}`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+            <Ban className="w-3 h-3 text-rose-400" />
+            <span>{label}</span>
+          </span>
+          {severeIcon}
         </span>
       );
     }
 
     if (info.isDiffidato) {
       return (
-        <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.35)] shrink-0 select-none animate-pulse ${className}`}
-          title="Calciatore diffidato: al prossimo cartellino giallo scatterà 1 turno di squalifica"
-        >
-          <AlertTriangle className="w-3 h-3 text-amber-400" />
-          <span>Diffidato</span>
+        <span className={`inline-flex items-center gap-1.5 flex-wrap ${className}`}>
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/60 shadow-[0_0_12px_rgba(245,158,11,0.35)] shrink-0 select-none animate-pulse"
+            title="Calciatore diffidato: al prossimo cartellino giallo scatterà 1 turno di squalifica"
+          >
+            <AlertTriangle className="w-3 h-3 text-amber-400" />
+            <span>Diffidato</span>
+          </span>
+          {severeIcon}
         </span>
       );
+    }
+
+    // Se il calciatore non ha sanzioni attive ma ha un precedente grave (>=2 giornate o inibizione):
+    if (severeIcon) {
+      return severeIcon;
     }
 
     return null;
@@ -390,29 +497,53 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
           </div>
 
           <div className="space-y-2.5">
-            {info.pastSanctions.map((past, idx) => (
-              <div
-                key={idx}
-                className="p-3 rounded-xl bg-[#090C14] border border-[#1E2536] hover:border-emerald-500/40 transition-all space-y-1.5 text-xs"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                      Squalifica Scontata
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-medium">
-                      {past.competizione || 'Campionato Eccellenza'}
-                    </span>
-                  </div>
+            {info.pastSanctions.map((past, idx) => {
+              const sanzUp = String(past.sanzione || '').toUpperCase();
+              const isTimeInh =
+                sanzUp.includes('INIBIZIONE') ||
+                sanzUp.includes('A TEMPO') ||
+                sanzUp.includes('A MESI') ||
+                sanzUp.includes('FINO AL');
+              let g = past.giornateSqualifica || 0;
+              if (!g) {
+                if (sanzUp.includes('TRE GARE')) g = 3;
+                else if (sanzUp.includes('DUE GARE')) g = 2;
+                else {
+                  const m = sanzUp.match(/(\d+)\s*GARE/);
+                  g = m ? parseInt(m[1], 10) : 0;
+                }
+              }
+              const isSevere = g >= 2 || isTimeInh;
 
-                  {past.comunicato && (
-                    <span className="text-[10px] font-mono font-bold text-slate-300 bg-[#141A28] border border-slate-700/60 px-2 py-0.5 rounded flex items-center gap-1">
-                      <FileText className="w-3 h-3 text-slate-400" />
-                      {past.comunicato}
-                    </span>
-                  )}
-                </div>
+              return (
+                <div
+                  key={idx}
+                  className="p-3 rounded-xl bg-[#090C14] border border-[#1E2536] hover:border-emerald-500/40 transition-all space-y-1.5 text-xs"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        Squalifica Scontata
+                      </span>
+                      {isSevere && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          <ShieldAlert className="w-3 h-3 text-amber-400" />
+                          Precedente Grave ({isTimeInh ? 'Inibizione' : `≥${g}G`})
+                        </span>
+                      )}
+                      <span className="text-[10px] text-slate-400 font-medium">
+                        {past.competizione || 'Campionato Eccellenza'}
+                      </span>
+                    </div>
+
+                    {past.comunicato && (
+                      <span className="text-[10px] font-mono font-bold text-slate-300 bg-[#141A28] border border-slate-700/60 px-2 py-0.5 rounded flex items-center gap-1">
+                        <FileText className="w-3 h-3 text-slate-400" />
+                        {past.comunicato}
+                      </span>
+                    )}
+                  </div>
 
                 <div className="text-white font-bold text-xs pt-0.5">
                   {past.sanzione}
@@ -439,8 +570,9 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
                   </div>
                 )}
               </div>
-            ))}
-          </div>
+            );
+          })}
+        </div>
         </div>
       )}
     </div>
