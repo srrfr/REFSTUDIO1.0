@@ -617,6 +617,7 @@ def sync_disciplinary_with_app(all_sanctions):
         # 2. Analisi SQUALIFICHE: rimosse se scontate nelle gare successive al comunicato
         active_squalifica = None
         new_notes_list = []
+        past_sanctions = []
 
         for s in sanctions:
             cu_num = get_cu_number(s["comunicato"])
@@ -641,6 +642,18 @@ def sync_disciplinary_with_app(all_sanctions):
                     new_notes_list.append(nota_gs)
                 else:
                     scontate_count += 1
+                    past_sanctions.append({
+                        "tipo": "SQUALIFICA",
+                        "sanzione": s["sanzione"],
+                        "motivo": s.get("motivo") or "",
+                        "comunicato": s["comunicato"],
+                        "competizione": s.get("competizione") or "Campionato Eccellenza",
+                        "urlComunicato": s.get("url_comunicato") or "",
+                        "scontata": True,
+                        "giornateSqualifica": gare_tot,
+                        "giornateScontate": gare_dopo,
+                        "giornateResidue": 0,
+                    })
                     nota_gs = f"[Giudice Sportivo {s['comunicato']} - Scontata]: {s['sanzione']}"
                     if s.get("motivo"):
                         nota_gs += f" - Motivo: {s['motivo']}"
@@ -658,7 +671,12 @@ def sync_disciplinary_with_app(all_sanctions):
                     nota_gs = f"[Giudice Sportivo {s['comunicato']} - Superata]: {s['sanzione']}"
                     new_notes_list.append(nota_gs)
 
-        # 3. Assegnazione status finale
+        # 3. Assegnazione status finale e storico sanzioni pregresse
+        if past_sanctions:
+            p["pastSanctions"] = past_sanctions
+        else:
+            p.pop("pastSanctions", None)
+
         if active_squalifica:
             p["disciplinaryStatus"] = "SQUALIFICATO"
             s = active_squalifica["sanction"]
@@ -696,6 +714,62 @@ def sync_disciplinary_with_app(all_sanctions):
 
         matched_count += 1
 
+    # 4. Assegnazione sanzioni e inibizioni staff & dirigenti (Coppa Italia e Campionato) alle squadre
+    teams = db.get("teams", [])
+    for t in teams:
+        t["staffSanctions"] = []
+
+    staff_sanctions_all = [
+        s for s in all_sanctions
+        if s.get("tipo") == "STAFF_INIBIZIONE"
+        or any(r in (s.get("ruolo") or "").upper() for r in ["DIRIGENT", "ALLENATOR", "MASSAGGIATOR", "MEDIC"])
+        or "INIBIZIONE" in (s.get("sanzione") or "").upper()
+    ]
+
+    matched_staff_count = 0
+    for s in staff_sanctions_all:
+        s_team = s.get("squadra", "")
+        s_norm = norm_team(s_team)
+        s_toks = set(team_tokens(s_team))
+
+        best_t = None
+        best_score = 0
+        for t in teams:
+            t_name = t.get("name", "")
+            t_norm = norm_team(t_name)
+            if s_norm == t_norm:
+                best_t = t
+                best_score = 999
+                break
+            t_toks = set(team_tokens(t_name))
+            common = s_toks.intersection(t_toks)
+            if common:
+                score = sum(len(tok) for tok in common)
+                if score > best_score:
+                    best_score = score
+                    best_t = t
+
+        if not best_t or best_score < 4:
+            for t in teams:
+                t_norm = norm_team(t.get("name", ""))
+                if (len(t_norm) >= 6 and t_norm in s_norm) or (len(s_norm) >= 6 and s_norm in t_norm):
+                    best_t = t
+                    break
+
+        if best_t:
+            if "staffSanctions" not in best_t:
+                best_t["staffSanctions"] = []
+            best_t["staffSanctions"].append({
+                "nome": s["nome"],
+                "ruolo": s.get("ruolo") or "Dirigenti",
+                "sanzione": s["sanzione"],
+                "motivo": s.get("motivo") or "",
+                "comunicato": s["comunicato"],
+                "competizione": s.get("competizione") or "Campionato Eccellenza",
+                "urlComunicato": s.get("url_comunicato") or "",
+            })
+            matched_staff_count += 1
+
     # Salva le modifiche
     try:
         with open(target_file, "w", encoding="utf-8") as f:
@@ -709,8 +783,9 @@ def sync_disciplinary_with_app(all_sanctions):
             f" [✓] Sincronizzati {matched_count} calciatori sanzionati: "
             f"{active_squalificati_count} Squalifiche attive, "
             f"{active_diffidati_count} Diffide attive, "
-            f"{scontate_count} Squalifiche scontate rimosse, "
-            f"{diffide_superate_count} Diffide superate rimosse!"
+            f"{scontate_count} Squalifiche scontate (salvate in pastSanctions), "
+            f"{diffide_superate_count} Diffide superate rimosse! | "
+            f"{matched_staff_count} Sanzioni staff/dirigenza abbinate ai club."
         )
     except Exception as e_w:
         print(f" [!] Errore salvataggio database app: {e_w}")
@@ -750,7 +825,23 @@ def main():
         default=True,
         help="Aggiorna automaticamente lo status disciplinare e le note dei calciatori in REFSTUDIO",
     )
+    parser.add_argument(
+        "--sync-only",
+        action="store_true",
+        help="Sincronizza direttamente i provvedimenti già presenti in cache senza effettuare nuovo scraping",
+    )
     args = parser.parse_args()
+
+    if args.sync_only:
+        print("[*] Modalità sync-only: sincronizzazione diretta provvedimenti disciplinari ed inibizioni staff...")
+        if SANCTIONS_JSON.exists():
+            with open(SANCTIONS_JSON, "r", encoding="utf-8") as f:
+                sanctions = json.load(f)
+            sync_disciplinary_with_app(sanctions)
+            return
+        else:
+            print(" [!] Nessun file provvedimenti_disciplinari.json trovato.")
+            return
 
     print("=" * 65)
     print(" REFSTUDIO - RACCOLTA GIUDICE SPORTIVO FIGC CRER (ECCELLENZA)")

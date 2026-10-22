@@ -324,10 +324,26 @@ export class DbService {
                     ...lp,
                     disciplinaryStatus: dp.disciplinaryStatus,
                     disciplinaryDetails: dp.disciplinaryDetails,
+                    pastSanctions: dp.pastSanctions,
                     refereeNotes: dp.refereeNotes,
                   };
                 }
                 return lp;
+              });
+            }
+
+            // Aggiorna le sanzioni e inibizioni staff & dirigenti delle squadre da dataset.json
+            if (Array.isArray(inMemoryData.teams) && Array.isArray(defaultDataset.teams)) {
+              const defaultTeamMap = new Map((defaultDataset.teams as any[]).map((dt) => [dt.id, dt]));
+              inMemoryData.teams = inMemoryData.teams.map((lt) => {
+                const dt = defaultTeamMap.get(lt.id);
+                if (dt && dt.staffSanctions) {
+                  return {
+                    ...lt,
+                    staffSanctions: dt.staffSanctions,
+                  };
+                }
+                return lt;
               });
             }
 

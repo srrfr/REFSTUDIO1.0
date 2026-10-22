@@ -69,7 +69,18 @@ export interface Team {
     goalsAgainst: number;
     goalDifference: number;
   };
+  staffSanctions?: TeamStaffSanction[];
   updatedAt?: string;
+}
+
+export interface TeamStaffSanction {
+  nome: string; // Nome e cognome del dirigente o dell'allenatore (es. "LASAGNI OSCAR", "BALDUCCI CLAUDIO")
+  ruolo: string; // "Dirigenti", "Allenatori", "Massaggiatori", "Medici"
+  sanzione: string; // es. "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 9/ 9/2026"
+  motivo?: string; // Motivazione ufficiale della sanzione
+  comunicato: string; // "CU n. 24"
+  competizione: string; // "Campionato Eccellenza", "Coppa Italia Eccellenza"
+  urlComunicato?: string; // URL comunicato PDF
 }
 
 export interface PlayerDisciplinaryDetail {
@@ -108,6 +119,7 @@ export interface Player {
   // Campi arbitrali
   disciplinaryStatus: DisciplinaryStatus;
   disciplinaryDetails?: PlayerDisciplinaryDetail;
+  pastSanctions?: PlayerDisciplinaryDetail[]; // Squalifiche/provvedimenti pregressi scontati
   customTags: RefereeCustomTag[];
   refereeNotes?: string;
   updatedAt?: string;

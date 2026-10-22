@@ -1,8 +1,18 @@
 'use client';
 
 import React from 'react';
-import { AlertTriangle, Gavel, Ban, ShieldAlert, FileText, ExternalLink } from 'lucide-react';
-import { Player } from '@/types/refstudio';
+import {
+  AlertTriangle,
+  Gavel,
+  Ban,
+  ShieldAlert,
+  FileText,
+  ExternalLink,
+  History,
+  CheckCircle2,
+  Calendar,
+} from 'lucide-react';
+import { Player, PlayerDisciplinaryDetail } from '@/types/refstudio';
 
 export interface DisciplinaryInfo {
   isDiffidato: boolean;
@@ -15,11 +25,13 @@ export interface DisciplinaryInfo {
   giornateResidue?: number;
   giornateSqualifica?: number;
   giornateScontate?: number;
+  pastSanctions: PlayerDisciplinaryDetail[];
 }
 
 /**
  * Ricava in modo sicuro e uniforme le informazioni disciplinari del calciatore
- * analizzando sia i dettagli strutturati (disciplinaryDetails) che le note ufficiali e i cartellini.
+ * analizzando sia i dettagli strutturati (disciplinaryDetails, pastSanctions)
+ * che le note ufficiali e i cartellini.
  */
 export function getPlayerDisciplinaryInfo(player: Player): DisciplinaryInfo {
   const isDiffidato = player.disciplinaryStatus === 'DIFFIDATO';
@@ -42,7 +54,9 @@ export function getPlayerDisciplinaryInfo(player: Player): DisciplinaryInfo {
 
   // Se non presente in disciplinaryDetails, estrai dalle refereeNotes formattate
   if ((!sanction || !bulletin) && player.refereeNotes) {
-    const match = player.refereeNotes.match(/\[Giudice Sportivo\s+([^\]]+)\]:\s*([^-|]+)(?:-\s*Motivo:\s*([^|]+))?/i);
+    const match = player.refereeNotes.match(
+      /\[Giudice Sportivo\s+([^\]]+)\]:\s*([^-|]+)(?:-\s*Motivo:\s*([^|]+))?/i
+    );
     if (match) {
       if (!bulletin) bulletin = match[1].trim();
       if (!sanction) sanction = match[2].trim();
@@ -50,22 +64,65 @@ export function getPlayerDisciplinaryInfo(player: Player): DisciplinaryInfo {
     }
   }
 
+  // Estrazione squalifiche pregresse (scontate)
+  const pastSanctions: PlayerDisciplinaryDetail[] = [];
+
+  // 1. Dati già salvati in player.pastSanctions
+  if (Array.isArray(player.pastSanctions)) {
+    for (const ps of player.pastSanctions) {
+      pastSanctions.push(ps);
+    }
+  }
+
+  // 2. Integrazione dalle refereeNotes formattate per squalifiche pregresse/scontate
+  if (player.refereeNotes) {
+    const regex = /\[Giudice Sportivo\s+([^\]]+?)\s*-\s*Scontata\]:\s*([^-|]+)(?:-\s*Motivo:\s*([^|]+))?/gi;
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(player.refereeNotes)) !== null) {
+      const bulletinText = m[1].trim();
+      const sanctionText = m[2].trim();
+      const reasonText = m[3] ? m[3].trim() : '';
+
+      const alreadyExists = pastSanctions.some(
+        (p) =>
+          p.comunicato?.toLowerCase() === bulletinText.toLowerCase() &&
+          p.sanzione?.toLowerCase() === sanctionText.toLowerCase()
+      );
+
+      if (!alreadyExists) {
+        pastSanctions.push({
+          tipo: 'SQUALIFICA',
+          sanzione: sanctionText,
+          motivo: reasonText,
+          comunicato: bulletinText,
+          competizione: 'Campionato Eccellenza',
+          scontata: true,
+        });
+      }
+    }
+  }
+
   // Motivazioni e descrizioni contestuali predefinite se mancanti
   if (isSqualificato) {
     if (!sanction) {
-      sanction = player.redCards > 0 ? 'Squalifica per espulsione sul campo' : 'Squalifica deliberata dal Giudice Sportivo';
+      sanction =
+        player.redCards > 0
+          ? 'Squalifica per espulsione sul campo'
+          : 'Squalifica deliberata dal Giudice Sportivo';
     }
     if (!reason) {
-      reason = player.redCards > 0
-        ? 'Cartellino rosso diretto o doppia ammonizione durante la gara'
-        : 'Provvedimento disciplinare emesso dal Giudice Sportivo Regionale';
+      reason =
+        player.redCards > 0
+          ? 'Cartellino rosso diretto o doppia ammonizione durante la gara'
+          : 'Provvedimento disciplinare emesso dal Giudice Sportivo Regionale';
     }
   } else if (isDiffidato) {
     if (!sanction) {
       sanction = 'Ammonizione con diffida (IV infrazione)';
     }
     if (!reason) {
-      reason = 'Cumulo di 4 ammonizioni nel Campionato di Eccellenza (al prossimo giallo scatta 1 turno di squalifica)';
+      reason =
+        'Cumulo di 4 ammonizioni nel Campionato di Eccellenza (al prossimo giallo scatta 1 turno di squalifica)';
     }
   }
 
@@ -80,6 +137,7 @@ export function getPlayerDisciplinaryInfo(player: Player): DisciplinaryInfo {
     giornateResidue,
     giornateSqualifica,
     giornateScontate,
+    pastSanctions,
   };
 }
 
@@ -95,10 +153,6 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
   className = '',
 }) => {
   const info = getPlayerDisciplinaryInfo(player);
-
-  if (!info.isDiffidato && !info.isSqualificato) {
-    return null;
-  }
 
   // 1. VARIANTE BADGE (Compatto per tabelle, liste rapide e griglia)
   if (variant === 'badge') {
@@ -130,6 +184,8 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
         </span>
       );
     }
+
+    return null;
   }
 
   // 2. VARIANTE COMPACT / NOTE INLINE (Per le card e i preview)
@@ -196,109 +252,198 @@ export const PlayerDisciplinaryAlert: React.FC<PlayerDisciplinaryAlertProps> = (
         </div>
       );
     }
+
+    return null;
   }
 
   // 3. VARIANTE BANNER COMPLETA (Per la modale / scheda dettagliata del calciatore)
-  if (info.isSqualificato) {
-    const bannerTitle =
-      info.giornateResidue && info.giornateSqualifica && info.giornateResidue < info.giornateSqualifica
-        ? `Provvedimento Disciplinare: Squalifica (${info.giornateResidue} gara residua su ${info.giornateSqualifica})`
-        : 'Provvedimento Disciplinare: Squalifica';
-    return (
-      <div
-        className={`p-4 rounded-2xl bg-gradient-to-r from-rose-950/70 via-[#181118] to-[#0D0F16] border border-rose-500/60 shadow-[0_0_20px_rgba(244,63,94,0.25)] space-y-2.5 ${className}`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm">
-              <Gavel className="w-4 h-4 text-rose-400" />
-            </div>
-            <div>
-              <span className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
-                {bannerTitle}
-              </span>
-              <span className="text-[10px] text-slate-400 block">
-                {info.competition} • Delibera Ufficiale
-              </span>
-            </div>
-          </div>
-
-          {info.bulletin && (
-            <span className="text-[11px] font-mono font-bold text-rose-300 bg-rose-950 border border-rose-600/50 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
-              <FileText className="w-3 h-3 text-rose-400" />
-              {info.bulletin}
-            </span>
-          )}
-        </div>
-
-        {/* Nota Principale con Sanzione e Motivazione */}
-        <div className="p-3 bg-[#0D0F16]/90 rounded-xl border border-rose-500/30 text-xs space-y-1.5">
-          <div className="flex items-start gap-2">
-            <span className="text-rose-400 font-bold shrink-0">Sanzione:</span>
-            <span className="text-white font-black text-sm">{info.sanction}</span>
-          </div>
-
-          {info.reason && (
-            <div className="flex items-start gap-2 pt-1 border-t border-rose-500/20">
-              <span className="text-slate-400 font-bold shrink-0">Motivazione:</span>
-              <p className="text-rose-100/90 italic leading-relaxed">
-                &ldquo;{info.reason}&rdquo;
-              </p>
-            </div>
-          )}
-
-          {info.bulletinUrl && (
-            <div className="pt-1 flex justify-end">
-              <a
-                href={info.bulletinUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[10px] text-[#CCFF00] hover:underline flex items-center gap-1 font-mono"
-              >
-                <span>Consulta comunicato ufficiale PDF</span>
-                <ExternalLink className="w-2.5 h-2.5" />
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+  // Se non ci sono né provvedimenti attivi né sanzioni pregresse, non mostrare nulla
+  if (!info.isDiffidato && !info.isSqualificato && info.pastSanctions.length === 0) {
+    return null;
   }
 
-  // Alert Evidente Diffidato per Scheda Calciatore
   return (
-    <div
-      className={`p-4 rounded-2xl bg-gradient-to-r from-amber-950/60 via-[#1C1810] to-[#0D0F16] border border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.25)] flex items-start gap-3 ${className}`}
-    >
-      <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0 mt-0.5">
-        <AlertTriangle className="w-5 h-5 text-amber-400 animate-bounce" />
-      </div>
+    <div className={`space-y-3 ${className}`}>
+      {/* 3A. Squalifica Attiva (Banner Rosso) */}
+      {info.isSqualificato && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-rose-950/70 via-[#181118] to-[#0D0F16] border border-rose-500/60 shadow-[0_0_20px_rgba(244,63,94,0.25)] space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/40 shadow-sm">
+                <Gavel className="w-4 h-4 text-rose-400" />
+              </div>
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                  {info.giornateResidue && info.giornateSqualifica && info.giornateResidue < info.giornateSqualifica
+                    ? `Provvedimento Disciplinare: Squalifica (${info.giornateResidue} gara residua su ${info.giornateSqualifica})`
+                    : 'Provvedimento Disciplinare: Squalifica Attiva'}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  {info.competition} • Delibera Ufficiale
+                </span>
+              </div>
+            </div>
 
-      <div className="flex-1 space-y-1">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-            ⚠️ ALERT: CALCIATORE DIFFIDATO
-          </span>
-          {info.bulletin ? (
-            <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/80 border border-amber-600/50 px-2 py-0.5 rounded">
-              {info.bulletin}
-            </span>
-          ) : (
-            <span className="text-[10px] font-mono font-bold text-amber-300/80 bg-amber-950/50 border border-amber-700/40 px-2 py-0.5 rounded">
-              IV Ammonizione
-            </span>
-          )}
+            {info.bulletin && (
+              <span className="text-[11px] font-mono font-bold text-rose-300 bg-rose-950 border border-rose-600/50 px-2.5 py-0.5 rounded-lg flex items-center gap-1">
+                <FileText className="w-3 h-3 text-rose-400" />
+                {info.bulletin}
+              </span>
+            )}
+          </div>
+
+          <div className="p-3 bg-[#0D0F16]/90 rounded-xl border border-rose-500/30 text-xs space-y-1.5">
+            <div className="flex items-start gap-2">
+              <span className="text-rose-400 font-bold shrink-0">Sanzione:</span>
+              <span className="text-white font-black text-sm">{info.sanction}</span>
+            </div>
+
+            {info.reason && (
+              <div className="flex items-start gap-2 pt-1 border-t border-rose-500/20">
+                <span className="text-slate-400 font-bold shrink-0">Motivazione:</span>
+                <p className="text-rose-100/90 italic leading-relaxed">
+                  &ldquo;{info.reason}&rdquo;
+                </p>
+              </div>
+            )}
+
+            {info.bulletinUrl && (
+              <div className="pt-1 flex justify-end">
+                <a
+                  href={info.bulletinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] text-[#CCFF00] hover:underline flex items-center gap-1 font-mono"
+                >
+                  <span>Consulta comunicato ufficiale PDF</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
+                </a>
+              </div>
+            )}
+          </div>
         </div>
+      )}
 
-        <p className="text-xs text-white font-bold leading-relaxed">
-          {info.sanction || 'Ammonizione con diffida per recidività (IV infrazione)'}
-        </p>
+      {/* 3B. Diffida Attiva (Banner Giallo/Ambra) */}
+      {info.isDiffidato && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/60 via-[#1C1810] to-[#0D0F16] border border-amber-500/60 shadow-[0_0_20px_rgba(245,158,11,0.25)] flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 shrink-0 mt-0.5">
+            <AlertTriangle className="w-5 h-5 text-amber-400 animate-bounce" />
+          </div>
 
-        <p className="text-[11px] text-amber-200/80 leading-relaxed">
-          {info.reason || 'Attenzione durante la direzione di gara: al prossimo cartellino giallo scatterà automaticamente 1 turno di squalifica nel Campionato di Eccellenza.'}
-        </p>
-      </div>
+          <div className="flex-1 space-y-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                ⚠️ ALERT: CALCIATORE DIFFIDATO
+              </span>
+              {info.bulletin ? (
+                <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-950/80 border border-amber-600/50 px-2 py-0.5 rounded">
+                  {info.bulletin}
+                </span>
+              ) : (
+                <span className="text-[10px] font-mono font-bold text-amber-300/80 bg-amber-950/50 border border-amber-700/40 px-2 py-0.5 rounded">
+                  IV Ammonizione
+                </span>
+              )}
+            </div>
+
+            <p className="text-xs text-white font-bold leading-relaxed">
+              {info.sanction || 'Ammonizione con diffida per recidività (IV infrazione)'}
+            </p>
+
+            <p className="text-[11px] text-amber-200/80 leading-relaxed">
+              {info.reason ||
+                'Attenzione durante la direzione di gara: al prossimo cartellino giallo scatterà automaticamente 1 turno di squalifica nel Campionato di Eccellenza.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 3C. Storico Squalifiche Pregresse (Scontate) */}
+      {info.pastSanctions.length > 0 && (
+        <div className="p-4 rounded-2xl bg-[#0F121C] border border-emerald-500/30 shadow-lg space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1C2232] pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <History className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                  Storico Squalifiche Pregresse
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    {info.pastSanctions.length} {info.pastSanctions.length === 1 ? 'scontata' : 'scontate'}
+                  </span>
+                </span>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Provvedimenti del Giudice Sportivo regolarmente scontati nelle gare successive
+                </p>
+              </div>
+            </div>
+
+            {!info.isSqualificato && !info.isDiffidato && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 self-start sm:self-auto">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                Status: Regolare (Nessun alert attivo)
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-2.5">
+            {info.pastSanctions.map((past, idx) => (
+              <div
+                key={idx}
+                className="p-3 rounded-xl bg-[#090C14] border border-[#1E2536] hover:border-emerald-500/40 transition-all space-y-1.5 text-xs"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                      Squalifica Scontata
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-medium">
+                      {past.competizione || 'Campionato Eccellenza'}
+                    </span>
+                  </div>
+
+                  {past.comunicato && (
+                    <span className="text-[10px] font-mono font-bold text-slate-300 bg-[#141A28] border border-slate-700/60 px-2 py-0.5 rounded flex items-center gap-1">
+                      <FileText className="w-3 h-3 text-slate-400" />
+                      {past.comunicato}
+                    </span>
+                  )}
+                </div>
+
+                <div className="text-white font-bold text-xs pt-0.5">
+                  {past.sanzione}
+                </div>
+
+                {past.motivo && (
+                  <p className="text-[11px] text-slate-300/90 italic leading-relaxed pt-1 border-t border-[#161B28]">
+                    <span className="text-slate-400 not-italic font-semibold">Motivazione: </span>
+                    &ldquo;{past.motivo}&rdquo;
+                  </p>
+                )}
+
+                {past.urlComunicato && (
+                  <div className="pt-0.5 flex justify-end">
+                    <a
+                      href={past.urlComunicato}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[10px] text-[#CCFF00] hover:underline flex items-center gap-1 font-mono"
+                    >
+                      <span>Consulta comunicato PDF</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

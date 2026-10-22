@@ -26,6 +26,7 @@ import {
   ArrowUpDown,
   Clock,
   Award,
+  Gavel,
 } from 'lucide-react';
 import {
   RosterSortField,
@@ -508,6 +509,14 @@ export const PreparaGaraModal: React.FC<PreparaGaraModalProps> = ({
                     </span>
                   );
                 })()}
+                {team.staffSanctions && team.staffSanctions.length > 0 && (
+                  <span
+                    className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-300 bg-rose-500/15 border border-rose-500/30 px-2 py-0.5 rounded-full ml-1"
+                    title={team.staffSanctions.map((s) => `${s.ruolo} ${s.nome}: ${s.sanzione}`).join(' | ')}
+                  >
+                    <Gavel className="w-2.5 h-2.5 text-rose-400" /> {team.staffSanctions.length} {team.staffSanctions.length === 1 ? 'sanzione staff' : 'sanzioni staff'}
+                  </span>
+                )}
               </div>
             </div>
           </div>

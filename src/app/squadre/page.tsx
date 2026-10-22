@@ -39,9 +39,12 @@ import {
   Film,
   Image as ImageIcon,
   ArrowUpDown,
+  Gavel,
+  ShieldAlert,
+  ExternalLink,
 } from 'lucide-react';
 import { DbService } from '@/lib/repository/db-service';
-import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow, BenchAttitudeTag, BENCH_ATTITUDE_TAGS } from '@/types/refstudio';
+import { Team, Player, Note, VideoClip, RefereeCustomTag, Match, StandingRow, BenchAttitudeTag, BENCH_ATTITUDE_TAGS, TeamStaffSanction } from '@/types/refstudio';
 import { BenchAttitudeBadge, getBenchAttitudeMeta } from '@/components/common/BenchAttitudeBadge';
 import {
   RosterSortField,
@@ -1542,6 +1545,18 @@ function SquadreContent() {
                 }`}
               >
                 <Award className="w-3.5 h-3.5" /> Profilo Arbitrale
+                {selectedTeam.staffSanctions && selectedTeam.staffSanctions.length > 0 && (
+                  <span
+                    className={`ml-1 px-1.5 py-0.2 rounded-full text-[10px] font-mono font-bold ${
+                      activeTeamTab === 'VALUTAZIONI'
+                        ? 'bg-black text-[#CCFF00]'
+                        : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                    }`}
+                    title={`${selectedTeam.staffSanctions.length} provvedimenti disciplinari staff/allenatori`}
+                  >
+                    {selectedTeam.staffSanctions.length}
+                  </span>
+                )}
               </button>
             </div>
 
@@ -2647,6 +2662,151 @@ function SquadreContent() {
                         </div>
                       )}
                     </div>
+                  </div>
+
+                  {/* Card Dedicata: Squalifiche & Inibizioni Staff e Dirigenza (Campionato & Coppa Italia) */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-[#11141D] border border-[#212638] space-y-3.5 md:col-span-2 shadow-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#1C2232] pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="p-2 rounded-xl bg-amber-500/15 text-amber-400 border border-amber-500/30 shrink-0">
+                          <Gavel className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                            Squalifiche & Inibizioni Staff e Dirigenza
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                              {selectedTeam.staffSanctions?.length || 0} {selectedTeam.staffSanctions?.length === 1 ? 'provvedimento' : 'provvedimenti'}
+                            </span>
+                          </span>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Delibere ufficiali del Giudice Sportivo (Campionato Eccellenza & Coppa Italia) rivolte a dirigenti, allenatori e staff
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[#141824] text-slate-300 border border-[#23293B] self-start sm:self-auto">
+                        Campionato & Coppa Italia
+                      </span>
+                    </div>
+
+                    {/* Elenco Provvedimenti Staff & Dirigenza */}
+                    {selectedTeam.staffSanctions && selectedTeam.staffSanctions.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                        {selectedTeam.staffSanctions.map((sanz, sIdx) => {
+                          const isCoach = /allenator/i.test(sanz.ruolo || '');
+                          const isDirigente = /dirigent/i.test(sanz.ruolo || '');
+                          const isCoppa = /coppa/i.test(sanz.competizione || '');
+
+                          return (
+                            <div
+                              key={sIdx}
+                              className="p-4 rounded-xl bg-[#090C13] border border-[#1E2436] hover:border-[#CCFF00]/40 transition-all space-y-2.5 relative group"
+                            >
+                              <div className="flex items-start justify-between gap-2 flex-wrap">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  {/* Badge Ruolo */}
+                                  <span
+                                    className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 shadow-sm ${
+                                      isCoach
+                                        ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                        : isDirigente
+                                        ? 'bg-cyan-500/15 text-cyan-300 border border-cyan-500/30'
+                                        : 'bg-purple-500/15 text-purple-300 border border-purple-500/30'
+                                    }`}
+                                  >
+                                    {isCoach ? (
+                                      <Award className="w-3.5 h-3.5 text-amber-400" />
+                                    ) : (
+                                      <Users className="w-3.5 h-3.5 text-cyan-400" />
+                                    )}
+                                    {sanz.ruolo}
+                                  </span>
+
+                                  {/* Badge Competizione */}
+                                  <span
+                                    className={`px-2 py-0.5 rounded text-[9px] font-mono font-black uppercase tracking-wider ${
+                                      isCoppa
+                                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                    }`}
+                                  >
+                                    {sanz.competizione || 'Campionato Eccellenza'}
+                                  </span>
+
+                                  {/* Badge CU */}
+                                  {sanz.comunicato && (
+                                    <span className="text-[10px] font-mono font-bold text-slate-300 bg-[#161B28] border border-slate-700/60 px-2 py-0.5 rounded flex items-center gap-1">
+                                      <FileText className="w-3 h-3 text-slate-400" />
+                                      {sanz.comunicato}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Nome e Cognome del Dirigente o Allenatore */}
+                              <div className="pt-0.5">
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                                  {isCoach ? 'Allenatore Sanzionato:' : isDirigente ? 'Dirigente Sanzionato:' : 'Membro Staff Sanzionato:'}
+                                </span>
+                                <h4 className="text-sm font-black text-white tracking-wide flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-[#CCFF00]">👤</span>
+                                  {sanz.nome}
+                                </h4>
+                              </div>
+
+                              {/* Sanzione / Inibizione */}
+                              <div className="p-2.5 rounded-lg bg-[#0F131D] border border-rose-500/30 space-y-1">
+                                <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider block">
+                                  Sanzione / Provvedimento:
+                                </span>
+                                <p className="text-xs font-bold text-rose-200 leading-snug">
+                                  {sanz.sanzione}
+                                </p>
+                              </div>
+
+                              {/* Motivazione Ufficiale */}
+                              {sanz.motivo && (
+                                <div className="pt-1 border-t border-[#161B26] text-xs space-y-0.5">
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                    Motivazione Giudice Sportivo:
+                                  </span>
+                                  <p className="text-slate-300 text-xs italic leading-relaxed font-medium">
+                                    &ldquo;{sanz.motivo}&rdquo;
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* Link Comunicato PDF */}
+                              {sanz.urlComunicato && (
+                                <div className="pt-1 flex justify-end">
+                                  <a
+                                    href={sanz.urlComunicato}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] text-[#CCFF00] hover:underline flex items-center gap-1 font-mono"
+                                  >
+                                    <span>Consulta comunicato ufficiale PDF</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="p-4 sm:p-5 rounded-xl bg-[#090C13] border border-dashed border-[#1E2436] flex flex-col items-center justify-center text-center space-y-2">
+                        <ShieldAlert className="w-7 h-7 text-slate-600" />
+                        <div>
+                          <p className="text-xs font-bold text-slate-300">
+                            Nessun provvedimento disciplinare per dirigenti o allenatori
+                          </p>
+                          <p className="text-[11px] text-slate-500 max-w-md mt-0.5">
+                            Non risultano squalifiche o inibizioni a carico di allenatori, dirigenti o membri dello staff nei comunicati del Giudice Sportivo (Campionato Eccellenza e Coppa Italia).
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

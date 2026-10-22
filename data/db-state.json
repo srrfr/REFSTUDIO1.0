@@ -30,7 +30,8 @@
         "goalsAgainst": 10,
         "goalDifference": -7
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "1281681",
@@ -62,7 +63,8 @@
         "goalsAgainst": 1,
         "goalDifference": 8
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "1000125",
@@ -94,7 +96,8 @@
         "goalsAgainst": 5,
         "goalDifference": -2
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "19240",
@@ -126,7 +129,8 @@
         "goalsAgainst": 5,
         "goalDifference": -3
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "2720",
@@ -158,7 +162,8 @@
         "goalsAgainst": 7,
         "goalDifference": -3
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "43760",
@@ -190,7 +195,8 @@
         "goalsAgainst": 8,
         "goalDifference": -2
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "6740",
@@ -222,7 +228,8 @@
         "goalsAgainst": 2,
         "goalDifference": 5
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "68499",
@@ -254,7 +261,8 @@
         "goalsAgainst": 4,
         "goalDifference": 0
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "58909",
@@ -286,7 +294,8 @@
         "goalsAgainst": 8,
         "goalDifference": -6
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "11150",
@@ -318,7 +327,8 @@
         "goalsAgainst": 4,
         "goalDifference": -1
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "76199",
@@ -350,7 +360,8 @@
         "goalsAgainst": 3,
         "goalDifference": 5
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "1000200",
@@ -382,7 +393,8 @@
         "goalsAgainst": 3,
         "goalDifference": 2
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "76266",
@@ -414,7 +426,8 @@
         "goalsAgainst": 5,
         "goalDifference": 1
       },
-      "updatedAt": "2026-10-20T10:53:30.999Z"
+      "updatedAt": "2026-10-20T10:53:30.999Z",
+      "staffSanctions": []
     },
     {
       "id": "3660",
@@ -446,7 +459,8 @@
         "goalsAgainst": 8,
         "goalDifference": -2
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "1000471",
@@ -478,7 +492,8 @@
         "goalsAgainst": 1,
         "goalDifference": 10
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "917054",
@@ -510,7 +525,8 @@
         "goalsAgainst": 9,
         "goalDifference": -2
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "8990",
@@ -542,7 +558,27 @@
         "goalsAgainst": 9,
         "goalDifference": -4
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": [
+        {
+          "nome": "MANFREDINI MATTIA",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 7/10/2026",
+          "motivo": "Per proteste nei confronti del direttore di gara.",
+          "comunicato": "CU n. 34",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
+        },
+        {
+          "nome": "MANFREDINI MATTIA",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 19/11/2026",
+          "motivo": "profferendo altresì ripetute frasi ingiuriose nei confronti della terna arbitrale. Il Manfredini veniva riconosciuto personalmente dal Direttore di gara, su richiesta dello stesso veniva allontanato, dalla tribuna reiterava tale comportamento.",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+        }
+      ]
     },
     {
       "id": "1000146",
@@ -574,7 +610,8 @@
         "goalsAgainst": 9,
         "goalDifference": -1
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "1136581",
@@ -606,7 +643,27 @@
         "goalsAgainst": 9,
         "goalDifference": -8
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": [
+        {
+          "nome": "LASAGNI OSCAR",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 7/10/2026",
+          "motivo": "Usciva dalla propria area tecnica, avvicinandosi agli occupanti della panchina avversaria rivolgendo frasi ingiuriose che indirizzava anche al pubblico che stazionava dietro le panchine. (R.A.A.).",
+          "comunicato": "CU n. 26",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+        },
+        {
+          "nome": "D ANGELI SALVATORE",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 28/10/2026",
+          "motivo": "Per gravi proteste nei confronti dell'Arbitro.",
+          "comunicato": "CU n. 43",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+        }
+      ]
     },
     {
       "id": "937658",
@@ -638,7 +695,8 @@
         "goalsAgainst": 6,
         "goalDifference": 5
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "45890",
@@ -670,7 +728,8 @@
         "goalsAgainst": 4,
         "goalDifference": 4
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "1000335",
@@ -702,7 +761,8 @@
         "goalsAgainst": 10,
         "goalDifference": -3
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "1121978",
@@ -734,7 +794,18 @@
         "goalsAgainst": 14,
         "goalDifference": -9
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": [
+        {
+          "nome": "CIARROCCHI MATTIA",
+          "ruolo": "Massaggiatori",
+          "sanzione": "INIBIZIONE FINO AL 28/10/2026",
+          "motivo": "Per aver rivolto espressioni ingiuriose nei confronti di un calciatore avversario.",
+          "comunicato": "CU n. 43",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+        }
+      ]
     },
     {
       "id": "68632",
@@ -766,7 +837,18 @@
         "goalsAgainst": 7,
         "goalDifference": 1
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": [
+        {
+          "nome": "BALDUCCI CLAUDIO",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 9/ 9/2026",
+          "motivo": "Per proteste nei confronti del direttore di gara.",
+          "comunicato": "CU n. 24",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7586/cu24.pdf"
+        }
+      ]
     },
     {
       "id": "1322924",
@@ -798,7 +880,8 @@
         "goalsAgainst": 6,
         "goalDifference": 13
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "36240",
@@ -830,7 +913,8 @@
         "goalsAgainst": 8,
         "goalDifference": 1
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "70392",
@@ -862,7 +946,8 @@
         "goalsAgainst": 12,
         "goalDifference": -4
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "1021988",
@@ -894,7 +979,8 @@
         "goalsAgainst": 11,
         "goalDifference": -1
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "74595",
@@ -926,7 +1012,8 @@
         "goalsAgainst": 3,
         "goalDifference": 1
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "29650",
@@ -958,7 +1045,8 @@
         "goalsAgainst": 8,
         "goalDifference": 4
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "1000157",
@@ -990,7 +1078,8 @@
         "goalsAgainst": 18,
         "goalDifference": -13
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "69609",
@@ -1022,7 +1111,8 @@
         "goalsAgainst": 11,
         "goalDifference": 1
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "937683",
@@ -1054,7 +1144,8 @@
         "goalsAgainst": 6,
         "goalDifference": 1
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "43700",
@@ -1086,7 +1177,8 @@
         "goalsAgainst": 7,
         "goalDifference": -3
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "1000154",
@@ -1118,7 +1210,8 @@
         "goalsAgainst": 5,
         "goalDifference": 3
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     },
     {
       "id": "936424",
@@ -1150,7 +1243,8 @@
         "goalsAgainst": 5,
         "goalDifference": 11
       },
-      "updatedAt": "2026-10-20T10:53:31.000Z"
+      "updatedAt": "2026-10-20T10:53:31.000Z",
+      "staffSanctions": []
     }
   ],
   "players": [
@@ -1980,6 +2074,20 @@
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Calciatore in panchina perché sostituito, rivolgeva all'arbitro una frase ironica. | [Giudice Sportivo CU n. 38 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 47]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
       "updatedAt": "2026-10-20T10:53:31.002Z",
       "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7279022.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Calciatore in panchina perché sostituito, rivolgeva all'arbitro una frase ironica.",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ],
       "disciplinaryDetails": {
         "tipo": "SQUALIFICA",
         "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
@@ -2278,7 +2386,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7781653.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7781653.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 43",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 1,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8903529",
@@ -2577,7 +2699,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Per comportamento non regolamentare al termine della gara, inoltre rivolgeva espressioni ingiuriose nei confronti di un dirigente avversario.",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7396236.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7396236.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "Per comportamento non regolamentare al termine della gara, inoltre rivolgeva espressioni ingiuriose nei confronti di un dirigente avversario.",
+          "comunicato": "CU n. 30",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 5,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8690444",
@@ -3496,7 +3632,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8296639.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8296639.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8756128",
@@ -3892,7 +4042,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7404196.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7404196.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 26",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 7,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7855298",
@@ -4059,7 +4223,21 @@
       "disciplinaryStatus": "REGOLARE",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-10-20T10:53:31.002Z"
+      "updatedAt": "2026-10-20T10:53:31.002Z",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 30",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 5,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7141505",
@@ -5483,7 +5661,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7282236.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7282236.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 30",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 5,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7765010",
@@ -6165,7 +6357,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7558941.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7558941.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 43",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 1,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8078006",
@@ -6877,7 +7083,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8576736.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8576736.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8501827",
@@ -7275,7 +7495,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.002Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8055557.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8055557.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 30",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 5,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8022928",
@@ -8705,7 +8939,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 43 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8814011.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8814011.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 43",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 1,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7258687",
@@ -9289,7 +9537,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8074246.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8074246.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8975341",
@@ -9455,7 +9717,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7683086.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7683086.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8653673",
@@ -9883,7 +10159,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 24 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 24 agosto 2026 dalla Soc. Bellaria Igea Marina con la quale quest’ultima ha formalmente manifestato la Regionale inserito nel Girone D per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 25 agosto 2026 dalla Soc. Rapid Viadana con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 26 agosto 2026 dalla Soc. A.C. Colorno con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Associazione Calcio Dilettantistica Colorno l’ammenda di €400,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Dott. Carlo Frongillo 8. AUTORIZZAZIONE TORNEI 8.1 Autorizzazione Tornei Sgs TORNEI INTERNAZIONALI ALL’ESTERO AUTORIZZATI STAGIONE SPORTIVA 2026/2027 UNDER 12 BOLOGNA FC 1909 30.10 – 01.11.26 UNER12 – UNDER 10 04.09 – 06.09.26 UNDER 11 05.09.26 UNDER 11 02.10 – 05.10.26 STAGIONE SPORTIVA 2026/2027 UNDER 14 RA 04.09 – 06.09.26 STAGIONE SPORTIVA 2026/2027 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO BO 05.09 – 13.09.26 STAGIONE SPORTIVA 2026/2027 UNDER 17 MO 17 – 24 SETTEMBRE UNDER 17 UNDER 16 UNDER 15 UNDER 14 FE 01.09 – 29.09.26 ESORDIENTI 1°ANNO PULCINI 1°2°ANNO PRIMI CALCI BO 12.09 – 10.10.26 RE 27.09.26 RE 11.10.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI MO 12.09 – 13.09.26 UNDER 15 FEMMINILE FE 27.09.26 1° YOUNG CUP FE 12.09.26 STAGIONE SPORTIVA 2026/2027 PULCINI 1°2°ANNO BO 12.09 – 13.09.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI BO 11.09 – 12.09.26 PULCINI 2°ANNO BO 12.09.26 SASSOLEONE 2015 BO 12.09 – 13.09.26 Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 02/09/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8197082.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8197082.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 24 agosto 2026 dalla Soc. Bellaria Igea Marina con la quale quest’ultima ha formalmente manifestato la Regionale inserito nel Girone D per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 25 agosto 2026 dalla Soc. Rapid Viadana con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 26 agosto 2026 dalla Soc. A.C. Colorno con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Associazione Calcio Dilettantistica Colorno l’ammenda di €400,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Dott. Carlo Frongillo 8. AUTORIZZAZIONE TORNEI 8.1 Autorizzazione Tornei Sgs TORNEI INTERNAZIONALI ALL’ESTERO AUTORIZZATI STAGIONE SPORTIVA 2026/2027 UNDER 12 BOLOGNA FC 1909 30.10 – 01.11.26 UNER12 – UNDER 10 04.09 – 06.09.26 UNDER 11 05.09.26 UNDER 11 02.10 – 05.10.26 STAGIONE SPORTIVA 2026/2027 UNDER 14 RA 04.09 – 06.09.26 STAGIONE SPORTIVA 2026/2027 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO BO 05.09 – 13.09.26 STAGIONE SPORTIVA 2026/2027 UNDER 17 MO 17 – 24 SETTEMBRE UNDER 17 UNDER 16 UNDER 15 UNDER 14 FE 01.09 – 29.09.26 ESORDIENTI 1°ANNO PULCINI 1°2°ANNO PRIMI CALCI BO 12.09 – 10.10.26 RE 27.09.26 RE 11.10.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI MO 12.09 – 13.09.26 UNDER 15 FEMMINILE FE 27.09.26 1° YOUNG CUP FE 12.09.26 STAGIONE SPORTIVA 2026/2027 PULCINI 1°2°ANNO BO 12.09 – 13.09.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI BO 11.09 – 12.09.26 PULCINI 2°ANNO BO 12.09.26 SASSOLEONE 2015 BO 12.09 – 13.09.26 Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 02/09/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+          "comunicato": "CU n. 24",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7586/cu24.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 8,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7947526",
@@ -10485,7 +10775,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/10435350.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/10435350.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 26",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 7,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "9140026",
@@ -11007,7 +11311,21 @@
       "disciplinaryStatus": "REGOLARE",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-10-20T10:53:31.003Z"
+      "updatedAt": "2026-10-20T10:53:31.003Z",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 26",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 7,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8038737",
@@ -11380,7 +11698,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FUTURA FORNOVO MEDESANO)",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8138805.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8138805.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "(FUTURA FORNOVO MEDESANO)",
+          "comunicato": "CU n. 30",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 5,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "9631370",
@@ -11849,7 +12181,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7821925.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7821925.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 30",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 5,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7916120",
@@ -11953,7 +12299,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7571011.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7571011.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 26",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 7,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7933001",
@@ -13694,7 +14054,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.003Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/9518605.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/9518605.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "9511772",
@@ -16170,7 +16544,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7551627.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7551627.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8424180",
@@ -17972,7 +18360,21 @@
       ],
       "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 2 settembre 2026 dalla Soc. Felsina SSD con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone B per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Felsina SSD l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 9 settembre 2026 dalla Soc. Imolese Football Club con la quale quest’ultima ha formalmente manifestato Under 18 Regionale inserito nel Girone C per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Imolese Football Club l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza.",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8234636.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8234636.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 2 settembre 2026 dalla Soc. Felsina SSD con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone B per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Felsina SSD l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 9 settembre 2026 dalla Soc. Imolese Football Club con la quale quest’ultima ha formalmente manifestato Under 18 Regionale inserito nel Girone C per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Imolese Football Club l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza.",
+          "comunicato": "CU n. 26",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 7,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8053441",
@@ -18453,7 +18855,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8026875.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/8026875.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "7128555",
@@ -19560,7 +19976,21 @@
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 34 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: (FUTURA FORNOVO MEDESANO)",
       "updatedAt": "2026-10-20T10:53:31.004Z",
-      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7770335.png"
+      "photoUrl": "https://b2-content.tuttocampo.it/Players/Original/7770335.png",
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "(FUTURA FORNOVO MEDESANO)",
+          "comunicato": "CU n. 34",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 4,
+          "giornateResidue": 0
+        }
+      ]
     },
     {
       "id": "8194284",

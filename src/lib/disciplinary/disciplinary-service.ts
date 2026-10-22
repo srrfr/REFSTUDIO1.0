@@ -1,4 +1,4 @@
-import { Player, Match, PlayerDisciplinaryDetail, DisciplinaryStatus } from '@/types/refstudio';
+import { Player, Match, PlayerDisciplinaryDetail, DisciplinaryStatus, TeamStaffSanction } from '@/types/refstudio';
 
 /**
  * Mappatura Comunicato Ufficiale FIGC CRER -> Giornata di Campionato Eccellenza
@@ -49,6 +49,7 @@ function teamTokens(s: string | undefined): string[] {
 export interface DisciplinaryEvaluation {
   status: DisciplinaryStatus;
   details?: PlayerDisciplinaryDetail;
+  pastSanctions?: PlayerDisciplinaryDetail[];
   notes: string[];
 }
 
@@ -133,6 +134,7 @@ export class DisciplinaryService {
     } | null = null;
 
     const formattedNotes: string[] = [];
+    const pastSanctions: PlayerDisciplinaryDetail[] = [];
 
     for (const s of sortedSanctions) {
       if (s.tipo === 'SQUALIFICA') {
@@ -153,6 +155,18 @@ export class DisciplinaryService {
           }
           formattedNotes.push(nota);
         } else {
+          pastSanctions.push({
+            tipo: 'SQUALIFICA',
+            sanzione: s.sanzione,
+            motivo: s.motivo || '',
+            comunicato: s.comunicato,
+            competizione: s.competizione || 'Campionato Eccellenza',
+            urlComunicato: s.url_comunicato || s.urlComunicato || '',
+            scontata: true,
+            giornateSqualifica: res.gareSqualifica,
+            giornateScontate: res.gareScontate,
+            giornateResidue: 0,
+          });
           let nota = `[Giudice Sportivo ${s.comunicato} - Scontata]: ${s.sanzione}`;
           if (s.motivo) {
             nota += ` - Motivo: ${s.motivo}`;
@@ -190,6 +204,7 @@ export class DisciplinaryService {
           giornateScontate: activeSqualifica.gareScontate,
           giornateResidue: activeSqualifica.gareResidue,
         },
+        pastSanctions,
         notes: formattedNotes,
       };
     }
@@ -207,14 +222,68 @@ export class DisciplinaryService {
           competizione: 'Campionato Eccellenza',
           urlComunicato: activeDiffida.url_comunicato || activeDiffida.urlComunicato || '',
         },
+        pastSanctions,
         notes: formattedNotes,
       };
     }
 
     return {
       status: 'REGOLARE',
+      pastSanctions,
       notes: formattedNotes,
     };
+  }
+
+  /**
+   * Associa le sanzioni e inibizioni di dirigenti, allenatori e staff (Coppa e Campionato) alla squadra
+   */
+  static matchStaffSanctionsToTeam(teamName: string, allSanctions: any[]): TeamStaffSanction[] {
+    const rawNorm = normString(teamName);
+    const rawTokens = teamTokens(teamName);
+    const matched: TeamStaffSanction[] = [];
+
+    for (const s of allSanctions || []) {
+      const isStaffOrCoach =
+        s.tipo === 'STAFF_INIBIZIONE' ||
+        /DIRIGENT|ALLENATOR|MASSAGGIATOR|MEDIC/i.test(s.ruolo || '') ||
+        /INIBIZIONE/i.test(s.sanzione || '');
+
+      if (!isStaffOrCoach) continue;
+
+      const sSquadra = String(s.squadra || '');
+      const sNorm = normString(sSquadra);
+      const sTokens = teamTokens(sSquadra);
+
+      let isMatch = false;
+      if (rawNorm === sNorm) {
+        isMatch = true;
+      } else {
+        const common = rawTokens.filter((tok) => sTokens.includes(tok));
+        const score = common.reduce((acc, tok) => acc + tok.length, 0);
+        if (score >= 4) {
+          isMatch = true;
+        } else if (
+          (rawNorm.length >= 6 && sNorm.includes(rawNorm)) ||
+          (sNorm.length >= 6 && rawNorm.includes(sNorm))
+        ) {
+          isMatch = true;
+        }
+      }
+
+      if (isMatch) {
+        matched.push({
+          nome: s.nome,
+          ruolo: s.ruolo || 'Dirigente',
+          sanzione: s.sanzione,
+          motivo: s.motivo || '',
+          comunicato: s.comunicato,
+          competizione: s.competizione || 'Campionato Eccellenza',
+          urlComunicato: s.url_comunicato || s.urlComunicato || '',
+        });
+      }
+    }
+
+    return matched;
   }
 
   /**
