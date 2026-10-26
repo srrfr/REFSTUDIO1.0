@@ -647,5 +647,159 @@
     "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
     "comunicato": "CU n. 47",
     "url_comunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Allenatori",
+    "nome": "BENAZZI ALBERTTO",
+    "squadra": "VALSANTERNO 2009",
+    "sanzione": "SQUALIFICA FINO AL 2/11/2026",
+    "motivo": "Per proteste nei confronti del direttore di gara.",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "(medicina fossatone s.s.d.)",
+    "nome": "TEMPORIN MATTIA",
+    "squadra": "COMACCHIESE 2015",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "(medicina fossatone s.s.d.)",
+    "nome": "VARANI THOMAS",
+    "squadra": "FIDENTINA BORGO S.DONNINO",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "(medicina fossatone s.s.d.)",
+    "nome": "FAETI ALESSANDRO",
+    "squadra": "PIETRACUTA A.S.D.",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "(medicina fossatone s.s.d.)",
+    "nome": "FABBRI FILIPPO",
+    "squadra": "PIETRACUTA A.S.D.",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "IV infrazione per cumulo di ammonizioni in campionato (diffida attiva)",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "STAFF_INIBIZIONE",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Allenatori",
+    "nome": "MELOTTI VITO",
+    "squadra": "OSTERIA GRANDE A.S.D.",
+    "sanzione": "SQUALIFICA FINO AL 2/11/2026",
+    "motivo": "Per proteste nei confronti del direttore di gara.",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "BAIETTI FRANCESCO",
+    "squadra": "IMOLESE FOOTBALL CLUB SSD",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Espulso)",
+    "nome": "MARCHETTI MANUEL",
+    "squadra": "VIANESE CALCIO SSDARL",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+    "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "COMPAORE ISSOUF",
+    "squadra": "BOBBIESE",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "SQUALIFICA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "GASPERI MATTEO",
+    "squadra": "IMOLESE FOOTBALL CLUB SSD",
+    "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "SOUMAHORO SEKOU",
+    "squadra": "AGAZZANESE",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "MONDAINI NICOLO",
+    "squadra": "CALCIO ZOLA PREDOSA",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "PREVIATO MANUEL",
+    "squadra": "CAMPAGNOLA",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+  },
+  {
+    "tipo": "DIFFIDA",
+    "competizione": "CAMPIONATO ECCELLENZA",
+    "ruolo": "Calciatore (Non Espulso)",
+    "nome": "FACCANI LUCA",
+    "squadra": "MASSA LOMBARDA",
+    "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+    "motivo": "1. Dott. Carlo Frongillo Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 26/10/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+    "comunicato": "CU n. 51",
+    "url_comunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
   }
 ]
