@@ -5,8 +5,15 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const { searchParams } = new URL(req.url);
-    const url = searchParams.get('url') || searchParams.get('slug') || '';
+    const fullReqUrl = req.url;
+    const urlIdx = fullReqUrl.indexOf('url=');
+    let url = '';
+    if (urlIdx !== -1) {
+      url = decodeURIComponent(fullReqUrl.slice(urlIdx + 4));
+    } else {
+      const { searchParams } = new URL(req.url);
+      url = searchParams.get('url') || searchParams.get('slug') || '';
+    }
 
     if (!url) {
       return NextResponse.json(
