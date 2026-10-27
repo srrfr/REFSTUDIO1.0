@@ -1,6 +1,7 @@
 import { getSupabaseClient, isSupabaseConfigured } from './client';
 import { Team, Player, Match, StandingRow, Note, VideoClip, UserAccount, MatchDesignation } from '@/types/refstudio';
 import { isVeoUrl } from '@/lib/services/veo-service';
+import { isPixellotUrl } from '@/lib/services/pixellot-service';
 
 export class SupabaseService {
   /**
@@ -190,13 +191,14 @@ export class SupabaseService {
    */
   static mapVideoFromRow(row: any): VideoClip {
     const isVeo = row.video_source === 'VEO' || isVeoUrl(row.external_url);
+    const isPixellot = row.video_source === 'PIXELLOT' || isPixellotUrl(row.external_url);
     return {
       id: row.id,
       authorId: row.author_id,
       targetType: row.target_type,
       targetId: row.target_id,
       targetName: row.target_name,
-      videoSource: isVeo ? 'VEO' : (row.video_source || 'YOUTUBE'),
+      videoSource: isVeo ? 'VEO' : isPixellot ? 'PIXELLOT' : (row.video_source || 'YOUTUBE'),
       externalUrl: row.external_url,
       storagePath: row.storage_path,
       title: row.title,
@@ -586,13 +588,14 @@ export class SupabaseService {
     if (!supabase) return;
 
     const isVeo = video.videoSource === 'VEO' || isVeoUrl(video.externalUrl);
+    const isPixellot = video.videoSource === 'PIXELLOT' || isPixellotUrl(video.externalUrl);
     const payload = {
       id: video.id,
       author_id: video.authorId || 'ref-1',
       target_type: video.targetType,
       target_id: video.targetId,
       target_name: video.targetName,
-      video_source: isVeo ? 'LOCAL' : video.videoSource,
+      video_source: (isVeo || isPixellot) ? 'LOCAL' : video.videoSource,
       external_url: video.externalUrl,
       storage_path: video.storagePath,
       title: video.title,
@@ -842,7 +845,7 @@ export class SupabaseService {
           target_type: v.targetType,
           target_id: v.targetId,
           target_name: v.targetName,
-          video_source: (v.videoSource === 'VEO' || isVeoUrl(v.externalUrl)) ? 'LOCAL' : (v.videoSource || 'YOUTUBE'),
+          video_source: (v.videoSource === 'VEO' || isVeoUrl(v.externalUrl) || v.videoSource === 'PIXELLOT' || isPixellotUrl(v.externalUrl)) ? 'LOCAL' : (v.videoSource || 'YOUTUBE'),
           external_url: v.externalUrl,
           storage_path: v.storagePath,
           title: v.title,

@@ -235,12 +235,12 @@ export interface Note {
   endMinuteSeconds?: number; // Secondi esatti fine clip
   videoId?: string; // ID del video di riferimento
   videoTitle?: string; // Titolo del video associato
-  videoUrl?: string; // URL del video (YouTube o Veo)
+  videoUrl?: string; // URL del video (YouTube, Veo o Pixellot)
   createdAt: string;
   updatedAt?: string;
 }
 
-export type VideoSource = 'YOUTUBE' | 'LOCAL' | 'STORAGE' | 'VEO';
+export type VideoSource = 'YOUTUBE' | 'LOCAL' | 'STORAGE' | 'VEO' | 'PIXELLOT';
 
 export interface VideoClip {
   id: string;

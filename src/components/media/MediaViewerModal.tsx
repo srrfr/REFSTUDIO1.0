@@ -42,6 +42,7 @@ import {
   Check,
   Edit3,
 } from 'lucide-react';
+import Hls from 'hls.js';
 import {
   isVeoUrl,
   extractVeoSlug,
@@ -51,6 +52,11 @@ import {
   VeoPeriod,
   VeoHighlight,
 } from '@/lib/services/veo-service';
+import {
+  isPixellotUrl,
+  extractPixellotSlug,
+  PixellotMatchData,
+} from '@/lib/services/pixellot-service';
 import { DbService } from '@/lib/repository/db-service';
 import { Note, Team, VideoClip, Player } from '@/types/refstudio';
 import { PlayerDisciplinaryAlert } from '@/components/common/PlayerDisciplinaryAlert';
@@ -125,6 +131,13 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   const [veoError, setVeoError] = useState<string | null>(null);
   const [directStreamUrl, setDirectStreamUrl] = useState<string>('');
 
+  // Pixellot specific states
+  const [pixellotData, setPixellotData] = useState<PixellotMatchData | null>(null);
+  const [isLoadingPixellot, setIsLoadingPixellot] = useState(false);
+  const [pixellotError, setPixellotError] = useState<string | null>(null);
+  const [streamViewMode, setStreamViewMode] = useState<'hd' | 'pano'>('hd');
+  const hlsRef = useRef<Hls | null>(null);
+
   // YouTube specific states
   const [isYtReady, setIsYtReady] = useState(false);
   const ytPlayerRef = useRef<any>(null);
@@ -176,14 +189,15 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const isVeo = Boolean(media?.url && isVeoUrl(media.url));
+  const isPixellot = Boolean(media?.url && isPixellotUrl(media.url));
 
   const isYoutube = Boolean(
-    !isVeo && media?.url && (media.url.includes('youtube.com') || media.url.includes('youtu.be'))
+    !isVeo && !isPixellot && media?.url && (media.url.includes('youtube.com') || media.url.includes('youtu.be'))
   );
 
   const isImage = Boolean(
     media?.mediaType === 'image' ||
-      (!isVeo && !isYoutube && media?.url && media.url.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i))
+      (!isVeo && !isPixellot && !isYoutube && media?.url && media.url.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i))
   );
 
   const isVideo = !isYoutube && !isImage && Boolean(media?.url);
@@ -203,11 +217,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     return '';
   }, []);
 
-  // Calcolo tempo gara e minuto effettivo dai periodi Veo (avvio corretto da 00:00)
+  // Calcolo tempo gara e minuto effettivo dai periodi Veo / Pixellot (avvio corretto da 00:00)
   const getMatchClock = useCallback((timeSec: number) => {
-    if (!veoData?.periods || veoData.periods.length === 0) return null;
-    const p1 = veoData.periods[0];
-    const p2 = veoData.periods[1];
+    const periods = veoData?.periods || pixellotData?.periods;
+    if (!periods || periods.length === 0) return null;
+    const p1 = periods[0];
+    const p2 = periods[1];
 
     if (p1 && timeSec >= p1.start && timeSec <= p1.end) {
       const elapsedSec = Math.max(0, Math.floor(timeSec - p1.start));
@@ -254,7 +269,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     }
 
     return null;
-  }, [veoData]);
+  }, [veoData, pixellotData]);
 
   // Caricamento e identificazione squadre coinvolte nel video
   useEffect(() => {
@@ -593,12 +608,15 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
     return () => window.removeEventListener('refstudio-sync-update', handleSync);
   }, [isOpen, loadVideoNotes]);
 
-  // Carica i metadati Veo se l'URL fornito è una gara Veo
+  // Carica i metadati Veo / Pixellot se l'URL fornito è una gara esterna AI
   useEffect(() => {
     if (!isOpen || !media?.url) {
       setVeoData(null);
       setIsLoadingVeo(false);
       setVeoError(null);
+      setPixellotData(null);
+      setIsLoadingPixellot(false);
+      setPixellotError(null);
       setDirectStreamUrl('');
       return;
     }
@@ -637,13 +655,104 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
         .finally(() => {
           setIsLoadingVeo(false);
         });
+    } else if (isPixellot) {
+      setIsLoadingPixellot(true);
+      setPixellotError(null);
+      setStreamViewMode('hd');
+
+      const slug = extractPixellotSlug(media.url) || media.url;
+      const storageKey = `refstudio_bookmarks_${slug}`;
+      try {
+        const saved = localStorage.getItem(storageKey);
+        if (saved) {
+          setBookmarks(JSON.parse(saved));
+        } else {
+          setBookmarks([]);
+        }
+      } catch {
+        setBookmarks([]);
+      }
+
+      fetch(`/api/pixellot/resolve?url=${encodeURIComponent(media.url)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.match) {
+            setPixellotData(data.match);
+            setDirectStreamUrl(data.match.streamUrl);
+            if (data.match.duration) {
+              setDuration(data.match.duration);
+            }
+          } else {
+            setPixellotError(data.message || 'Impossibile caricare il flusso video della gara Pixellot.');
+          }
+        })
+        .catch((err) => {
+          console.error('Errore chiamata Pixellot API:', err);
+          setPixellotError('Errore di connessione al servizio Pixellot.');
+        })
+        .finally(() => {
+          setIsLoadingPixellot(false);
+        });
     } else {
       setVeoData(null);
       setIsLoadingVeo(false);
       setVeoError(null);
+      setPixellotData(null);
+      setIsLoadingPixellot(false);
+      setPixellotError(null);
       setDirectStreamUrl(media.url);
     }
-  }, [isOpen, media?.url, isVeo]);
+  }, [isOpen, media?.url, isVeo, isPixellot]);
+
+  // Gestione HLS Streaming (per flussi .m3u8 Pixellot / Web)
+  useEffect(() => {
+    if (!videoRef.current || !directStreamUrl) return;
+
+    if (directStreamUrl.includes('.m3u8')) {
+      if (Hls.isSupported()) {
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+        }
+        const hls = new Hls({
+          enableWorker: true,
+          lowLatencyMode: false,
+        });
+        hlsRef.current = hls;
+        hls.loadSource(directStreamUrl);
+        hls.attachMedia(videoRef.current);
+        hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                break;
+            }
+          }
+        });
+      } else if (videoRef.current.canPlayType('application/vnd.apple.mpegurl')) {
+        videoRef.current.src = directStreamUrl;
+      }
+    } else {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      videoRef.current.src = directStreamUrl;
+    }
+
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, [directStreamUrl]);
 
   // Inizializzazione YouTube Player API
   useEffect(() => {
@@ -894,9 +1003,9 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
         homeTeamName: media?.homeTeamName || (associatedTeams[0]?.team.name),
         awayTeamId: media?.awayTeamId || (associatedTeams[1]?.team.id),
         awayTeamName: media?.awayTeamName || (associatedTeams[1]?.team.name),
-        videoSource: isVeo ? 'VEO' : isYoutube ? 'YOUTUBE' : 'LOCAL',
+        videoSource: isVeo ? 'VEO' : isPixellot ? 'PIXELLOT' : isYoutube ? 'YOUTUBE' : 'LOCAL',
         externalUrl: media?.url,
-        storagePath: !isYoutube && !isVeo ? media?.url : undefined,
+        storagePath: !isYoutube && !isVeo && !isPixellot ? media?.url : undefined,
         title: titleToUse,
         description: noteContent.trim(),
         timestampMark: cleanStart,
@@ -1276,6 +1385,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
               <span className="text-xs font-black text-[#00E5FF] px-1 py-0.5 rounded bg-[#00E5FF]/10 border border-[#00E5FF]/30">
                 VEO AI
               </span>
+            ) : isPixellot ? (
+              <span className="text-xs font-black text-[#00A3FF] px-1 py-0.5 rounded bg-[#00A3FF]/10 border border-[#00A3FF]/30">
+                PIXELLOT AI
+              </span>
             ) : isYoutube ? (
               <span className="text-xs font-black text-[#FF334B] px-1 py-0.5 rounded bg-[#FF334B]/10 border border-[#FF334B]/30">
                 YouTube
@@ -1287,8 +1400,40 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="text-sm sm:text-base font-black text-white truncate max-w-[260px] sm:max-w-md">
-                {veoData?.title || media.title || 'Visualizzatore Video & Analisi Arbitrale'}
+                {veoData?.title || pixellotData?.title || media.title || 'Visualizzatore Video & Analisi Arbitrale'}
               </h3>
+              {pixellotData?.panoStreamUrl && (
+                <div className="hidden sm:flex items-center gap-1 bg-[#141824] p-0.5 rounded-lg border border-[#212638] text-[9px] font-bold ml-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStreamViewMode('hd');
+                      if (pixellotData.streamUrl) setDirectStreamUrl(pixellotData.streamUrl);
+                    }}
+                    className={`px-2 py-0.5 rounded transition-all ${
+                      streamViewMode === 'hd'
+                        ? 'bg-[#00A3FF] text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    HD Camera
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStreamViewMode('pano');
+                      if (pixellotData.panoStreamUrl) setDirectStreamUrl(pixellotData.panoStreamUrl);
+                    }}
+                    className={`px-2 py-0.5 rounded transition-all ${
+                      streamViewMode === 'pano'
+                        ? 'bg-[#00A3FF] text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Panoramica 180°
+                  </button>
+                </div>
+              )}
               {associatedTeams.length > 0 && (
                 <div className="hidden md:flex items-center gap-1.5 ml-2">
                   {associatedTeams.map((item) => (
@@ -1424,11 +1569,35 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                     Apri direttamente su app.veo.co
                   </a>
                 </div>
+              ) : isPixellot && isLoadingPixellot ? (
+                <div className="flex flex-col items-center gap-3 p-8 text-center animate-in fade-in">
+                  <div className="w-12 h-12 rounded-2xl bg-[#00A3FF]/10 border border-[#00A3FF]/30 flex items-center justify-center text-[#00A3FF]">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-black text-white">Caricamento Flusso Gara Pixellot...</h4>
+                    <p className="text-xs text-slate-400 mt-1 max-w-sm">
+                      Recupero stream diretto, tempi di gioco ed eventi partita in corso
+                    </p>
+                  </div>
+                </div>
+              ) : isPixellot && pixellotError ? (
+                <div className="flex flex-col items-center gap-2 p-8 text-center text-rose-400">
+                  <p className="text-sm font-bold">{pixellotError}</p>
+                  <a
+                    href={media.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-2 text-xs font-black text-[#00A3FF] underline"
+                  >
+                    Apri direttamente su Pixellot
+                  </a>
+                </div>
               ) : (
                 <>
                   <video
                     ref={videoRef}
-                    src={directStreamUrl}
+                    src={directStreamUrl.includes('.m3u8') ? undefined : directStreamUrl}
                     onClick={togglePlay}
                     onTimeUpdate={handleTimeUpdate}
                     onLoadedMetadata={handleLoadedMetadata}
@@ -2287,14 +2456,14 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   >
                     <Layers className="w-3.5 h-3.5 text-[#CCFF00]" />
                     <span>Tempi di Gara</span>
-                    {veoData?.periods && (
+                    {(veoData?.periods || pixellotData?.periods) && (
                       <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#141824] text-slate-300">
-                        {veoData.periods.length}
+                        {(veoData?.periods || pixellotData?.periods)!.length}
                       </span>
                     )}
                   </button>
 
-                  {veoData?.highlights && (
+                  {(veoData?.highlights || pixellotData?.highlights) && (
                     <button
                       onClick={() => setActiveTab('HIGHLIGHTS')}
                       className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 ${
@@ -2303,10 +2472,10 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                           : 'text-slate-400 hover:text-white'
                       }`}
                     >
-                      <Target className="w-3.5 h-3.5 text-[#00E5FF]" />
-                      <span>Eventi & Gol</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#00E5FF]/20 text-[#00E5FF]">
-                        {veoData.highlights.length}
+                      <Target className="w-3.5 h-3.5 text-[#00A3FF]" />
+                      <span>Eventi & Azioni</span>
+                      <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#00A3FF]/20 text-[#00A3FF]">
+                        {(veoData?.highlights || pixellotData?.highlights)!.length}
                       </span>
                     </button>
                   )}
@@ -2547,11 +2716,11 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   </div>
                 )}
 
-                {/* Tab 2: Tempi di Gara (Periodi Veo) */}
+                {/* Tab 2: Tempi di Gara (Periodi Veo / Pixellot) */}
                 {activeTab === 'TEMPI' && (
                   <div className="flex flex-wrap items-center gap-2">
-                    {veoData?.periods && veoData.periods.length > 0 ? (
-                      veoData.periods.map((p, idx) => {
+                    {(veoData?.periods || pixellotData?.periods) && (veoData?.periods || pixellotData?.periods)!.length > 0 ? (
+                      (veoData?.periods || pixellotData?.periods)!.map((p, idx) => {
                         const isCurrent = currentTime >= p.start && currentTime <= p.end;
                         return (
                           <button
@@ -2590,12 +2759,12 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                   </div>
                 )}
 
-                {/* Tab 3: Highlights Veo (Gol & Tiri) */}
+                {/* Tab 3: Highlights Veo / Pixellot (Gol, Tiri, Azioni) */}
                 {activeTab === 'HIGHLIGHTS' && (
                   <div className="space-y-2">
-                    {veoData?.highlights && veoData.highlights.length > 0 ? (
+                    {(veoData?.highlights || pixellotData?.highlights) && (veoData?.highlights || pixellotData?.highlights)!.length > 0 ? (
                       <div className="flex flex-wrap items-center gap-2 max-h-36 overflow-y-auto p-1">
-                        {veoData.highlights.map((h) => {
+                        {(veoData?.highlights || pixellotData?.highlights)!.map((h) => {
                           const isGoal = h.type === 'goal';
                           return (
                             <button
@@ -2607,7 +2776,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                                   : 'bg-[#141824] border-[#212638] text-slate-300 hover:text-white hover:border-slate-500'
                               }`}
                             >
-                              <span>{isGoal ? '⚽' : '🎯'}</span>
+                              <span>{h.icon || (isGoal ? '⚽' : '🎯')}</span>
                               <span className="font-black">{h.label}</span>
                               <span className="text-[10px] font-mono text-slate-400">
                                 {h.timeDisplay}
@@ -2618,7 +2787,7 @@ export const MediaViewerModal: React.FC<MediaViewerModalProps> = ({ isOpen, onCl
                       </div>
                     ) : (
                       <p className="text-xs text-slate-400">
-                        Nessun evento automatico registrato per questa gara.
+                        Nessun evento o marcatore rilevato per questa gara.
                       </p>
                     )}
                   </div>

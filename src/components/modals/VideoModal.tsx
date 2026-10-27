@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { MediaDropzone, UploadResult } from '@/components/media/MediaDropzone';
 import { isVeoUrl } from '@/lib/services/veo-service';
+import { isPixellotUrl } from '@/lib/services/pixellot-service';
 import { DbService } from '@/lib/repository/db-service';
 import { VideoClip } from '@/types/refstudio';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -330,6 +331,25 @@ export const VideoModal: React.FC<VideoModalProps> = ({
           }
         })
         .catch(() => {});
+    } else if (isPixellotUrl(url)) {
+      setVideoSource('PIXELLOT');
+      setMediaType('video');
+      fetch(`/api/pixellot/resolve?url=${encodeURIComponent(url)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.success && data.match) {
+            if (!title.trim()) {
+              setTitle(data.match.title || 'Gara Pixellot');
+            }
+            if (data.match.title) {
+              autoDetectTeams(data.match.title);
+            }
+            if (data.match.homeTeamName && data.match.awayTeamName) {
+              autoDetectTeams(`${data.match.homeTeamName} vs ${data.match.awayTeamName}`);
+            }
+          }
+        })
+        .catch(() => {});
     } else if (url.includes('youtube') || url.includes('youtu.be')) {
       setVideoSource('YOUTUBE');
       setMediaType('video');
@@ -414,7 +434,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       setError(
         mode === 'UPLOAD'
           ? 'Trascina o seleziona un file video o immagine dal tuo PC.'
-          : 'Inserisci un URL valido (YouTube, Veo o file web).'
+          : 'Inserisci un URL valido (YouTube, Veo, Pixellot o file web).'
       );
       return;
     }
@@ -424,6 +444,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         ? 'LOCAL'
         : isVeoUrl(externalUrl)
         ? 'VEO'
+        : isPixellotUrl(externalUrl)
+        ? 'PIXELLOT'
         : externalUrl.includes('youtube') || externalUrl.includes('youtu.be')
         ? 'YOUTUBE'
         : videoSource;
@@ -514,7 +536,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             <p className="text-xs text-slate-400">
               {existingVideo
                 ? 'Modifica titolo, squadre associate, descrizione o minutaggio dell\'episodio'
-                : 'Collega video da YouTube o Veo AI, oppure carica file dal PC associando le squadre dal database'}
+                : 'Collega video da YouTube, Veo AI o Pixellot, oppure carica file dal PC associando le squadre dal database'}
             </p>
           </div>
         </div>
@@ -590,6 +612,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                   >
                     <option value="YOUTUBE">YouTube (URL / Embed)</option>
                     <option value="VEO">Gara Veo (app.veo.co)</option>
+                    <option value="PIXELLOT">Gara Pixellot (you.pixellot.link / tv)</option>
                     <option value="LOCAL">URL Diretto (MP4 / WebM / Immagine)</option>
                   </select>
                 </div>
@@ -614,6 +637,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                   <span>
                     {videoSource === 'VEO'
                       ? 'Link Partita Veo'
+                      : videoSource === 'PIXELLOT'
+                      ? 'Link Partita Pixellot'
                       : videoSource === 'YOUTUBE'
                       ? 'URL Video YouTube'
                       : 'URL File Web'}
@@ -621,6 +646,11 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                   {isVeoUrl(externalUrl) && (
                     <span className="text-[10px] font-black text-[#00E5FF] flex items-center gap-1">
                       <Sparkles className="w-3 h-3" /> Rilevato Veo Match AI
+                    </span>
+                  )}
+                  {isPixellotUrl(externalUrl) && (
+                    <span className="text-[10px] font-black text-[#00A3FF] flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" /> Rilevato Pixellot Match AI
                     </span>
                   )}
                   {(externalUrl.includes('youtube') || externalUrl.includes('youtu.be')) && (
@@ -636,6 +666,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                   placeholder={
                     videoSource === 'VEO'
                       ? 'https://app.veo.co/matches/...'
+                      : videoSource === 'PIXELLOT'
+                      ? 'https://you.pixellot.link/... o https://you.pixellot.tv/...'
                       : 'https://www.youtube.com/watch?v=... o https://...'
                   }
                   className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"

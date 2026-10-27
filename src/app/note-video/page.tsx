@@ -29,6 +29,7 @@ import { MediaDropzone, UploadResult } from '@/components/media/MediaDropzone';
 import { useRealtimeSync } from '@/lib/supabase/realtime-context';
 import { useAuth } from '@/lib/auth/auth-context';
 import { isVeoUrl } from '@/lib/services/veo-service';
+import { isPixellotUrl } from '@/lib/services/pixellot-service';
 
 export default function NotesVideosPage() {
   const { user, isAdmin } = useAuth();
@@ -484,7 +485,8 @@ export default function NotesVideosPage() {
                 vid.mediaType === 'image' ||
                 Boolean(vid.externalUrl && vid.externalUrl.match(/\.(jpg|jpeg|png|webp|gif|svg)(\?.*)?$/i));
               const isVeo = Boolean(vid.videoSource === 'VEO' || isVeoUrl(vid.externalUrl));
-              const isDirectVideo = !ytId && !isImg && !isVeo && Boolean(vid.externalUrl);
+              const isPixellot = Boolean(vid.videoSource === 'PIXELLOT' || isPixellotUrl(vid.externalUrl));
+              const isDirectVideo = !ytId && !isImg && !isVeo && !isPixellot && Boolean(vid.externalUrl);
 
               const handleCardPlay = () => {
                 if (vid.externalUrl) {
@@ -541,6 +543,17 @@ export default function NotesVideosPage() {
                           AI Camera
                         </div>
                       </div>
+                    ) : isPixellot ? (
+                      <div className="relative w-full h-full bg-[#080B13] flex flex-col items-center justify-center overflow-hidden">
+                        <img
+                          src="https://content-us-1.you.pixellot.tv/events/6adcd66163df3e1f60a694d6/hd/6adcd66163df3e1f60a694d6.jpg"
+                          alt={vid.title}
+                          className="w-full h-full object-cover opacity-75 group-hover/thumb:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-[#00A3FF]/20 border border-[#00A3FF]/40 text-[#00A3FF] text-[9px] font-black uppercase tracking-wider backdrop-blur-md">
+                          Pixellot AI
+                        </div>
+                      </div>
                     ) : isDirectVideo ? (
                       <video
                         src={vid.externalUrl}
@@ -567,12 +580,14 @@ export default function NotesVideosPage() {
                           <ImageIcon className="w-3 h-3 text-[#CCFF00]" />
                         ) : isVeo ? (
                           <span className="text-[#00E5FF] font-black">Veo</span>
+                        ) : isPixellot ? (
+                          <span className="text-[#00A3FF] font-black">Pixellot</span>
                         ) : ytId ? (
                           <span className="text-[#FF334B]">YouTube</span>
                         ) : (
                           <Film className="w-3 h-3 text-[#CCFF00]" />
                         )}
-                        <span>{isImg ? 'Foto' : isVeo ? 'Gara Veo' : ytId ? 'Clip' : 'File Locale'}</span>
+                        <span>{isImg ? 'Foto' : isVeo ? 'Gara Veo' : isPixellot ? 'Gara Pixellot' : ytId ? 'Clip' : 'File Locale'}</span>
                       </span>
                     </div>
 

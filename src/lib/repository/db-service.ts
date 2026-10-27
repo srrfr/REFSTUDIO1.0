@@ -185,6 +185,24 @@ const defaultInitialVideos: VideoClip[] = [
     createdAt: '2026-09-20T17:30:00.000Z',
     updatedAt: '2026-09-20T17:30:00.000Z',
   },
+  {
+    id: 'vid-pixellot-medicina-fratta',
+    authorId: 'samueleromini',
+    targetType: 'partita',
+    targetId: '1000146_vs_1000154',
+    targetName: 'Medicina Fossatone vs Fratta Terme',
+    homeTeamId: '1000146',
+    homeTeamName: 'Medicina Fossatone',
+    awayTeamId: '1000154',
+    awayTeamName: 'Fratta Terme',
+    videoSource: 'PIXELLOT',
+    externalUrl: 'https://you.pixellot.link/8u1AfK6Pw7b',
+    title: 'Ripresa Integrale Gara: Medicina Fossatone vs Fratta Terme (Pixellot Camera)',
+    description: 'Registrazione integrale Pixellot AI con ripresa grandangolare automatica e tracking broadcast HD. Riproducibile in videoteca con analisi per tempi di gioco (1° tempo 00:00-60:01, 2° tempo 60:01-1:50:06), visuale HD / Panoramica 180°, marcatori ed episodi arbitrali.',
+    timestampMark: '00:00',
+    createdAt: '2026-10-24T15:00:00.000Z',
+    updatedAt: '2026-10-24T15:00:00.000Z',
+  },
 ];
 
 const defaultInitialDesignations: MatchDesignation[] = [];
