@@ -656,6 +656,17 @@ def run_app_sync():
     if res_rebuild.stdout:
         print(res_rebuild.stdout.strip())
 
+    print("\n1b. Calcolo e aggiornamento automatico squalifiche scontate e provvedimenti del Giudice Sportivo...")
+    res_gs = subprocess.run(
+        [sys.executable, "scripts/scraper_giudice_sportivo.py", "--sync-only"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace"
+    )
+    if res_gs.stdout:
+        print(res_gs.stdout.strip())
+
     print("\n2. Sincronizzazione cloud PostgreSQL Supabase...")
     res_seed = subprocess.run(
         ["node", "scripts/seed-supabase.mjs"],

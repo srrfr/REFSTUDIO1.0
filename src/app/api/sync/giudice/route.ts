@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import * as path from 'path';
 import * as fs from 'fs';
+import { DbService } from '@/lib/repository/db-service';
 
 let isScraperRunning = false;
 let lastRunLog = '';
@@ -99,6 +100,11 @@ export async function POST(req: Request) {
   pyProcess.on('close', (code) => {
     isScraperRunning = false;
     lastRunStatus = code === 0 ? 'success' : 'error';
+    if (code === 0) {
+      try {
+        DbService.recalculateAllDisciplinaryStatuses();
+      } catch {}
+    }
     lastRunLog += `\nElaborazione comunicati terminata con codice: ${code}\n`;
   });
 

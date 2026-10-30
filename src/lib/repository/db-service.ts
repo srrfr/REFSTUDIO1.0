@@ -2,6 +2,7 @@ import { Team, Player, Match, StandingRow, Note, VideoClip, UserAccount, MatchDe
 import defaultDataset from '@/data/dataset.json';
 import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseService } from '@/lib/supabase/supabase-service';
+import { DisciplinaryService } from '@/lib/disciplinary/disciplinary-service';
 
 const STORAGE_KEY = 'refstudio_persistent_db_v4';
 const DELETED_NOTES_KEY = 'refstudio_tombstone_notes';
@@ -294,6 +295,51 @@ export class DbService {
   }
 
   /**
+   * Ricalcola automaticamente per tutti i giocatori lo stato disciplinare (squalifiche scontate)
+   * in base alle giornate di campionato effettivamente disputate.
+   */
+  static recalculateAllDisciplinaryStatuses(): void {
+    if (!inMemoryData.players || !inMemoryData.matches) return;
+
+    const norm = (s: string) => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const teamPlayedMax: Record<string, number> = {};
+
+    for (const m of inMemoryData.matches) {
+      if (m.played) {
+        const day = Number(m.matchDay) || 0;
+        const hKey = norm(m.homeTeamName);
+        const aKey = norm(m.awayTeamName);
+        if (m.homeTeamId) teamPlayedMax[m.homeTeamId] = Math.max(teamPlayedMax[m.homeTeamId] || 0, day);
+        if (m.awayTeamId) teamPlayedMax[m.awayTeamId] = Math.max(teamPlayedMax[m.awayTeamId] || 0, day);
+        if (hKey) teamPlayedMax[hKey] = Math.max(teamPlayedMax[hKey] || 0, day);
+        if (aKey) teamPlayedMax[aKey] = Math.max(teamPlayedMax[aKey] || 0, day);
+      }
+    }
+
+    const maxValues = Object.values(teamPlayedMax);
+    const defaultMax = maxValues.length > 0 ? Math.max(...maxValues) : 10;
+
+    let changed = false;
+    inMemoryData.players = inMemoryData.players.map((p) => {
+      const pKey = norm(p.teamName);
+      const teamMaxDay = teamPlayedMax[p.teamId] || teamPlayedMax[pKey] || defaultMax;
+      const updated = DisciplinaryService.updatePlayerDisciplinaryStatus(p, teamMaxDay);
+      if (
+        updated.disciplinaryStatus !== p.disciplinaryStatus ||
+        Boolean(updated.disciplinaryDetails) !== Boolean(p.disciplinaryDetails) ||
+        (updated.pastSanctions?.length || 0) !== (p.pastSanctions?.length || 0)
+      ) {
+        changed = true;
+      }
+      return updated;
+    });
+
+    if (changed) {
+      this.persist();
+    }
+  }
+
+  /**
    * Assicura che i dati siano sincronizzati con il LocalStorage del browser
    * e avvia la sincronizzazione trasparente con Supabase se configurato
    */
@@ -337,20 +383,21 @@ export class DbService {
               const defaultPlayerMap = new Map((defaultDataset.players as any[]).map((dp) => [dp.id, dp]));
               inMemoryData.players = inMemoryData.players.map((lp) => {
                 const dp = defaultPlayerMap.get(lp.id);
-                const cleanLocalNotes = lp.refereeNotes && !lp.refereeNotes.includes('[Giudice Sportivo') ? lp.refereeNotes : '';
                 if (dp) {
-                  const cleanDefaultNotes = dp.refereeNotes && !dp.refereeNotes.includes('[Giudice Sportivo') ? dp.refereeNotes : '';
                   return {
                     ...lp,
                     disciplinaryStatus: dp.disciplinaryStatus,
                     disciplinaryDetails: dp.disciplinaryDetails,
                     pastSanctions: dp.pastSanctions,
-                    refereeNotes: cleanDefaultNotes || cleanLocalNotes,
+                    refereeNotes: dp.refereeNotes || lp.refereeNotes,
                   };
                 }
-                return { ...lp, refereeNotes: cleanLocalNotes };
+                return lp;
               });
             }
+
+            // Ricalcola automaticamente le squalifiche scontate in base all'ultima giornata disputata
+            this.recalculateAllDisciplinaryStatuses();
 
             // Aggiorna le sanzioni e inibizioni staff & dirigenti delle squadre da dataset.json
             if (Array.isArray(inMemoryData.teams) && Array.isArray(defaultDataset.teams)) {
@@ -926,11 +973,9 @@ export class DbService {
             photoUrl = lp.photoUrl;
           }
 
-          let refereeNotes = (cp.refereeNotes && !cp.refereeNotes.includes('[Giudice Sportivo')) ? cp.refereeNotes : '';
-          if ((!refereeNotes && lp.refereeNotes) || (localIsNewer && lp.refereeNotes)) {
-            if (!lp.refereeNotes.includes('[Giudice Sportivo')) {
-              refereeNotes = lp.refereeNotes;
-            }
+          let refereeNotes = cp.refereeNotes || lp.refereeNotes || '';
+          if (localIsNewer && lp.refereeNotes) {
+            refereeNotes = lp.refereeNotes;
           }
 
           let customTags = cp.customTags || [];
@@ -943,6 +988,9 @@ export class DbService {
           const merged: Player = {
             ...cp,
             ...lp,
+            disciplinaryStatus: lp.disciplinaryStatus || cp.disciplinaryStatus,
+            disciplinaryDetails: lp.disciplinaryDetails || cp.disciplinaryDetails,
+            pastSanctions: (lp.pastSanctions && lp.pastSanctions.length > 0) ? lp.pastSanctions : cp.pastSanctions,
             photoUrl,
             refereeNotes,
             customTags,
@@ -985,6 +1033,9 @@ export class DbService {
 
         // Riapplica le designazioni ai cloudMatches scaricati
         this.applyDesignationsToMatches();
+
+        // Ricalcola lo stato delle squalifiche (scontate) con i dati cloud/locali aggiornati
+        this.recalculateAllDisciplinaryStatuses();
 
         if (typeof window !== 'undefined') {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryData));

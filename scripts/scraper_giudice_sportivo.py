@@ -18,6 +18,7 @@ import shutil
 import argparse
 from pathlib import Path
 from urllib.parse import urljoin
+import subprocess
 
 try:
     import pymupdf as fitz
@@ -256,8 +257,8 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 ]):
                     break
 
-            # Intestazioni Ruolo Staff o Calciatori
-            if any(h in l_up for h in ["DIRIGENTI", "ALLENATORI", "MASSAGGIATORI", "MEDICI"]):
+            # Intestazioni Ruolo Staff o Calciatori (escludi righe contenenti parentesi per non matchare squadre come Medicina Fossatone)
+            if any(re.search(rf"\b{h}\b", l_up) for h in ["DIRIGENTI", "ALLENATORI", "MASSAGGIATORI", "MEDICI"]) and "(" not in line:
                 current_role = line.strip().capitalize()
                 current_sanction = None
                 prev_name = None
@@ -278,37 +279,39 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 prev_name = None
                 continue
 
-            # Intestazioni Sanzione
-            if any(s in l_up for s in ["INIBIZIONE", "SQUALIFICA", "AMMONIZIONE CON DIFFIDA", "AMMONIZIONE"]):
+            # Intestazioni Sanzione (non deve essere un nominativo con squadra es. NOME (SQUADRA))
+            if (
+                any(s in l_up for s in ["INIBIZIONE", "SQUALIFICA", "AMMONIZIONE CON DIFFIDA", "AMMONIZIONE"])
+                and not re.search(r"\b[A-Z\s\'.]{3,}\s*\([A-Z0-9\s\'.]+\)", line)
+            ):
                 current_sanction = line.strip()
                 prev_name = None
                 continue
 
-            # Caso 1: riga singola "NOME COGNOME (SQUADRA)"
-            m_single = re.match(r"^([A-Z\s\'.]+)\s*\(([^)]+)\)$", line)
-            if m_single and current_sanction:
-                cand_name = m_single.group(1).strip()
-                cand_team = m_single.group(2).strip()
-                if (
-                    len(cand_name) >= 3
-                    and not cand_name.startswith("GARE DEL")
-                    and not cand_name.startswith("CAMPIONATO")
-                    and not cand_name.startswith("COPPA")
-                ):
-                    tipo = determine_tipo(current_sanction, current_role, current_competition)
-                    rec = {
-                        "tipo": tipo,
-                        "competizione": current_competition,
-                        "ruolo": current_role,
-                        "nome": cand_name,
-                        "squadra": cand_team,
-                        "sanzione": current_sanction,
-                        "motivo": "",
-                        "comunicato": cu_number,
-                        "url_comunicato": cu_url,
-                    }
-                    records.append(rec)
-                    prev_record_idx = len(records) - 1
+            # Estrazione pattern "NOME COGNOME (SQUADRA)" - gestisce sia record singolo che multipli sulla stessa riga
+            m_all = re.findall(r"([A-Z\s\'.]{3,})\s*\(([^)]+)\)", line)
+            if m_all and current_sanction:
+                for cand_name_raw, cand_team_raw in m_all:
+                    cand_name = cand_name_raw.strip()
+                    cand_team = cand_team_raw.strip()
+                    if (
+                        len(cand_name) >= 3
+                        and not any(cand_name.startswith(p) for p in ["GARE DEL", "CAMPIONATO", "COPPA", "PROVVEDIMENTI", "AMMONIZIONE CON DIFFIDA"])
+                    ):
+                        tipo = determine_tipo(current_sanction, current_role, current_competition)
+                        rec = {
+                            "tipo": tipo,
+                            "competizione": current_competition,
+                            "ruolo": current_role,
+                            "nome": cand_name,
+                            "squadra": cand_team,
+                            "sanzione": current_sanction,
+                            "motivo": "",
+                            "comunicato": cu_number,
+                            "url_comunicato": cu_url,
+                        }
+                        records.append(rec)
+                        prev_record_idx = len(records) - 1
                 prev_name = None
                 continue
 
@@ -319,9 +322,7 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 cand_name = prev_name.strip()
                 if (
                     len(cand_name) >= 3
-                    and not cand_name.startswith("GARE DEL")
-                    and not cand_name.startswith("CAMPIONATO")
-                    and not cand_name.startswith("COPPA")
+                    and not any(cand_name.startswith(p) for p in ["GARE DEL", "CAMPIONATO", "COPPA", "PROVVEDIMENTI"])
                 ):
                     tipo = determine_tipo(current_sanction, current_role, current_competition)
                     rec = {
@@ -492,7 +493,31 @@ def sync_disciplinary_with_app(all_sanctions):
         43: 7,  # Gare del 11/10/2026 (Giornata 7)
         46: 7,  # Coppa Italia (14/10/2026)
         47: 8,  # Gare del 18/10/2026 (Giornata 8)
+        51: 9,  # Gare del 25/10/2026 (Giornata 9)
     }
+
+    def get_matchday_from_cu(cu_num):
+        if cu_num in CU_TO_MATCHDAY:
+            return CU_TO_MATCHDAY[cu_num]
+        if cu_num >= 55:
+            return 10
+        if cu_num >= 51:
+            return 9
+        if cu_num >= 47:
+            return 8
+        if cu_num >= 43:
+            return 7
+        if cu_num >= 38:
+            return 5
+        if cu_num >= 34:
+            return 4
+        if cu_num >= 30:
+            return 3
+        if cu_num >= 28:
+            return 2
+        if cu_num >= 26:
+            return 1
+        return 0
 
     def get_cu_number(cu_str):
         m = re.search(r"(\d+)", str(cu_str or ""))
@@ -622,7 +647,7 @@ def sync_disciplinary_with_app(all_sanctions):
         for s in sanctions:
             cu_num = get_cu_number(s["comunicato"])
             if s["tipo"] == "SQUALIFICA":
-                matchday_sanz = CU_TO_MATCHDAY.get(cu_num, 8 if cu_num >= 47 else 7 if cu_num >= 43 else 0)
+                matchday_sanz = get_matchday_from_cu(cu_num)
                 gare_dopo = max(0, team_max_day - matchday_sanz)
                 gare_tot = parse_squalifica_gare(s.get("sanzione"))
                 gare_res = max(0, gare_tot - gare_dopo)
@@ -709,10 +734,10 @@ def sync_disciplinary_with_app(all_sanctions):
             p["disciplinaryStatus"] = "REGOLARE"
             p.pop("disciplinaryDetails", None)
 
-        if p.get("refereeNotes") and "[Giudice Sportivo" in p["refereeNotes"]:
-            rn = p["refereeNotes"]
-            parts = [part.strip() for part in rn.split('|') if '[Giudice Sportivo' not in part]
-            p["refereeNotes"] = " | ".join(parts) if parts else ""
+        rn = p.get("refereeNotes") or ""
+        parts = [part.strip() for part in rn.split('|') if '[Giudice Sportivo' not in part and part.strip()]
+        all_notes = parts + new_notes_list
+        p["refereeNotes"] = " | ".join(all_notes) if all_notes else ""
 
         matched_count += 1
 
@@ -785,10 +810,19 @@ def sync_disciplinary_with_app(all_sanctions):
             f" [✓] Sincronizzati {matched_count} calciatori sanzionati: "
             f"{active_squalificati_count} Squalifiche attive, "
             f"{active_diffidati_count} Diffide attive, "
-            f"{scontate_count} Squalifiche scontate (salvate in pastSanctions), "
+            f" {scontate_count} Squalifiche scontate (salvate in pastSanctions), "
             f"{diffide_superate_count} Diffide superate rimosse! | "
             f"{matched_staff_count} Sanzioni staff/dirigenza abbinate ai club."
         )
+
+        # Sincronizza anche con Supabase se presente scripts/seed-supabase.mjs
+        seed_script = ROOT_DIR / "scripts" / "seed-supabase.mjs"
+        if seed_script.exists():
+            try:
+                print(" [*] Sincronizzazione automatica stato disciplinare e note con Supabase...")
+                subprocess.run(["node", str(seed_script)], check=False)
+            except Exception as e_sup:
+                print(f" [!] Avviso sync Supabase: {e_sup}")
     except Exception as e_w:
         print(f" [!] Errore salvataggio database app: {e_w}")
 

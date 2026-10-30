@@ -58,8 +58,12 @@ jobs:
           python scripts/scraper_tuttocampo.py --headless --sync
 
       - name: 6b. Esegui Raccolta Giudice Sportivo FIGC CRER
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          python scripts/scraper_giudice_sportivo.py --sync-app
+          python scripts/scraper_giudice_sportivo.py --reverse --max-pages 5 --sync-app
 
       - name: 7. Commit & Push modifiche dataset su GitHub
         run: |

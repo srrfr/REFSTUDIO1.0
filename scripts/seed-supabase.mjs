@@ -328,7 +328,16 @@ async function seed() {
 
     const { error: vErr } = await supabase.from('videos').upsert(videosPayload, { onConflict: 'id' });
     if (vErr) {
-      console.error('❌ Errore durante inserimento video:', vErr.message);
+      const fallbackPayload = videosPayload.map((item) => ({
+        ...item,
+        video_source: 'YOUTUBE',
+      }));
+      const { error: fbErr } = await supabase.from('videos').upsert(fallbackPayload, { onConflict: 'id' });
+      if (!fbErr) {
+        console.log(`   ✅ ${videosPayload.length} video e clip sincronizzate (con compatibilità fallback constraint).`);
+      } else {
+        console.error('❌ Errore durante inserimento video:', fbErr.message);
+      }
     } else {
       console.log(`   ✅ ${videosPayload.length} video e clip sincronizzate.`);
     }

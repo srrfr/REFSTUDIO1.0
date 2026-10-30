@@ -16,7 +16,24 @@ export const CU_TO_MATCHDAY: Record<number, number> = {
   43: 7, // Gare del 11/10/2026 (Giornata 7)
   46: 7, // Coppa Italia (14/10/2026)
   47: 8, // Gare del 18/10/2026 (Giornata 8)
+  51: 9, // Gare del 25/10/2026 (Giornata 9)
 };
+
+export function getMatchdayFromCu(cuNum: number): number {
+  if (CU_TO_MATCHDAY[cuNum] !== undefined) {
+    return CU_TO_MATCHDAY[cuNum];
+  }
+  if (cuNum >= 55) return 10;
+  if (cuNum >= 51) return 9;
+  if (cuNum >= 47) return 8;
+  if (cuNum >= 43) return 7;
+  if (cuNum >= 38) return 5;
+  if (cuNum >= 34) return 4;
+  if (cuNum >= 30) return 3;
+  if (cuNum >= 28) return 2;
+  if (cuNum >= 26) return 1;
+  return 0;
+}
 
 export function getCuNumber(cuStr: string | undefined): number {
   const m = String(cuStr || '').match(/(\d+)/);
@@ -85,7 +102,7 @@ export class DisciplinaryService {
     gareResidue: number;
   } {
     const cuNum = getCuNumber(sanz.comunicato);
-    const matchDayComminata = CU_TO_MATCHDAY[cuNum] ?? (cuNum >= 47 ? 8 : cuNum >= 43 ? 7 : 0);
+    const matchDayComminata = getMatchdayFromCu(cuNum);
     const gareDisputateDopo = Math.max(0, teamPlayedMaxDay - matchDayComminata);
     const gareTotali = parseSqualificaGare(sanz.sanzione);
     const gareResidue = Math.max(0, gareTotali - gareDisputateDopo);
@@ -96,6 +113,74 @@ export class DisciplinaryService {
       gareScontate: gareDisputateDopo,
       gareResidue,
     };
+  }
+
+  /**
+   * Ricalcola e aggiorna automaticamente lo stato disciplinare del calciatore
+   * sulla base dell'ultima giornata effettivamente disputata dalla sua squadra.
+   * Se la squalifica è stata scontata, viene archiviata in pastSanctions e lo
+   * stato torna REGOLARE (o DIFFIDATO se ha maturato cumulo ammonizioni).
+   */
+  static updatePlayerDisciplinaryStatus(player: Player, teamPlayedMaxDay: number): Player {
+    const updated = { ...player };
+    const pastSanctions = Array.isArray(updated.pastSanctions) ? [...updated.pastSanctions] : [];
+
+    if (updated.disciplinaryDetails && (updated.disciplinaryDetails.tipo === 'SQUALIFICA' || updated.disciplinaryStatus === 'SQUALIFICATO')) {
+      const s = updated.disciplinaryDetails;
+      const res = this.checkSqualificaStatus(s, teamPlayedMaxDay);
+
+      if (res.scontata) {
+        const alreadyInPast = pastSanctions.some(
+          (p) => p.comunicato === s.comunicato && p.sanzione === s.sanzione
+        );
+        if (!alreadyInPast) {
+          pastSanctions.push({
+            tipo: 'SQUALIFICA',
+            sanzione: s.sanzione,
+            motivo: s.motivo || '',
+            comunicato: s.comunicato,
+            competizione: s.competizione || 'Campionato Eccellenza',
+            urlComunicato: s.urlComunicato || '',
+            scontata: true,
+            giornateSqualifica: res.gareSqualifica,
+            giornateScontate: res.gareScontate,
+            giornateResidue: 0,
+          });
+        }
+        updated.disciplinaryDetails = undefined;
+        updated.disciplinaryStatus = (updated.yellowCards || 0) >= 4 ? 'DIFFIDATO' : 'REGOLARE';
+      } else {
+        updated.disciplinaryStatus = 'SQUALIFICATO';
+        updated.disciplinaryDetails = {
+          ...s,
+          scontata: false,
+          giornateSqualifica: res.gareSqualifica,
+          giornateScontate: res.gareScontate,
+          giornateResidue: res.gareResidue,
+        };
+      }
+    } else if (updated.disciplinaryStatus === 'SQUALIFICATO' && !updated.disciplinaryDetails) {
+      if (teamPlayedMaxDay >= 1) {
+        const alreadyInPast = pastSanctions.some((p) => p.sanzione?.includes('espulsione'));
+        if (!alreadyInPast) {
+          pastSanctions.push({
+            tipo: 'SQUALIFICA',
+            sanzione: 'Squalifica per espulsione sul campo',
+            motivo: 'Cartellino rosso o doppia ammonizione regolarmente scontata',
+            comunicato: 'Referto Gara',
+            competizione: 'Campionato Eccellenza',
+            scontata: true,
+            giornateSqualifica: 1,
+            giornateScontate: 1,
+            giornateResidue: 0,
+          });
+        }
+        updated.disciplinaryStatus = (updated.yellowCards || 0) >= 4 ? 'DIFFIDATO' : 'REGOLARE';
+      }
+    }
+
+    updated.pastSanctions = pastSanctions.length > 0 ? pastSanctions : undefined;
+    return updated;
   }
 
   /**

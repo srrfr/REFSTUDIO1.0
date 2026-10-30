@@ -179,14 +179,21 @@ rawPlayers.forEach(p => {
   const yellowCards = parseInt(p['Ammonizioni'] || 0, 10);
   const redCards = parseInt(p['Espulsioni'] || 0, 10);
 
-  let disciplinaryStatus = 'REGOLARE';
-  if (redCards > 0) disciplinaryStatus = 'SQUALIFICATO';
-  else if (yellowCards >= 4) disciplinaryStatus = 'DIFFIDATO';
-
-  // Recupera eventuali tag e note precedentemente assegnate dall'arbitro
+  // Recupera eventuali dati disciplinari, tag e note precedentemente assegnate
   const existingByFullName = existingPlayersMap.get(playerId)
     || existingPlayersMap.get(`${firstName} ${lastName}`.toLowerCase().trim())
     || existingPlayersMap.get(`${lastName} ${firstName}`.toLowerCase().trim());
+
+  let disciplinaryStatus = existingByFullName?.disciplinaryStatus || 'REGOLARE';
+  let disciplinaryDetails = existingByFullName?.disciplinaryDetails || undefined;
+  let pastSanctions = existingByFullName?.pastSanctions || [];
+
+  if (!existingByFullName || !existingByFullName.disciplinaryStatus) {
+    if (redCards > 0) disciplinaryStatus = 'SQUALIFICATO';
+    else if (yellowCards >= 4) disciplinaryStatus = 'DIFFIDATO';
+  } else if (disciplinaryStatus === 'SQUALIFICATO' && (!disciplinaryDetails || disciplinaryDetails.scontata)) {
+    disciplinaryStatus = yellowCards >= 4 ? 'DIFFIDATO' : 'REGOLARE';
+  }
 
   const customTags = existingByFullName?.customTags || [];
   const refereeNotes = existingByFullName?.refereeNotes || '';
@@ -209,6 +216,8 @@ rawPlayers.forEach(p => {
     yellowCards: yellowCards,
     redCards: redCards,
     disciplinaryStatus: disciplinaryStatus,
+    disciplinaryDetails: disciplinaryDetails,
+    pastSanctions: pastSanctions,
     customTags: customTags,
     refereeNotes: refereeNotes,
     updatedAt: new Date().toISOString()

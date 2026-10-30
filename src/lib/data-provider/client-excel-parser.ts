@@ -202,7 +202,15 @@ export class ClientExcelParser {
           existingPlayersMap.get(`${lastName} ${firstName}`.toLowerCase().trim());
 
         let disciplinaryStatus: Player['disciplinaryStatus'] = existingByFullName?.disciplinaryStatus || 'REGOLARE';
-        const disciplinaryDetails = existingByFullName?.disciplinaryDetails;
+        let disciplinaryDetails = existingByFullName?.disciplinaryDetails;
+        let pastSanctions = existingByFullName?.pastSanctions || [];
+
+        if (!existingByFullName || !existingByFullName.disciplinaryStatus) {
+          if (redCards > 0) disciplinaryStatus = 'SQUALIFICATO';
+          else if (yellowCards >= 4) disciplinaryStatus = 'DIFFIDATO';
+        } else if (disciplinaryStatus === 'SQUALIFICATO' && (!disciplinaryDetails || disciplinaryDetails.scontata)) {
+          disciplinaryStatus = yellowCards >= 4 ? 'DIFFIDATO' : 'REGOLARE';
+        }
 
         const customTags = existingByFullName?.customTags || [];
         const refereeNotes = existingByFullName?.refereeNotes || '';
@@ -224,6 +232,7 @@ export class ClientExcelParser {
           redCards: redCards,
           disciplinaryStatus: disciplinaryStatus,
           disciplinaryDetails: disciplinaryDetails,
+          pastSanctions: pastSanctions,
           customTags: customTags,
           refereeNotes: refereeNotes,
           updatedAt: new Date().toISOString(),
