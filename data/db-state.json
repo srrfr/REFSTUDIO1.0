@@ -130,7 +130,17 @@
         "goalDifference": -5
       },
       "updatedAt": "2026-11-05T15:41:14.205Z",
-      "staffSanctions": []
+      "staffSanctions": [
+        {
+          "nome": "GUARNIERI MATTEO",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 4/11/2026",
+          "motivo": "Per gravi proteste nei confronti dell'Arbitro",
+          "comunicato": "CU n. 47",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+        }
+      ]
     },
     {
       "id": "2720",
@@ -163,26 +173,7 @@
         "goalDifference": -13
       },
       "updatedAt": "2026-11-05T15:41:14.205Z",
-      "staffSanctions": [
-        {
-          "nome": "LUNARDI ANDREA",
-          "ruolo": "Dirigenti",
-          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 2/ 1/2027",
-          "motivo": "Per aver rivolto ripetute offese nei confronti dell'arbitro.",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
-        },
-        {
-          "nome": "RONCAGLIA GIANLUCA",
-          "ruolo": "Allenatori",
-          "sanzione": "SQUALIFICA FINO AL 11/11/2026",
-          "motivo": "Per proteste nei confronti del direttore di gara.",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
-        }
-      ]
+      "staffSanctions": []
     },
     {
       "id": "43760",
@@ -281,17 +272,7 @@
         "goalDifference": 5
       },
       "updatedAt": "2026-11-05T15:41:14.205Z",
-      "staffSanctions": [
-        {
-          "nome": "SAVELLI BRIAN",
-          "ruolo": "Allenatori",
-          "sanzione": "SQUALIFICA FINO AL 11/11/2026",
-          "motivo": "Per proteste nei confronti del direttore di gara.",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
-        }
-      ]
+      "staffSanctions": []
     },
     {
       "id": "917054",
@@ -423,7 +404,17 @@
         "goalDifference": 5
       },
       "updatedAt": "2026-11-05T15:41:14.205Z",
-      "staffSanctions": []
+      "staffSanctions": [
+        {
+          "nome": "MONTANINI FRANCESCO",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 4/11/2026",
+          "motivo": "Per gravi proteste nei confronti dell'Arbitro",
+          "comunicato": "CU n. 47",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+        }
+      ]
     },
     {
       "id": "1000200",
@@ -456,17 +447,7 @@
         "goalDifference": 13
       },
       "updatedAt": "2026-11-05T15:41:14.205Z",
-      "staffSanctions": [
-        {
-          "nome": "AMATI BONACCORSI ALBERTO",
-          "ruolo": "Allenatori",
-          "sanzione": "SQUALIFICA FINO AL 11/11/2026",
-          "motivo": "Per proteste nei confronti del direttore di gara.",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
-        }
-      ]
+      "staffSanctions": []
     },
     {
       "id": "76266",
@@ -612,20 +593,20 @@
         {
           "nome": "MANFREDINI MATTIA",
           "ruolo": "Dirigenti",
-          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 7/10/2026",
-          "motivo": "Per proteste nei confronti del direttore di gara.",
-          "comunicato": "CU n. 34",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
-        },
-        {
-          "nome": "MANFREDINI MATTIA",
-          "ruolo": "Dirigenti",
           "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 19/11/2026",
           "motivo": "profferendo altresì ripetute frasi ingiuriose nei confronti della terna arbitrale. Il Manfredini veniva riconosciuto personalmente dal Direttore di gara, su richiesta dello stesso veniva allontanato, dalla tribuna reiterava tale comportamento.",
           "comunicato": "CU n. 38",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
+        },
+        {
+          "nome": "MANFREDINI MATTIA",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 7/10/2026",
+          "motivo": "Per proteste nei confronti del direttore di gara.",
+          "comunicato": "CU n. 34",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
         }
       ]
     },
@@ -695,15 +676,6 @@
       "updatedAt": "2026-11-05T15:41:14.205Z",
       "staffSanctions": [
         {
-          "nome": "LASAGNI OSCAR",
-          "ruolo": "Allenatori",
-          "sanzione": "SQUALIFICA FINO AL 7/10/2026",
-          "motivo": "Usciva dalla propria area tecnica, avvicinandosi agli occupanti della panchina avversaria rivolgendo frasi ingiuriose che indirizzava anche al pubblico che stazionava dietro le panchine. (R.A.A.).",
-          "comunicato": "CU n. 26",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
-        },
-        {
           "nome": "D ANGELI SALVATORE",
           "ruolo": "Dirigenti",
           "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 28/10/2026",
@@ -711,6 +683,15 @@
           "comunicato": "CU n. 43",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
+        },
+        {
+          "nome": "LASAGNI OSCAR",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 7/10/2026",
+          "motivo": "Usciva dalla propria area tecnica, avvicinandosi agli occupanti della panchina avversaria rivolgendo frasi ingiuriose che indirizzava anche al pubblico che stazionava dietro le panchine. (R.A.A.).",
+          "comunicato": "CU n. 26",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
         }
       ]
     },
@@ -1671,11 +1652,18 @@
       "appearances": 11,
       "yellowCards": 2,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 51]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
-      "updatedAt": "2026-11-05T15:41:14.206Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 51]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.206Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 51",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+      }
     },
     {
       "id": "8186106",
@@ -2198,14 +2186,14 @@
         },
         {
           "tipo": "SQUALIFICA",
-          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
-          "comunicato": "CU n. 38",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+          "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+          "comunicato": "CU n. 47",
           "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf",
           "scontata": true,
           "giornateSqualifica": 1,
-          "giornateScontate": 6,
+          "giornateScontate": 3,
           "giornateResidue": 0
         }
       ],
@@ -2215,7 +2203,7 @@
         "osservare",
         "leader squadra"
       ],
-      "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Calciatore in panchina perché sostituito, rivolgeva all'arbitro una frase ironica. | [Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+      "refereeNotes": "[Giudice Sportivo CU n. 38 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Calciatore in panchina perché sostituito, rivolgeva all'arbitro una frase ironica. | [Giudice Sportivo CU n. 38 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
       "updatedAt": "2026-11-05T15:41:14.206Z"
     },
     {
@@ -2426,11 +2414,18 @@
       "appearances": 10,
       "yellowCards": 0,
       "redCards": 1,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.206Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.206Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "9264674",
@@ -2702,11 +2697,18 @@
       "appearances": 10,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "8916362",
@@ -2809,11 +2811,18 @@
       "appearances": 8,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 47]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 47]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 47",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf"
+      }
     },
     {
       "id": "7396236",
@@ -2888,11 +2897,18 @@
       "appearances": 8,
       "yellowCards": 2,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 51]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 51]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 51",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+      }
     },
     {
       "id": "8135683",
@@ -3175,9 +3191,22 @@
       "yellowCards": 2,
       "redCards": 0,
       "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 30",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 8,
+          "giornateResidue": 0
+        }
+      ],
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -3197,9 +3226,22 @@
       "yellowCards": 0,
       "redCards": 1,
       "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 34",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf",
+          "scontata": true,
+          "giornateSqualifica": 1,
+          "giornateScontate": 7,
+          "giornateResidue": 0
+        }
+      ],
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 34 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -3501,11 +3543,22 @@
       "appearances": 9,
       "yellowCards": 0,
       "redCards": 1,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8799922",
@@ -3653,11 +3706,18 @@
       "appearances": 10,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "9277081",
@@ -4768,18 +4828,18 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
-          "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+          "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
           "comunicato": "CU n. 51",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf",
           "scontata": true,
           "giornateSqualifica": 1,
-          "giornateScontate": 1,
+          "giornateScontate": 2,
           "giornateResidue": 0
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 47 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 51 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+      "refereeNotes": "[Giudice Sportivo CU n. 47 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 51 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -4824,19 +4884,19 @@
       "pastSanctions": [
         {
           "tipo": "SQUALIFICA",
-          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
-          "comunicato": "CU n. 43",
+          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+          "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+          "comunicato": "CU n. 47",
           "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf",
           "scontata": true,
           "giornateSqualifica": 1,
-          "giornateScontate": 4,
+          "giornateScontate": 3,
           "giornateResidue": 0
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 43 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "refereeNotes": "[Giudice Sportivo CU n. 43 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -6243,11 +6303,18 @@
       "appearances": 10,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "8348042",
@@ -6397,24 +6464,22 @@
       "appearances": 10,
       "yellowCards": 0,
       "redCards": 1,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [
-        {
-          "tipo": "SQUALIFICA",
-          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "(FUTURA FORNOVO MEDESANO)",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
-          "scontata": true,
-          "giornateSqualifica": 1,
-          "giornateScontate": 1,
-          "giornateResidue": 0
-        }
-      ],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 60 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FUTURA FORNOVO MEDESANO)",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "7251023",
@@ -6863,11 +6928,18 @@
       "appearances": 6,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "8541870",
@@ -6908,9 +6980,22 @@
       "yellowCards": 0,
       "redCards": 0,
       "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 47",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ],
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -7876,7 +7961,7 @@
       "appearances": 9,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "pastSanctions": [
         {
           "tipo": "SQUALIFICA",
@@ -7889,23 +7974,23 @@
           "giornateSqualifica": 1,
           "giornateScontate": 8,
           "giornateResidue": 0
-        },
-        {
-          "tipo": "SQUALIFICA",
-          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
-          "scontata": true,
-          "giornateSqualifica": 1,
-          "giornateScontate": 1,
-          "giornateResidue": 0
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita | [Giudice Sportivo CU n. 60 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita | [Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8022928",
@@ -8164,7 +8249,7 @@
       "redCards": 0,
       "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER DUE GARE EFFETTIVE (1 gara residua da scontare) - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z",
       "disciplinaryDetails": {
         "tipo": "SQUALIFICA",
@@ -8175,8 +8260,8 @@
         "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
         "scontata": false,
         "giornateSqualifica": 2,
-        "giornateScontate": 1,
-        "giornateResidue": 1
+        "giornateScontate": 0,
+        "giornateResidue": 2
       }
     },
     {
@@ -8413,11 +8498,18 @@
       "appearances": 9,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "8241488",
@@ -8919,7 +9011,7 @@
       "redCards": 1,
       "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER TRE GARE EFFETTIVE (2 gara residua da scontare) - Motivo: Per aver colpito con una gomitata il volto di un calciatore avversario procurando sanguinamento dallo zigomo.",
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER TRE GARE EFFETTIVE - Motivo: Per aver colpito con una gomitata il volto di un calciatore avversario procurando sanguinamento dallo zigomo.",
       "updatedAt": "2026-11-05T15:41:14.207Z",
       "disciplinaryDetails": {
         "tipo": "SQUALIFICA",
@@ -8930,8 +9022,8 @@
         "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
         "scontata": false,
         "giornateSqualifica": 3,
-        "giornateScontate": 1,
-        "giornateResidue": 2
+        "giornateScontate": 0,
+        "giornateResidue": 3
       }
     },
     {
@@ -9318,7 +9410,7 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "1. Dott. Carlo Frongillo Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 26/10/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
           "comunicato": "CU n. 51",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf",
@@ -9329,7 +9421,7 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 51 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: 1. Dott. Carlo Frongillo Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 26/10/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+      "refereeNotes": "[Giudice Sportivo CU n. 51 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -9928,11 +10020,18 @@
       "appearances": 5,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "9015321",
@@ -10522,11 +10621,22 @@
       "appearances": 11,
       "yellowCards": 5,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 51]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 51 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8059036",
@@ -10635,7 +10745,7 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "(FIDENTINA BORGO S.DONNINO) Per gravi proteste nei confronti dell'Arbitro (FUTURA FORNOVO MEDESANO) Per gravi proteste nei confronti dell'Arbitro",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
           "comunicato": "CU n. 47",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf",
@@ -10646,7 +10756,7 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FIDENTINA BORGO S.DONNINO) Per gravi proteste nei confronti dell'Arbitro (FUTURA FORNOVO MEDESANO) Per gravi proteste nei confronti dell'Arbitro",
+      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -10714,7 +10824,7 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 24 agosto 2026 dalla Soc. Bellaria Igea Marina con la quale quest’ultima ha formalmente manifestato la Regionale inserito nel Girone D per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 25 agosto 2026 dalla Soc. Rapid Viadana con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 26 agosto 2026 dalla Soc. A.C. Colorno con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Associazione Calcio Dilettantistica Colorno l’ammenda di €400,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Dott. Carlo Frongillo 8. AUTORIZZAZIONE TORNEI 8.1 Autorizzazione Tornei Sgs TORNEI INTERNAZIONALI ALL’ESTERO AUTORIZZATI STAGIONE SPORTIVA 2026/2027 UNDER 12 BOLOGNA FC 1909 30.10 – 01.11.26 UNER12 – UNDER 10 04.09 – 06.09.26 UNDER 11 05.09.26 UNDER 11 02.10 – 05.10.26 STAGIONE SPORTIVA 2026/2027 UNDER 14 RA 04.09 – 06.09.26 STAGIONE SPORTIVA 2026/2027 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO BO 05.09 – 13.09.26 STAGIONE SPORTIVA 2026/2027 UNDER 17 MO 17 – 24 SETTEMBRE UNDER 17 UNDER 16 UNDER 15 UNDER 14 FE 01.09 – 29.09.26 ESORDIENTI 1°ANNO PULCINI 1°2°ANNO PRIMI CALCI BO 12.09 – 10.10.26 RE 27.09.26 RE 11.10.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI MO 12.09 – 13.09.26 UNDER 15 FEMMINILE FE 27.09.26 1° YOUNG CUP FE 12.09.26 STAGIONE SPORTIVA 2026/2027 PULCINI 1°2°ANNO BO 12.09 – 13.09.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI BO 11.09 – 12.09.26 PULCINI 2°ANNO BO 12.09.26 SASSOLEONE 2015 BO 12.09 – 13.09.26 Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 02/09/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
           "comunicato": "CU n. 24",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7586/cu24.pdf",
@@ -10725,7 +10835,7 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 24 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 24 agosto 2026 dalla Soc. Bellaria Igea Marina con la quale quest’ultima ha formalmente manifestato la Regionale inserito nel Girone D per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 25 agosto 2026 dalla Soc. Rapid Viadana con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Bellaria Igea Marina l’ammenda di € 100,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 26 agosto 2026 dalla Soc. A.C. Colorno con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone A per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Associazione Calcio Dilettantistica Colorno l’ammenda di €400,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Dott. Carlo Frongillo 8. AUTORIZZAZIONE TORNEI 8.1 Autorizzazione Tornei Sgs TORNEI INTERNAZIONALI ALL’ESTERO AUTORIZZATI STAGIONE SPORTIVA 2026/2027 UNDER 12 BOLOGNA FC 1909 30.10 – 01.11.26 UNER12 – UNDER 10 04.09 – 06.09.26 UNDER 11 05.09.26 UNDER 11 02.10 – 05.10.26 STAGIONE SPORTIVA 2026/2027 UNDER 14 RA 04.09 – 06.09.26 STAGIONE SPORTIVA 2026/2027 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO BO 05.09 – 13.09.26 STAGIONE SPORTIVA 2026/2027 UNDER 17 MO 17 – 24 SETTEMBRE UNDER 17 UNDER 16 UNDER 15 UNDER 14 FE 01.09 – 29.09.26 ESORDIENTI 1°ANNO PULCINI 1°2°ANNO PRIMI CALCI BO 12.09 – 10.10.26 RE 27.09.26 RE 11.10.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI MO 12.09 – 13.09.26 UNDER 15 FEMMINILE FE 27.09.26 1° YOUNG CUP FE 12.09.26 STAGIONE SPORTIVA 2026/2027 PULCINI 1°2°ANNO BO 12.09 – 13.09.26 ESORDIENTI 1°2°ANNO PULCINI 1°2°ANNO PRIMI BO 11.09 – 12.09.26 PULCINI 2°ANNO BO 12.09.26 SASSOLEONE 2015 BO 12.09 – 13.09.26 Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 02/09/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+      "refereeNotes": "[Giudice Sportivo CU n. 24 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -11706,7 +11816,7 @@
       "appearances": 9,
       "yellowCards": 3,
       "redCards": 1,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "DIFFIDATO",
       "pastSanctions": [
         {
           "tipo": "SQUALIFICA",
@@ -11722,8 +11832,16 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita | [Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "7663828",
@@ -11927,7 +12045,7 @@
       "appearances": 9,
       "yellowCards": 0,
       "redCards": 2,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "pastSanctions": [
         {
           "tipo": "SQUALIFICA",
@@ -11940,23 +12058,23 @@
           "giornateSqualifica": 1,
           "giornateScontate": 10,
           "giornateResidue": 0
-        },
-        {
-          "tipo": "SQUALIFICA",
-          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
-          "scontata": true,
-          "giornateSqualifica": 1,
-          "giornateScontate": 1,
-          "giornateResidue": 0
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita | [Giudice Sportivo CU n. 60 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita | [Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8038737",
@@ -12348,7 +12466,7 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "(FUTURA FORNOVO MEDESANO)",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
           "comunicato": "CU n. 30",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7669/cu30.pdf",
@@ -12359,7 +12477,7 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FUTURA FORNOVO MEDESANO)",
+      "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.207Z"
     },
     {
@@ -13506,24 +13624,22 @@
       "appearances": 11,
       "yellowCards": 1,
       "redCards": 1,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [
-        {
-          "tipo": "SQUALIFICA",
-          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "(FIDENTINA BORGO S.DONNINO) In base alle risultanze degli atti ufficiali sono state deliberate le seguenti sanzioni disciplinari. Euro 100,00 ARCETANA Per intemperanze dei propri sostenitori in campo avverso.",
-          "comunicato": "CU n. 60",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
-          "scontata": true,
-          "giornateSqualifica": 1,
-          "giornateScontate": 1,
-          "giornateResidue": 0
-        }
-      ],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 60 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FIDENTINA BORGO S.DONNINO) In base alle risultanze degli atti ufficiali sono state deliberate le seguenti sanzioni disciplinari. Euro 100,00 ARCETANA Per intemperanze dei propri sostenitori in campo avverso.",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8055132",
@@ -14517,24 +14633,22 @@
       "appearances": 11,
       "yellowCards": 5,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [
-        {
-          "tipo": "SQUALIFICA",
-          "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
-          "comunicato": "CU n. 51",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf",
-          "scontata": true,
-          "giornateSqualifica": 1,
-          "giornateScontate": 2,
-          "giornateResidue": 0
-        }
-      ],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 51 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-11-05T15:41:14.207Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 51 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.207Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "7967758",
@@ -17041,7 +17155,7 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
-          "motivo": "(FIDENTINA BORGO S.DONNINO) (FIDENTINA BORGO S.DONNINO)",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
           "comunicato": "CU n. 47",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf",
@@ -17052,7 +17166,7 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: (FIDENTINA BORGO S.DONNINO) (FIDENTINA BORGO S.DONNINO)",
+      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.208Z"
     },
     {
@@ -17202,11 +17316,18 @@
       "appearances": 10,
       "yellowCards": 3,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.208Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.208Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "7789023",
@@ -18215,11 +18336,18 @@
       "appearances": 9,
       "yellowCards": 3,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
       "refereeNotes": "[Giudice Sportivo CU n. 51]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: 1. Dott. Carlo Frongillo Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 26/10/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
-      "updatedAt": "2026-11-05T15:41:14.208Z"
+      "updatedAt": "2026-11-05T15:41:14.208Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "1. Dott. Carlo Frongillo Pubblicato in BOLOGNA ed affisso all’albo del C.R.E.R.  il 26/10/2026. Il Segretario Sara Bottarelli Il Presidente Avv. Simone Alberici",
+        "comunicato": "CU n. 51",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+      }
     },
     {
       "id": "8062207",
@@ -18632,11 +18760,18 @@
       "appearances": 9,
       "yellowCards": 4,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.208Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.208Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "8380620",
@@ -18676,11 +18811,18 @@
       "appearances": 11,
       "yellowCards": 4,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.208Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.208Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "7356029",
@@ -19385,7 +19527,7 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
-          "motivo": "Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 2 settembre 2026 dalla Soc. Felsina SSD con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone B per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Felsina SSD l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 9 settembre 2026 dalla Soc. Imolese Football Club con la quale quest’ultima ha formalmente manifestato Under 18 Regionale inserito nel Girone C per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Imolese Football Club l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza.",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
           "comunicato": "CU n. 26",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf",
@@ -19398,7 +19540,7 @@
       "customTags": [
         "osservare"
       ],
-      "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 2 settembre 2026 dalla Soc. Felsina SSD con la quale quest’ultima ha formalmente manifestato la propria Regionale inserito nel Girone B per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Felsina SSD l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza. Il Giudice Sportivo, ha letto la documentazione inviata a mezzo pec in data 9 settembre 2026 dalla Soc. Imolese Football Club con la quale quest’ultima ha formalmente manifestato Under 18 Regionale inserito nel Girone C per la Stagione Sportiva 2026/2027. Visto l’art. 53 N.O.I.F. Delibera: • Di infliggere alla Soc Imolese Football Club l’ammenda di €. 500,00; Trasmette gli atti alla Segreteria del C.R.E.R. per i provvedimenti di propria competenza.",
+      "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.208Z"
     },
     {
@@ -19506,11 +19648,18 @@
       "appearances": 11,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "DIFFIDATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.208Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: AMMONIZIONE CON DIFFIDA (IV INFR) (Campionato Eccellenza) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.208Z",
+      "disciplinaryDetails": {
+        "tipo": "DIFFIDA",
+        "sanzione": "AMMONIZIONE CON DIFFIDA (IV INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "Campionato Eccellenza",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+      }
     },
     {
       "id": "7758537",
@@ -21077,7 +21226,7 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
-          "motivo": "(FUTURA FORNOVO MEDESANO)",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
           "comunicato": "CU n. 34",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf",
@@ -21088,7 +21237,7 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 34 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: (FUTURA FORNOVO MEDESANO)",
+      "refereeNotes": "[Giudice Sportivo CU n. 34 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.208Z"
     },
     {
@@ -21369,11 +21518,22 @@
       "appearances": 11,
       "yellowCards": 2,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-05T15:41:14.208Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+      "updatedAt": "2026-11-05T15:41:14.208Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
+        "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "7128639",
@@ -21911,18 +22071,18 @@
         {
           "tipo": "SQUALIFICA",
           "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR)",
-          "motivo": "Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+          "motivo": "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
           "comunicato": "CU n. 51",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf",
           "scontata": true,
           "giornateSqualifica": 1,
-          "giornateScontate": 1,
+          "giornateScontate": 2,
           "giornateResidue": 0
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 43 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 51 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione (cumulo di cartellini gialli in campionato)",
+      "refereeNotes": "[Giudice Sportivo CU n. 43 - Superata]: AMMONIZIONE CON DIFFIDA (IV INFR) | [Giudice Sportivo CU n. 51 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA PER RECIDIVITA' IN AMMONIZIONE (V INFR) - Motivo: Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)",
       "updatedAt": "2026-11-05T15:41:14.208Z"
     },
     {
@@ -22812,9 +22972,22 @@
       "yellowCards": 0,
       "redCards": 0,
       "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "pastSanctions": [
+        {
+          "tipo": "SQUALIFICA",
+          "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+          "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+          "comunicato": "CU n. 47",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7777/cu47.pdf",
+          "scontata": true,
+          "giornateSqualifica": 2,
+          "giornateScontate": 3,
+          "giornateResidue": 0
+        }
+      ],
       "customTags": [],
-      "refereeNotes": "",
+      "refereeNotes": "[Giudice Sportivo CU n. 47 - Scontata]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
       "updatedAt": "2026-11-05T15:41:14.208Z"
     },
     {
