@@ -73,6 +73,6 @@ jobs:
           if git diff --staged --quiet; then
             echo "Nessuna modifica da salvare."
           else
-            git commit -m "chore(data): auto-update rose, gare e comunicati giudice sportivo [skip ci]"
+            git commit -m "chore(data): auto-update rose, gare e comunicati giudice sportivo"
             git push origin main
           fi

@@ -829,6 +829,115 @@ def sync_disciplinary_with_app(all_sanctions):
     return matched_count
 
 
+def git_commit_and_push(commit_message=None):
+    """
+    Esegue automaticamente git add, commit e push su GitHub
+    per sincronizzare i file aggiornati e scatenare il deploy automatico su Vercel.
+    """
+    is_ci = os.getenv("CI", "false").lower() == "true" or os.getenv("GITHUB_ACTIONS", "false").lower() == "true"
+    if is_ci:
+        print("\n[*] Ambiente CI/GitHub Actions rilevato: il commit & push è delegato allo step dedicato del workflow.")
+        return False
+
+    print("\n" + "=" * 65)
+    print(" 🚀 REFSTUDIO - DEPLOY AUTOMATICO VERCEL (GIT COMMIT & PUSH)")
+    print("=" * 65)
+
+    paths_to_stage = [
+        "data/comunicati/output",
+        "data/db-state.json",
+        "data/excel",
+        "public/comunicati",
+        "src/data",
+        "Eccellenza_Emilia_Romagna_Database_Completo.xlsx",
+    ]
+
+    try:
+        # Aggiungi i percorsi modificati
+        for p in paths_to_stage:
+            target = ROOT_DIR / p
+            if target.exists():
+                subprocess.run(["git", "add", p], cwd=str(ROOT_DIR), check=False)
+
+        # Verifica se ci sono modifiche effettive pronte per il commit
+        diff_res = subprocess.run(
+            ["git", "diff", "--staged", "--quiet"],
+            cwd=str(ROOT_DIR)
+        )
+
+        if diff_res.returncode == 0:
+            print(" [i] Nessuna nuova modifica riscontrata: nessun commit o deploy necessario.")
+            return False
+
+        # Rileva branch corrente
+        branch_res = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=str(ROOT_DIR),
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        branch = branch_res.stdout.strip() if branch_res.returncode == 0 else "main"
+        if not branch or branch == "HEAD":
+            branch = "main"
+
+        # Messaggio commit (ATTENZIONE: non usare mai [skip ci], altrimenti Vercel ignora la build!)
+        msg = commit_message or "chore(giudice): aggiornamento comunicati e provvedimenti disciplinari"
+
+        print(f" [*] Creazione commit su branch '{branch}':\n     \"{msg}\"")
+        commit_res = subprocess.run(
+            ["git", "commit", "-m", msg],
+            cwd=str(ROOT_DIR),
+            capture_output=True,
+            text=True,
+            check=False
+        )
+        if commit_res.returncode != 0:
+            print(f" [!] Errore durante git commit: {commit_res.stderr.strip() or commit_res.stdout.strip()}")
+            return False
+
+        print(f" [*] Invio modifiche a GitHub (git push origin {branch})...")
+        push_res = subprocess.run(
+            ["git", "push", "origin", branch],
+            cwd=str(ROOT_DIR),
+            capture_output=True,
+            text=True,
+            check=False
+        )
+
+        # Se il push viene rifiutato per commit remoti concorrenti, tenta allineamento con rebase
+        if push_res.returncode != 0 and ("rejected" in push_res.stderr or "fetch first" in push_res.stderr):
+            print(" [*] Il repository remoto contiene modifiche recenti: allineamento con git pull --rebase...")
+            rebase_res = subprocess.run(
+                ["git", "pull", "--rebase", "origin", branch],
+                cwd=str(ROOT_DIR),
+                capture_output=True,
+                text=True,
+                check=False
+            )
+            if rebase_res.returncode == 0:
+                print(" [*] Nuovo invio a GitHub dopo allineamento...")
+                push_res = subprocess.run(
+                    ["git", "push", "origin", branch],
+                    cwd=str(ROOT_DIR),
+                    capture_output=True,
+                    text=True,
+                    check=False
+                )
+
+        if push_res.returncode == 0:
+            print(f" [✓] Modifiche inviate a GitHub con successo!")
+            print(f" [🚀] Deploy Vercel avviato in automatico in produzione!")
+            return True
+        else:
+            print(f" [!] Avviso: Git push non riuscito:\n{push_res.stderr.strip() or push_res.stdout.strip()}")
+            return False
+
+    except Exception as e:
+        print(f" [!] Errore durante il processo di commit/push automatico: {e}")
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="RefStudio - Scraping Comunicati Ufficiali Giudice Sportivo FIGC CRER (Eccellenza)"
@@ -866,6 +975,17 @@ def main():
         action="store_true",
         help="Sincronizza direttamente i provvedimenti già presenti in cache senza effettuare nuovo scraping",
     )
+    parser.add_argument(
+        "--no-git",
+        action="store_true",
+        help="Disabilita il commit e push automatico su GitHub al termine dello scraping",
+    )
+    parser.add_argument(
+        "--commit-msg",
+        type=str,
+        default=None,
+        help="Messaggio di commit personalizzato per Git (default: automatico)",
+    )
     args = parser.parse_args()
 
     if args.sync_only:
@@ -874,6 +994,8 @@ def main():
             with open(SANCTIONS_JSON, "r", encoding="utf-8") as f:
                 sanctions = json.load(f)
             sync_disciplinary_with_app(sanctions)
+            if not args.no_git:
+                git_commit_and_push(commit_message=args.commit_msg)
             return
         else:
             print(" [!] Nessun file provvedimenti_disciplinari.json trovato.")
@@ -973,6 +1095,10 @@ def main():
     print(f" Provvedimenti JSON    : {SANCTIONS_JSON}")
     print(f" Log Estrazioni CSV    : {LOG_FILE}")
     print("=" * 65 + "\n")
+
+    # Commit e push automatico su GitHub per avviare il deploy su Vercel
+    if not args.no_git:
+        git_commit_and_push(commit_message=args.commit_msg)
 
 
 if __name__ == "__main__":
