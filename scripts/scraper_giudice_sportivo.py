@@ -179,19 +179,22 @@ def find_eccellenza_section(pdf_path):
         if start_page is not None and page_number >= start_page:
             # Termina quando comincia una categoria successiva di Giustizia Sportiva
             fine_sezione = (
-                "CAMPIONATO PROMOZIONE" in text_up
-                or "COPPA ITALIA PROMOZIONE" in text_up
-                or "CAMPIONATO PRIMA CATEGORIA" in text_up
-                or "CAMPIONATO SECONDA CATEGORIA" in text_up
-                or "CAMPIONATO TERZA CATEGORIA" in text_up
-                or "CAMPIONATO JUNIORES" in text_up
-                or "SETTORE GIOVANILE E SCOLASTICO" in text_up
-                or "CALCIO FEMMINILE" in text_up
-                or "CALCIO A CINQUE" in text_up
-                or "CALCIO A 5" in text_up
+                any(cat in text_up for cat in [
+                    "CAMPIONATO UNDER", "UNDER 19", "UNDER 18", "UNDER 17", "UNDER 16", "UNDER 15",
+                    "CAMPIONATO PROMOZIONE", "COPPA ITALIA PROMOZIONE",
+                    "CAMPIONATO PRIMA CATEGORIA", "CAMPIONATO SECONDA CATEGORIA",
+                    "CAMPIONATO TERZA CATEGORIA", "CAMPIONATO JUNIORES",
+                    "CALCIO FEMMINILE", "ECCELLENZA FEMMINILE", "CALCIO A CINQUE", "CALCIO A 5"
+                ])
+                and "GIUSTIZIA SPORTIVA" not in text_up
+                and not (("CAMPIONATO ECCELLENZA" in text_up or "COPPA ITALIA ECCELLENZA" in text_up) and "FEMMINILE" not in text_up)
             )
             if fine_sezione:
-                end_page = page_number
+                has_maschile = ("CAMPIONATO ECCELLENZA" in text_up or "COPPA ITALIA ECCELLENZA" in text_up) and "FEMMINILE" not in text_up
+                if not has_maschile and page_number > start_page:
+                    end_page = page_number - 1
+                else:
+                    end_page = page_number
                 break
 
     if start_page is None:
@@ -230,12 +233,35 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
     current_sanction = None
     prev_name = None
     prev_record_idx = None
+    data_gara = ""
+    stop_all = False
 
     for p_num in range(start_page, end_page + 1):
-        page_lines = [l.strip() for l in doc[p_num].get_text().split("\n") if l.strip()]
+        if stop_all:
+            break
+
+        text = doc[p_num].get_text()
+        raw_lines = [l.strip() for l in text.split("\n") if l.strip()]
+
+        # Pre-processamento: unisci righe dove le parentesi di una squadra sono spezzate su più righe
+        page_lines = []
+        idx_line = 0
+        while idx_line < len(raw_lines):
+            curr = raw_lines[idx_line]
+            if "(" in curr and ")" not in curr:
+                while idx_line + 1 < len(raw_lines) and ")" not in curr:
+                    idx_line += 1
+                    curr += " " + raw_lines[idx_line]
+            page_lines.append(curr)
+            idx_line += 1
 
         for line in page_lines:
             l_up = line.upper()
+
+            # Rilevamento data gara della sezione
+            m_date = re.search(r"GARE DEL\s+(\d{1,2}/\d{1,2}/\d{4})", l_up)
+            if m_date:
+                data_gara = m_date.group(1)
 
             # Riconoscimento competizione corrente
             if "COPPA ITALIA ECCELLENZA" in l_up:
@@ -244,20 +270,31 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 prev_name = None
                 continue
             elif "CAMPIONATO ECCELLENZA" in l_up:
+                if "FEMMINILE" in l_up:
+                    stop_all = True
+                    break
                 current_competition = "CAMPIONATO ECCELLENZA"
                 current_sanction = None
                 prev_name = None
                 continue
 
-            # Stop quando comincia la Giustizia Sportiva di un'altra categoria (es. Promozione, Prima Categoria, ecc.)
-            if ("CAMPIONATO" in l_up or "COPPA ITALIA" in l_up or "COPPA EMILIA" in l_up) and "ECCELLENZA" not in l_up:
-                if any(other in l_up for other in [
-                    "PROMOZIONE", "PRIMA CATEGORIA", "SECONDA CATEGORIA",
-                    "JUNIORES", "CALCIO A 5", "CALCIO FEMMINILE"
-                ]):
-                    break
+            # Stop rigoroso quando comincia un'altra categoria (Under 19, Under 18, Promozione, Femminile, Calcio a 5, ecc.)
+            is_other_category = (
+                any(l_up.startswith(cat) or f" {cat} " in f" {l_up} " for cat in [
+                    "CAMPIONATO UNDER", "UNDER 19", "UNDER 18", "UNDER 17", "UNDER 16", "UNDER 15",
+                    "CAMPIONATO PROMOZIONE", "COPPA ITALIA PROMOZIONE",
+                    "CAMPIONATO PRIMA CATEGORIA", "CAMPIONATO SECONDA CATEGORIA", "CAMPIONATO TERZA CATEGORIA",
+                    "CAMPIONATO JUNIORES", "CALCIO A 5", "CALCIO A CINQUE",
+                    "CAMPIONATO ECCELLENZA FEMMINILE", "ECCELLENZA FEMMINILE", "CALCIO FEMMINILE"
+                ])
+                and "GIUSTIZIA SPORTIVA" not in l_up
+                and not (("CAMPIONATO ECCELLENZA" in l_up or "COPPA ITALIA ECCELLENZA" in l_up) and "FEMMINILE" not in l_up)
+            )
+            if is_other_category:
+                stop_all = True
+                break
 
-            # Intestazioni Ruolo Staff o Calciatori (escludi righe contenenti parentesi per non matchare squadre come Medicina Fossatone)
+            # Intestazioni Ruolo Staff o Calciatori
             if any(re.search(rf"\b{h}\b", l_up) for h in ["DIRIGENTI", "ALLENATORI", "MASSAGGIATORI", "MEDICI"]) and "(" not in line:
                 current_role = line.strip().capitalize()
                 current_sanction = None
@@ -279,21 +316,32 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 prev_name = None
                 continue
 
-            # Intestazioni Sanzione (non deve essere un nominativo con squadra es. NOME (SQUADRA))
-            if (
-                any(s in l_up for s in ["INIBIZIONE", "SQUALIFICA", "AMMONIZIONE CON DIFFIDA", "AMMONIZIONE"])
-                and not re.search(r"\b[A-Z\s\'.]{3,}\s*\([A-Z0-9\s\'.]+\)", line)
-            ):
+            # Riconoscimento Intestazioni Sanzione (incluse recidività V INFR e diffide IV INFR)
+            is_sanction_header = (
+                l_up.startswith("SQUALIFICA")
+                or l_up.startswith("AMMONIZIONE CON DIFFIDA")
+                or l_up.startswith("AMMONIZIONE DIFFIDA")
+                or l_up.startswith("I AMMONIZIONE DIFFIDA")
+                or l_up.startswith("INIBIZIONE")
+                or l_up.startswith("AMMENDA")
+                or (l_up.startswith("AMMONIZIONE") and "DIFFIDA" not in l_up)
+            )
+            if is_sanction_header:
                 current_sanction = line.strip()
                 prev_name = None
                 continue
 
-            # Estrazione pattern "NOME COGNOME (SQUADRA)" - gestisce sia record singolo che multipli sulla stessa riga
+            if not current_sanction:
+                continue
+
+            # Estrazione pattern "NOME COGNOME (SQUADRA)"
             m_all = re.findall(r"([A-Z\s\'.]{3,})\s*\(([^)]+)\)", line)
-            if m_all and current_sanction:
+            if m_all:
                 for cand_name_raw, cand_team_raw in m_all:
                     cand_name = cand_name_raw.strip()
                     cand_team = cand_team_raw.strip()
+                    if prev_name and len(prev_name) >= 3 and not any(prev_name.startswith(p) for p in ["GARE DEL", "CAMPIONATO", "COPPA", "PROVVEDIMENTI"]):
+                        cand_name = f"{prev_name} {cand_name}".strip()
                     if (
                         len(cand_name) >= 3
                         and not any(cand_name.startswith(p) for p in ["GARE DEL", "CAMPIONATO", "COPPA", "PROVVEDIMENTI", "AMMONIZIONE CON DIFFIDA"])
@@ -307,6 +355,7 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                             "squadra": cand_team,
                             "sanzione": current_sanction,
                             "motivo": "",
+                            "data_gara": data_gara,
                             "comunicato": cu_number,
                             "url_comunicato": cu_url,
                         }
@@ -317,7 +366,7 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
 
             # Caso 2: riga corrente "(SQUADRA)" con prev_name sulla riga precedente
             m_team = re.match(r"^\(([^)]+)\)$", line)
-            if m_team and prev_name and current_sanction:
+            if m_team and prev_name:
                 cand_team = m_team.group(1).strip()
                 cand_name = prev_name.strip()
                 if (
@@ -333,6 +382,7 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                         "squadra": cand_team,
                         "sanzione": current_sanction,
                         "motivo": "",
+                        "data_gara": data_gara,
                         "comunicato": cu_number,
                         "url_comunicato": cu_url,
                     }
@@ -341,16 +391,21 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
                 prev_name = None
                 continue
 
-            # Candidato Nome in maiuscolo
+            # Candidato Nome in maiuscolo (accumula se distribuito su 2 righe)
             if (
-                re.match(r"^[A-Z\s\'.]{3,}$", line)
+                re.match(r"^[A-Z\s\'.]{2,}$", line)
                 and not any(line.startswith(p) for p in [
                     "GARE DEL", "PROVVEDIMENTI", "IL GIUDICE", "IN BASE",
                     "CAMPIONATO", "COPPA", "ART.", "COMITATO", "RECLAMO", "DELIBERE"
                 ])
             ):
-                prev_name = line
+                if prev_name:
+                    prev_name = f"{prev_name} {line}".strip()
+                else:
+                    prev_name = line
                 continue
+            else:
+                prev_name = None
 
             # Motivazione testuale associata all'ultimo record inserito (cattura anche frasi multilinea)
             if prev_record_idx is not None:
@@ -373,12 +428,15 @@ def extract_disciplinary_from_pages(pdf_path, start_page, end_page, cu_number, c
     # Assegna motivazioni contestuali predefinite se non esplicitate nel testo del bollettino
     for r in records:
         if not r.get("motivo"):
-            if "CALCIATORE (ESPULSO)" in r.get("ruolo", "").upper():
+            sanz_up = (r.get("sanzione") or "").upper()
+            if "RECIDIVITA" in sanz_up or "V INFR" in sanz_up:
+                r["motivo"] = "Recidività in ammonizione per cumulo di cartellini gialli in campionato (V infrazione)"
+            elif r.get("tipo") == "DIFFIDA":
+                r["motivo"] = "Ammonizione con diffida per cumulo di cartellini gialli in campionato (IV infrazione - diffida attiva)"
+            elif "CALCIATORE (ESPULSO)" in r.get("ruolo", "").upper():
                 r["motivo"] = "Espulsione dal campo da parte del Direttore di Gara durante la partita"
             elif "CALCIATORE (NON ESPULSO)" in r.get("ruolo", "").upper():
                 r["motivo"] = "Recidività in ammonizione (cumulo di cartellini gialli in campionato)"
-            elif r.get("tipo") == "DIFFIDA":
-                r["motivo"] = "IV infrazione per cumulo di ammonizioni in campionato (diffida attiva)"
 
     return records
 
@@ -478,27 +536,43 @@ def sync_disciplinary_with_app(all_sanctions):
             team_played_max[h_team] = max(team_played_max.get(h_team, 0), day)
             team_played_max[a_team] = max(team_played_max.get(a_team, 0), day)
 
-    default_max_day = max(team_played_max.values()) if team_played_max else 8
+    default_max_day = max(team_played_max.values()) if team_played_max else 11
 
     # Mappatura Comunicato Ufficiale -> Giornata di Campionato
     CU_TO_MATCHDAY = {
-        24: 0,  # Coppa Italia pre-campionato (30/08/2026)
-        26: 1,  # Gare del 06/09/2026 (Giornata 1)
-        27: 1,  # Gare del 09/09/2026 (Recuperi/Infrasettimanale G1)
-        28: 2,  # Gare del 13/09/2026 (Giornata 2)
-        30: 3,  # Gare del 20/09/2026 (Giornata 3)
-        34: 4,  # Gare del 27/09/2026 (Giornata 4)
-        37: 4,  # Coppa Italia (30/09/2026)
-        38: 5,  # Gare del 04/10/2026 (Giornata 5)
-        43: 7,  # Gare del 11/10/2026 (Giornata 7)
-        46: 7,  # Coppa Italia (14/10/2026)
-        47: 8,  # Gare del 18/10/2026 (Giornata 8)
-        51: 9,  # Gare del 25/10/2026 (Giornata 9)
+        24: 0,   # Coppa Italia pre-campionato (30/08/2026)
+        26: 1,   # Gare del 06/09/2026 (Giornata 1)
+        27: 1,   # Gare del 09/09/2026 (Recuperi/Infrasettimanale G1)
+        28: 2,   # Gare del 13/09/2026 (Giornata 2)
+        30: 3,   # Gare del 20/09/2026 (Giornata 3)
+        34: 4,   # Gare del 27/09/2026 (Giornata 4)
+        37: 4,   # Coppa Italia (30/09/2026)
+        38: 5,   # Gare del 04/10/2026 (Giornata 5)
+        41: 6,   # Gare del 07/10/2026 (Giornata 6)
+        43: 7,   # Gare del 11/10/2026 (Giornata 7)
+        46: 7,   # Coppa Italia (14/10/2026)
+        47: 8,   # Gare del 18/10/2026 (Giornata 8)
+        51: 9,   # Gare del 25/10/2026 (Giornata 9)
+        53: 9,   # Recuperi (24/10/2026)
+        55: 10,  # Gare del 28/10/2026 (Giornata 10)
+        60: 11,  # Gare del 01/11/2026 (Giornata 11)
     }
+
+    def get_cu_number(cu_str):
+        m = re.search(r"(\d+)", str(cu_str or ""))
+        return int(m.group(1)) if m else 0
+
+    # Determina l'ultimo comunicato emesso per il Campionato Eccellenza
+    camp_cus = [get_cu_number(s["comunicato"]) for s in all_sanctions if "COPPA" not in s.get("competizione", "").upper()]
+    max_cu_camp = max(camp_cus) if camp_cus else 60
 
     def get_matchday_from_cu(cu_num):
         if cu_num in CU_TO_MATCHDAY:
             return CU_TO_MATCHDAY[cu_num]
+        if cu_num >= max_cu_camp:
+            return default_max_day
+        if cu_num >= 60:
+            return 11
         if cu_num >= 55:
             return 10
         if cu_num >= 51:
@@ -518,10 +592,6 @@ def sync_disciplinary_with_app(all_sanctions):
         if cu_num >= 26:
             return 1
         return 0
-
-    def get_cu_number(cu_str):
-        m = re.search(r"(\d+)", str(cu_str or ""))
-        return int(m.group(1)) if m else 0
 
     def parse_squalifica_gare(sanz_str):
         s = str(sanz_str or "").upper()
@@ -581,9 +651,10 @@ def sync_disciplinary_with_app(all_sanctions):
             name_match = (
                 s_nome == p_full
                 or s_nome == p_rev
-                or (p_last in s_nome and p_first in s_nome)
+                or (p_last in s_nome and p_first in s_nome and len(p_last) >= 3 and len(p_first) >= 3)
                 or s_nome in p_full
                 or s_nome in p_rev
+                or (len(p_last) >= 4 and p_last in s_nome)
             )
             if not name_match:
                 continue
@@ -648,7 +719,13 @@ def sync_disciplinary_with_app(all_sanctions):
             cu_num = get_cu_number(s["comunicato"])
             if s["tipo"] == "SQUALIFICA":
                 matchday_sanz = get_matchday_from_cu(cu_num)
-                gare_dopo = max(0, team_max_day - matchday_sanz)
+                # Le squalifiche dell'ultimo comunicato pubblicato decorrono dal turno successivo:
+                # non possono MAI essere considerate già scontate prima che si giochi la prossima giornata!
+                if cu_num >= max_cu_camp or matchday_sanz >= team_max_day:
+                    gare_dopo = 0
+                else:
+                    gare_dopo = max(0, team_max_day - matchday_sanz)
+
                 gare_tot = parse_squalifica_gare(s.get("sanzione"))
                 gare_res = max(0, gare_tot - gare_dopo)
 

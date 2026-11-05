@@ -60,3 +60,4 @@ jobs:
             git commit -m "chore(giudice): aggiornamento comunicati ufficiali e provvedimenti disciplinari"
             git push origin main
           fi
+
