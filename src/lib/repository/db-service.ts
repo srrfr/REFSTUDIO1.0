@@ -4,7 +4,7 @@ import { isSupabaseConfigured } from '@/lib/supabase/client';
 import { SupabaseService } from '@/lib/supabase/supabase-service';
 import { DisciplinaryService } from '@/lib/disciplinary/disciplinary-service';
 
-const STORAGE_KEY = 'refstudio_persistent_db_v4';
+const STORAGE_KEY = 'refstudio_persistent_db_v5';
 const DELETED_NOTES_KEY = 'refstudio_tombstone_notes';
 const DELETED_VIDEOS_KEY = 'refstudio_tombstone_videos';
 

@@ -13,16 +13,21 @@ export const CU_TO_MATCHDAY: Record<number, number> = {
   34: 4, // Gare del 27/09/2026 (Giornata 4)
   37: 4, // Coppa Italia (30/09/2026)
   38: 5, // Gare del 04/10/2026 (Giornata 5)
+  41: 6, // Gare del 07/10/2026 (Giornata 6)
   43: 7, // Gare del 11/10/2026 (Giornata 7)
   46: 7, // Coppa Italia (14/10/2026)
   47: 8, // Gare del 18/10/2026 (Giornata 8)
   51: 9, // Gare del 25/10/2026 (Giornata 9)
+  53: 9, // Recuperi (24/10/2026)
+  55: 10, // Gare del 28/10/2026 (Giornata 10)
+  60: 11, // Gare del 01/11/2026 (Giornata 11)
 };
 
 export function getMatchdayFromCu(cuNum: number): number {
   if (CU_TO_MATCHDAY[cuNum] !== undefined) {
     return CU_TO_MATCHDAY[cuNum];
   }
+  if (cuNum >= 60) return 11;
   if (cuNum >= 55) return 10;
   if (cuNum >= 51) return 9;
   if (cuNum >= 47) return 8;
@@ -103,8 +108,17 @@ export class DisciplinaryService {
   } {
     const cuNum = getCuNumber(sanz.comunicato);
     const matchDayComminata = getMatchdayFromCu(cuNum);
-    const gareDisputateDopo = Math.max(0, teamPlayedMaxDay - matchDayComminata);
-    const gareTotali = parseSqualificaGare(sanz.sanzione);
+    
+    // Le squalifiche del comunicato più recente (o della giornata appena disputata o successiva)
+    // decorrono dal turno successivo: non possono essere considerate già scontate prima della prossima giornata!
+    let gareDisputateDopo = 0;
+    if (cuNum >= 60 || matchDayComminata >= teamPlayedMaxDay) {
+      gareDisputateDopo = 0;
+    } else {
+      gareDisputateDopo = Math.max(0, teamPlayedMaxDay - matchDayComminata);
+    }
+
+    const gareTotali = sanz.giornateSqualifica || parseSqualificaGare(sanz.sanzione);
     const gareResidue = Math.max(0, gareTotali - gareDisputateDopo);
 
     return {
