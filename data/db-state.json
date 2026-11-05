@@ -163,7 +163,26 @@
         "goalDifference": -12
       },
       "updatedAt": "2026-11-02T18:24:49.670Z",
-      "staffSanctions": []
+      "staffSanctions": [
+        {
+          "nome": "LUNARDI ANDREA",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 2/ 1/2027",
+          "motivo": "Per aver rivolto ripetute offese nei confronti dell'arbitro.",
+          "comunicato": "CU n. 60",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+        },
+        {
+          "nome": "RONCAGLIA GIANLUCA",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 11/11/2026",
+          "motivo": "Per proteste nei confronti del direttore di gara.",
+          "comunicato": "CU n. 60",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+        }
+      ]
     },
     {
       "id": "43760",
@@ -262,7 +281,17 @@
         "goalDifference": 3
       },
       "updatedAt": "2026-11-02T18:24:49.670Z",
-      "staffSanctions": []
+      "staffSanctions": [
+        {
+          "nome": "SAVELLI BRIAN",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 11/11/2026",
+          "motivo": "Per proteste nei confronti del direttore di gara.",
+          "comunicato": "CU n. 60",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+        }
+      ]
     },
     {
       "id": "917054",
@@ -427,7 +456,17 @@
         "goalDifference": 13
       },
       "updatedAt": "2026-11-02T18:24:49.670Z",
-      "staffSanctions": []
+      "staffSanctions": [
+        {
+          "nome": "AMATI BONACCORSI ALBERTO",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 11/11/2026",
+          "motivo": "Per proteste nei confronti del direttore di gara.",
+          "comunicato": "CU n. 60",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+        }
+      ]
     },
     {
       "id": "76266",
@@ -526,7 +565,17 @@
         "goalDifference": 15
       },
       "updatedAt": "2026-11-02T18:24:49.670Z",
-      "staffSanctions": []
+      "staffSanctions": [
+        {
+          "nome": "MARCHINI DAVIDE",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 2/12/2026",
+          "motivo": "Per aver rivolto espressioni ingiuriose nei confronti della terna arbitrale. (R.A.A.).",
+          "comunicato": "CU n. 60",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+        }
+      ]
     },
     {
       "id": "8990",
@@ -563,20 +612,20 @@
         {
           "nome": "MANFREDINI MATTIA",
           "ruolo": "Dirigenti",
-          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 19/11/2026",
-          "motivo": "profferendo altresì ripetute frasi ingiuriose nei confronti della terna arbitrale. Il Manfredini veniva riconosciuto personalmente dal Direttore di gara, su richiesta dello stesso veniva allontanato, dalla tribuna reiterava tale comportamento.",
-          "comunicato": "CU n. 38",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
-        },
-        {
-          "nome": "MANFREDINI MATTIA",
-          "ruolo": "Dirigenti",
           "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 7/10/2026",
           "motivo": "Per proteste nei confronti del direttore di gara.",
           "comunicato": "CU n. 34",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
+        },
+        {
+          "nome": "MANFREDINI MATTIA",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 19/11/2026",
+          "motivo": "profferendo altresì ripetute frasi ingiuriose nei confronti della terna arbitrale. Il Manfredini veniva riconosciuto personalmente dal Direttore di gara, su richiesta dello stesso veniva allontanato, dalla tribuna reiterava tale comportamento.",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
         }
       ]
     },
@@ -646,15 +695,6 @@
       "updatedAt": "2026-11-02T18:24:49.670Z",
       "staffSanctions": [
         {
-          "nome": "D ANGELI SALVATORE",
-          "ruolo": "Dirigenti",
-          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 28/10/2026",
-          "motivo": "Per gravi proteste nei confronti dell'Arbitro.",
-          "comunicato": "CU n. 43",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
-        },
-        {
           "nome": "LASAGNI OSCAR",
           "ruolo": "Allenatori",
           "sanzione": "SQUALIFICA FINO AL 7/10/2026",
@@ -662,6 +702,15 @@
           "comunicato": "CU n. 26",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+        },
+        {
+          "nome": "D ANGELI SALVATORE",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 28/10/2026",
+          "motivo": "Per gravi proteste nei confronti dell'Arbitro.",
+          "comunicato": "CU n. 43",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
         }
       ]
     },
@@ -762,7 +811,17 @@
         "goalDifference": -1
       },
       "updatedAt": "2026-11-02T18:24:49.670Z",
-      "staffSanctions": []
+      "staffSanctions": [
+        {
+          "nome": "MARIANI DAVIDE",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 11/11/2026",
+          "motivo": "Per proteste nei confronti del direttore di gara.",
+          "comunicato": "CU n. 60",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+        }
+      ]
     },
     {
       "id": "1121978",
@@ -6338,11 +6397,22 @@
       "appearances": 9,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-02T18:24:49.672Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FUTURA FORNOVO MEDESANO)",
+      "updatedAt": "2026-11-02T18:24:49.672Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "(FUTURA FORNOVO MEDESANO)",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "7251023",
@@ -7804,7 +7874,7 @@
       "appearances": 8,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "pastSanctions": [
         {
           "tipo": "SQUALIFICA",
@@ -7820,8 +7890,20 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-11-02T18:24:49.673Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 30 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita | [Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-02T18:24:49.673Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8022928",
@@ -8078,11 +8160,22 @@
       "appearances": 0,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-02T18:24:49.673Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER DUE GARE EFFETTIVE - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-02T18:24:49.673Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER DUE GARE EFFETTIVE",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 2,
+        "giornateScontate": 0,
+        "giornateResidue": 2
+      }
     },
     {
       "id": "8240908",
@@ -8822,11 +8915,22 @@
       "appearances": 8,
       "yellowCards": 0,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-02T18:24:49.673Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER TRE GARE EFFETTIVE - Motivo: Per aver colpito con una gomitata il volto di un calciatore avversario procurando sanguinamento dallo zigomo.",
+      "updatedAt": "2026-11-02T18:24:49.673Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER TRE GARE EFFETTIVE",
+        "motivo": "Per aver colpito con una gomitata il volto di un calciatore avversario procurando sanguinamento dallo zigomo.",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 3,
+        "giornateScontate": 0,
+        "giornateResidue": 3
+      }
     },
     {
       "id": "7109741",
@@ -11819,7 +11923,7 @@
       "appearances": 8,
       "yellowCards": 0,
       "redCards": 1,
-      "disciplinaryStatus": "REGOLARE",
+      "disciplinaryStatus": "SQUALIFICATO",
       "pastSanctions": [
         {
           "tipo": "SQUALIFICA",
@@ -11835,8 +11939,20 @@
         }
       ],
       "customTags": [],
-      "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
-      "updatedAt": "2026-11-02T18:24:49.673Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 26 - Scontata]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita | [Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: Espulsione dal campo da parte del Direttore di Gara durante la partita",
+      "updatedAt": "2026-11-02T18:24:49.673Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "Espulsione dal campo da parte del Direttore di Gara durante la partita",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8038737",
@@ -13386,11 +13502,22 @@
       "appearances": 10,
       "yellowCards": 1,
       "redCards": 0,
-      "disciplinaryStatus": "REGOLARE",
-      "pastSanctions": [],
+      "disciplinaryStatus": "SQUALIFICATO",
       "customTags": [],
-      "refereeNotes": "",
-      "updatedAt": "2026-11-02T18:24:49.673Z"
+      "refereeNotes": "[Giudice Sportivo CU n. 60]: SQUALIFICA PER UNA GARA EFFETTIVA - Motivo: (FIDENTINA BORGO S.DONNINO) In base alle risultanze degli atti ufficiali sono state deliberate le seguenti sanzioni disciplinari. Euro 100,00 ARCETANA Per intemperanze dei propri sostenitori in campo avverso.",
+      "updatedAt": "2026-11-02T18:24:49.673Z",
+      "disciplinaryDetails": {
+        "tipo": "SQUALIFICA",
+        "sanzione": "SQUALIFICA PER UNA GARA EFFETTIVA",
+        "motivo": "(FIDENTINA BORGO S.DONNINO) In base alle risultanze degli atti ufficiali sono state deliberate le seguenti sanzioni disciplinari. Euro 100,00 ARCETANA Per intemperanze dei propri sostenitori in campo avverso.",
+        "comunicato": "CU n. 60",
+        "competizione": "CAMPIONATO ECCELLENZA",
+        "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf",
+        "scontata": false,
+        "giornateSqualifica": 1,
+        "giornateScontate": 0,
+        "giornateResidue": 1
+      }
     },
     {
       "id": "8055132",
