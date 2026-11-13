@@ -23,14 +23,20 @@ if not exist ".next\" (
     call npm run build
 )
 
-echo [4/4] Avvio server REFSTUDIO e Tunnel in corso...
+:: 4. Avvio Tunnel Fisso ngrok in background
+echo [4/4] Avvio Tunnel Permanente ngrok...
+start /min "REFSTUDIO Tunnel (ngrok)" ngrok http --domain=scientist-try-wildcat.ngrok-free.dev 3000
+
+echo.
+echo ========================================================
+echo REFSTUDIO e' ATTIVO e accessibile ovunque!
+echo.
+echo IL TUO LINK FISSO E':
+echo https://scientist-try-wildcat.ngrok-free.dev
+echo ========================================================
 echo.
 
-:: Avvia il tunnel fisso in una finestra separata ridotta a icona
-:: (Se usi ngrok con dominio statico, decommenta la riga sotto inserendo il tuo dominio)
-:: start /min cmd /k "ngrok http --domain=IL-TUO-DOMINIO.ngrok-free.app 3000"
-
-:: Avvia il server Next.js
+:: Avvia il server Next.js (finestra principale)
 call npm run serve
 
 pause
