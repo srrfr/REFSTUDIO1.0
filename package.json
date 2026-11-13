@@ -4,8 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3000",
+    "dev:host": "next dev -H 0.0.0.0 -p 3000",
     "build": "next build",
     "start": "next start -p 3000",
+    "serve": "next start -H 0.0.0.0 -p 3000",
     "lint": "next lint",
     "sync-excel": "node scripts/sync-excel.mjs",
     "seed-supabase": "node scripts/seed-supabase.mjs",
