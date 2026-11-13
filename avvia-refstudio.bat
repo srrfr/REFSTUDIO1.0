@@ -5,7 +5,14 @@ echo        REFSTUDIO - AVVIO AUTOMATICO E SINCRONIZZAZIONE
 echo ========================================================
 echo.
 
+:: Forza l'inclusione di Node.js, Git e ngrok nel PATH di questa sessione
+set "PATH=%PATH%;C:\Program Files\nodejs;%APPDATA%\npm;C:\Program Files\Git\cmd;%LOCALAPPDATA%\Microsoft\WinGet\Packages;%LOCALAPPDATA%\Programs\ngrok"
+
 cd /d "%~dp0"
+
+:: Configura la cartella come sicura per Git per evitare il blocco "dubious ownership"
+git config --global --add safe.directory "%CD%" 2>nul
+git config --global --add safe.directory "%~dp0" 2>nul
 
 :: 1. Verifica aggiornamenti automatici da GitHub
 echo [1/4] Controllo aggiornamenti da GitHub...
