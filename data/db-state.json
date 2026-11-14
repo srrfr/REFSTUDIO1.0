@@ -603,20 +603,20 @@
         {
           "nome": "MANFREDINI MATTIA",
           "ruolo": "Dirigenti",
-          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 19/11/2026",
-          "motivo": "profferendo altresì ripetute frasi ingiuriose nei confronti della terna arbitrale. Il Manfredini veniva riconosciuto personalmente dal Direttore di gara, su richiesta dello stesso veniva allontanato, dalla tribuna reiterava tale comportamento.",
-          "comunicato": "CU n. 38",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
-        },
-        {
-          "nome": "MANFREDINI MATTIA",
-          "ruolo": "Dirigenti",
           "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 7/10/2026",
           "motivo": "Per proteste nei confronti del direttore di gara.",
           "comunicato": "CU n. 34",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7698/cu34.pdf"
+        },
+        {
+          "nome": "MANFREDINI MATTIA",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 19/11/2026",
+          "motivo": "profferendo altresì ripetute frasi ingiuriose nei confronti della terna arbitrale. Il Manfredini veniva riconosciuto personalmente dal Direttore di gara, su richiesta dello stesso veniva allontanato, dalla tribuna reiterava tale comportamento.",
+          "comunicato": "CU n. 38",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7724/cu38.pdf"
         }
       ]
     },
@@ -686,15 +686,6 @@
       "updatedAt": "2026-11-12T17:36:08.974Z",
       "staffSanctions": [
         {
-          "nome": "D ANGELI SALVATORE",
-          "ruolo": "Dirigenti",
-          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 28/10/2026",
-          "motivo": "Per gravi proteste nei confronti dell'Arbitro.",
-          "comunicato": "CU n. 43",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
-        },
-        {
           "nome": "LASAGNI OSCAR",
           "ruolo": "Allenatori",
           "sanzione": "SQUALIFICA FINO AL 7/10/2026",
@@ -702,6 +693,15 @@
           "comunicato": "CU n. 26",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7613/cu26.pdf"
+        },
+        {
+          "nome": "D ANGELI SALVATORE",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 28/10/2026",
+          "motivo": "Per gravi proteste nei confronti dell'Arbitro.",
+          "comunicato": "CU n. 43",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7750/cu43.pdf"
         }
       ]
     },
@@ -804,15 +804,6 @@
       "updatedAt": "2026-11-12T17:36:08.974Z",
       "staffSanctions": [
         {
-          "nome": "RENZI ALEX",
-          "ruolo": "Dirigenti",
-          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 18/11/2026",
-          "motivo": "Per comportamento non regolamentare.",
-          "comunicato": "CU n. 63",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7873/cu63.pdf"
-        },
-        {
           "nome": "MARIANI DAVIDE",
           "ruolo": "Dirigenti",
           "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 11/11/2026",
@@ -820,6 +811,15 @@
           "comunicato": "CU n. 60",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/announcements/2026/7844/cu60.pdf"
+        },
+        {
+          "nome": "RENZI ALEX",
+          "ruolo": "Dirigenti",
+          "sanzione": "INIBIZIONE A TEMPO OPPURE SQUALIFICA A GARE: FINO AL 18/11/2026",
+          "motivo": "Per comportamento non regolamentare.",
+          "comunicato": "CU n. 63",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7873/cu63.pdf"
         }
       ]
     },
@@ -1010,20 +1010,20 @@
         {
           "nome": "MELOTTI VITO",
           "ruolo": "Allenatori",
-          "sanzione": "SQUALIFICA FINO AL 25/11/2026",
-          "motivo": "Per gravi proteste nei confronti dell'Arbitro",
-          "comunicato": "CU n. 63",
-          "competizione": "CAMPIONATO ECCELLENZA",
-          "urlComunicato": "https://figccrer.it/files/announcements/2026/7873/cu63.pdf"
-        },
-        {
-          "nome": "MELOTTI VITO",
-          "ruolo": "Allenatori",
           "sanzione": "SQUALIFICA FINO AL 2/11/2026",
           "motivo": "Per proteste nei confronti del direttore di gara.",
           "comunicato": "CU n. 51",
           "competizione": "CAMPIONATO ECCELLENZA",
           "urlComunicato": "https://figccrer.it/files/comunicati/2026/7808/cu51.pdf"
+        },
+        {
+          "nome": "MELOTTI VITO",
+          "ruolo": "Allenatori",
+          "sanzione": "SQUALIFICA FINO AL 25/11/2026",
+          "motivo": "Per gravi proteste nei confronti dell'Arbitro",
+          "comunicato": "CU n. 63",
+          "competizione": "CAMPIONATO ECCELLENZA",
+          "urlComunicato": "https://figccrer.it/files/announcements/2026/7873/cu63.pdf"
         }
       ]
     },
