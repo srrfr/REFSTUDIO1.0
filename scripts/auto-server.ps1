@@ -43,7 +43,7 @@ function Start-NextServer {
 
 # 2. Prima build se manca
 if (-not (Test-Path ".next")) {
-    Write-Host "[2/3] Prima compilazione in corso..." -ForegroundColor Cyan
+    Write-Host "[2/3] Creazione build di produzione..." -ForegroundColor Cyan
     & npm.cmd run build
 }
 
@@ -80,9 +80,14 @@ while ($true) {
             Write-Host "[$timestamp] [AutoSync] Ricompilazione applicazione (npm run build)..." -ForegroundColor Cyan
             & npm.cmd run build
 
-            Write-Host "[$timestamp] [AutoSync] Riavvio del server..." -ForegroundColor Green
-            $serverProc = Start-NextServer
-            Write-Host "[$timestamp] [AutoSync] Aggiornamento completato con successo!" -ForegroundColor Green
+            if ($LASTEXITCODE -eq 0) {
+                Write-Host "[$timestamp] [AutoSync] Riavvio del server con nuova build..." -ForegroundColor Green
+                $serverProc = Start-NextServer
+                Write-Host "[$timestamp] [AutoSync] Aggiornamento completato con successo!" -ForegroundColor Green
+            } else {
+                Write-Host "[$timestamp] [AutoSync] Attenzione: errore durante la compilazione. Riavvio in corso..." -ForegroundColor Red
+                $serverProc = Start-NextServer
+            }
             Write-Host ""
         } elseif ($checkCount % 10 -eq 0) {
             # Heartbeat ogni 5 minuti per confermare che e' attivo

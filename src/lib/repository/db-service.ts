@@ -803,13 +803,6 @@ export class DbService {
             );
           });
         }
-        if (localOnlyNotes.length > 0) {
-          localOnlyNotes.forEach((ln) => {
-            SupabaseService.insertNote(ln).catch((err) =>
-              console.warn('Sync background push note fallito:', err)
-            );
-          });
-        }
 
         // Unione difensiva profili Cloud e Locali
         const baseProfiles = inMemoryData.profiles && inMemoryData.profiles.length > 0
