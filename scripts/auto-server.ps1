@@ -55,18 +55,23 @@ Write-Host ">>> REFSTUDIO E' ONLINE E IN ASCOLTO DI MODIFICHE GITHUB <<<" -Foreg
 Write-Host "Ogni volta che farai 'git push' dal tuo PC, questo server si aggiornera' da solo!" -ForegroundColor Gray
 Write-Host ""
 
-# 4. Loop di controllo automatico (ogni 60 secondi)
+$checkCount = 0
+
+# 4. Loop di controllo automatico (ogni 30 secondi)
 while ($true) {
-    Start-Sleep -Seconds 60
+    Start-Sleep -Seconds 30
+    $checkCount++
 
     try {
+        # Esegui fetch per aggiornare FETCH_HEAD con lo stato remoto
         & git.exe fetch origin main 2>$null
         $localCommit = (& git.exe rev-parse HEAD 2>$null).Trim()
-        $remoteCommit = (& git.exe rev-parse origin/main 2>$null).Trim()
+        $remoteCommit = (& git.exe rev-parse FETCH_HEAD 2>$null).Trim()
 
         if ($localCommit -and $remoteCommit -and ($localCommit -ne $remoteCommit)) {
             $timestamp = Get-Date -Format "HH:mm:ss"
-            Write-Host "[$timestamp] [AutoSync] Nuove modifiche rilevate su GitHub!" -ForegroundColor Yellow
+            Write-Host ""
+            Write-Host "[$timestamp] [AutoSync] >>> Nuove modifiche rilevate su GitHub! ($($remoteCommit.Substring(0,7))) <<<" -ForegroundColor Yellow
             Write-Host "[$timestamp] [AutoSync] Esecuzione git pull..." -ForegroundColor Cyan
             & git.exe pull origin main
 
@@ -76,6 +81,11 @@ while ($true) {
             Write-Host "[$timestamp] [AutoSync] Riavvio del server..." -ForegroundColor Green
             $serverProc = Start-NextServer
             Write-Host "[$timestamp] [AutoSync] Aggiornamento completato con successo!" -ForegroundColor Green
+            Write-Host ""
+        } elseif ($checkCount % 10 -eq 0) {
+            # Heartbeat ogni 5 minuti per confermare che e' attivo
+            $timestamp = Get-Date -Format "HH:mm:ss"
+            Write-Host "[$timestamp] [Heartbeat] Server attivo e sincronizzato (Commit: $($localCommit.Substring(0,7)))" -ForegroundColor DarkGray
         }
     } catch {
         # Continua silenziosamente in caso di timeout rete momentaneo
