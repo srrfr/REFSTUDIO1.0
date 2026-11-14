@@ -775,10 +775,9 @@ export class DbService {
         const cloudNoteIds = new Set(cloudNotes.map((n) => n.id));
         this.pruneDeletedNoteIds(cloudNoteIds);
 
-        const validLocalNotes = (inMemoryData.notes || []).filter((n) => !this.isNoteDeleted(n.id));
-        const validCloudNoteIds = new Set(validCloudNotes.map((n) => n.id));
-        const localOnlyNotes = validLocalNotes.filter((n) => !validCloudNoteIds.has(n.id));
-        const mergedNotes = [...validCloudNotes, ...localOnlyNotes];
+        // Supabase Cloud è l'unica fonte di verità per le note.
+        // Se una nota non è presente su Supabase (perché eliminata), NON deve essere resuscitata dalla memoria locale!
+        const mergedNotes = validCloudNotes;
 
         // 2. Unione difensiva VIDEO: filtra categoricamente i video eliminati localmente (tombstones)
         const validCloudVideos = cloudVideos.filter((v) => !this.isVideoDeleted(v.id));

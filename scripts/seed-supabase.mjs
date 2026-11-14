@@ -278,8 +278,9 @@ async function seed() {
     console.log(`   ✅ ${standingsPayload.length} posizioni di classifica sincronizzate.`);
   }
 
-  // 5. Inserimento Note (Deduplicate per ID)
-  if (notes.length > 0) {
+  // 5. Inserimento Note (Deduplicate per ID) - Solo se richiesto esplicitamente con --seed-notes
+  const shouldSeedNotes = process.argv.includes('--seed-notes');
+  if (shouldSeedNotes && notes.length > 0) {
     console.log('⏳ 5/7 Inserimento Note confidenziali...');
     const uniqueNotesMap = new Map();
     notes.forEach((n) => uniqueNotesMap.set(n.id, n));
