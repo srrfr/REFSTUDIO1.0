@@ -72,8 +72,10 @@ while ($true) {
             $timestamp = Get-Date -Format "HH:mm:ss"
             Write-Host ""
             Write-Host "[$timestamp] [AutoSync] >>> Nuove modifiche rilevate su GitHub! ($($remoteCommit.Substring(0,7))) <<<" -ForegroundColor Yellow
-            Write-Host "[$timestamp] [AutoSync] Esecuzione git pull..." -ForegroundColor Cyan
-            & git.exe pull origin main
+            Write-Host "[$timestamp] [AutoSync] Allineamento pulito repository (reset hard a $remoteCommit)..." -ForegroundColor Cyan
+            
+            # Annulla eventuali modifiche automatiche locali (come db-state.json generato a runtime) e allinea a GitHub
+            & git.exe reset --hard $remoteCommit
 
             Write-Host "[$timestamp] [AutoSync] Ricompilazione applicazione (npm run build)..." -ForegroundColor Cyan
             & npm.cmd run build
