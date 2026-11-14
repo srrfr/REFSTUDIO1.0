@@ -556,6 +556,7 @@ def sync_disciplinary_with_app(all_sanctions):
         53: 9,   # Recuperi (24/10/2026)
         55: 10,  # Gare del 28/10/2026 (Giornata 10)
         60: 11,  # Gare del 01/11/2026 (Giornata 11)
+        63: 12,  # Gare del 08/11/2026 (Giornata 12)
     }
 
     def get_cu_number(cu_str):
@@ -564,13 +565,15 @@ def sync_disciplinary_with_app(all_sanctions):
 
     # Determina l'ultimo comunicato emesso per il Campionato Eccellenza
     camp_cus = [get_cu_number(s["comunicato"]) for s in all_sanctions if "COPPA" not in s.get("competizione", "").upper()]
-    max_cu_camp = max(camp_cus) if camp_cus else 60
+    max_cu_camp = max(camp_cus) if camp_cus else 63
 
     def get_matchday_from_cu(cu_num):
         if cu_num in CU_TO_MATCHDAY:
             return CU_TO_MATCHDAY[cu_num]
         if cu_num >= max_cu_camp:
             return default_max_day
+        if cu_num >= 63:
+            return 12
         if cu_num >= 60:
             return 11
         if cu_num >= 55:
