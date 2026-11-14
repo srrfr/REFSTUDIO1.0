@@ -262,6 +262,7 @@ export default function NotesVideosPage() {
             <option value="ALL">Tutti i Soggetti</option>
             <option value="giocatore">Solo Calciatori</option>
             <option value="squadra">Solo Squadre</option>
+            <option value="staff">Staff & Dirigenti</option>
             <option value="allenatore">Solo Allenatori</option>
             <option value="dirigente">Solo Dirigenti</option>
             <option value="partita">Solo Partite</option>
@@ -605,8 +606,20 @@ export default function NotesVideosPage() {
                   <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                     <div>
                       <div className="flex items-center justify-between text-xs text-slate-400 border-b border-[#1A1F2C] pb-2">
-                        <span className="font-extrabold uppercase px-2 py-0.5 rounded text-[10px] bg-[#181C28] text-slate-300 border border-[#262C3D]">
-                          {vid.targetType}
+                        <span
+                          className={`font-extrabold uppercase px-2 py-0.5 rounded text-[10px] border ${
+                            vid.targetType === 'staff' || vid.targetType === 'allenatore' || vid.targetType === 'dirigente'
+                              ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+                              : vid.targetType === 'giocatore'
+                              ? 'bg-sky-500/15 text-sky-300 border-sky-500/30'
+                              : vid.targetType === 'partita'
+                              ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                              : 'bg-[#CCFF00]/15 text-[#CCFF00] border-[#CCFF00]/30'
+                          }`}
+                        >
+                          {vid.targetType === 'staff' || vid.targetType === 'allenatore' || vid.targetType === 'dirigente'
+                            ? 'Staff / Dirigente'
+                            : vid.targetType}
                         </span>
                         <span className="text-[11px] font-bold text-[#CCFF00] truncate max-w-[150px]">
                           {vid.targetName}

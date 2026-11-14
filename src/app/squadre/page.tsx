@@ -211,13 +211,14 @@ function SquadreContent() {
 
   // Staff / Coach Note Modal state (Profilo Arbitrale)
   const [staffNotes, setStaffNotes] = useState<Note[]>([]);
+  const [staffVideos, setStaffVideos] = useState<VideoClip[]>([]);
   const [isStaffNoteModalOpen, setIsStaffNoteModalOpen] = useState(false);
   const [editingStaffNote, setEditingStaffNote] = useState<Note | null>(null);
 
   // Video Modal state
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoClip | null>(null);
-  const [videoModalTargetType, setVideoModalTargetType] = useState<'squadra' | 'giocatore'>('squadra');
+  const [videoModalTargetType, setVideoModalTargetType] = useState<'squadra' | 'giocatore' | 'partita' | 'staff'>('squadra');
   const [videoModalTargetId, setVideoModalTargetId] = useState('');
   const [videoModalTargetName, setVideoModalTargetName] = useState('');
 
@@ -311,6 +312,7 @@ function SquadreContent() {
       setStaffNotes(
         allTeamNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
       );
+      setStaffVideos(DbService.getStaffVideos(currentTeam.id));
       setTeamVideos(DbService.getVideos('squadra', currentTeam.id));
     }
 
@@ -420,6 +422,7 @@ function SquadreContent() {
     setStaffNotes(
       allNotes.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente')
     );
+    setStaffVideos(DbService.getStaffVideos(team.id));
     setTeamVideos(DbService.getVideos('squadra', team.id));
   };
 
@@ -428,6 +431,7 @@ function SquadreContent() {
     const handleSync = () => {
       if (selectedTeam) {
         setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+        setStaffVideos(DbService.getStaffVideos(selectedTeam.id));
         const allNotes = DbService.getNotes(undefined, selectedTeam.id, user?.username);
         setTeamNotes(allNotes.filter((n) => n.targetType === 'squadra'));
         setStaffNotes(
@@ -502,18 +506,23 @@ function SquadreContent() {
 
   const handleEditTeamVideo = (vid: VideoClip) => {
     setEditingVideo(vid);
-    setVideoModalTargetType('squadra');
+    const isStaff =
+      vid.targetType === 'staff' ||
+      vid.targetType === 'dirigente' ||
+      vid.targetType === 'allenatore';
+    setVideoModalTargetType(isStaff ? 'staff' : (vid.targetType as any) || 'squadra');
     setVideoModalTargetId(vid.targetId);
     setVideoModalTargetName(vid.targetName);
     setIsVideoModalOpen(true);
   };
 
   const handleDeleteTeamVideo = async (videoId: string) => {
-    if (confirm('Sei sicuro di voler eliminare questo video della squadra?')) {
+    if (confirm('Sei sicuro di voler eliminare questo video della squadra / staff?')) {
       try {
         await DbService.deleteVideoAsync(videoId, user?.username, user?.role);
         if (selectedTeam) {
           setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+          setStaffVideos(DbService.getStaffVideos(selectedTeam.id));
         }
       } catch (err: any) {
         alert(err.message || 'Non sei autorizzato a eliminare questo video.');
@@ -2232,9 +2241,17 @@ function SquadreContent() {
                         >
                           <div>
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20">
-                                {timeLabel}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20">
+                                  {timeLabel}
+                                </span>
+                                {(vid.targetType === 'staff' || vid.targetType === 'dirigente' || vid.targetType === 'allenatore') && (
+                                  <span className="text-[10px] font-black text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 rounded flex items-center gap-1">
+                                    <Users className="w-3 h-3 text-cyan-400" />
+                                    Staff: {vid.targetName}
+                                  </span>
+                                )}
+                              </div>
                               {isOwnerOrAdmin && (
                                 <div className="flex items-center gap-1">
                                   <button
@@ -2723,6 +2740,164 @@ function SquadreContent() {
                             className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1C2232] text-[#CCFF00] hover:text-[#d8ff33] border border-[#252B3C] text-xs font-bold transition-all cursor-pointer"
                           >
                             <Plus className="w-3.5 h-3.5" /> Inserisci la prima nota
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Nuova Sezione: Note Video su Allenatore & Membri dello Staff */}
+                    <div className="pt-4 border-t border-[#1C2232] space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                          <span className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-2">
+                            <Video className="w-4 h-4 text-[#CCFF00]" />
+                            Note Video su Staff & Dirigenti
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#1A2030] text-[#CCFF00] border border-[#2B354D]">
+                              {staffVideos.length}
+                            </span>
+                          </span>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Filmati ed episodi arbitrali dedicati al mister o ai membri dello staff (con nominativo libero da tastiera)
+                          </p>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingVideo(null);
+                            setVideoModalTargetType('staff');
+                            setVideoModalTargetId(selectedTeam.id);
+                            setVideoModalTargetName('');
+                            setIsVideoModalOpen(true);
+                          }}
+                          className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#CCFF00] hover:bg-[#D8FF33] text-black font-black text-xs shadow-[0_0_12px_rgba(204,255,0,0.35)] transition-all cursor-pointer self-start sm:self-auto shrink-0 active:scale-95"
+                        >
+                          <Plus className="w-4 h-4" /> Aggiungi Nota Video Staff
+                        </button>
+                      </div>
+
+                      {/* Lista Note Video Staff */}
+                      {staffVideos.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                          {staffVideos.map((vid) => {
+                            const hasInterval = Boolean(vid.timestampMark && vid.endTimestampMark);
+                            const timeLabel = vid.timestampMark ? (
+                              hasInterval ? `Min. ${vid.timestampMark} → ${vid.endTimestampMark}` : `Min. ${vid.timestampMark}`
+                            ) : 'Clip Video';
+
+                            const isOwnerOrAdmin = Boolean(
+                              isAdmin ||
+                              user?.role === 'admin' ||
+                              !vid.authorId ||
+                              (user?.username && vid.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
+                            );
+
+                            return (
+                              <div
+                                key={vid.id}
+                                className="p-4 rounded-xl bg-[#090C13] border border-[#1E2436] hover:border-[#CCFF00]/40 transition-all space-y-2.5 relative group"
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5 shadow-sm">
+                                      <Users className="w-3.5 h-3.5 text-cyan-400" />
+                                      {vid.targetName || 'Membro Staff'}
+                                    </span>
+
+                                    <span className="text-[10px] font-mono font-bold text-[#CCFF00] bg-[#CCFF00]/10 px-2 py-0.5 rounded border border-[#CCFF00]/20">
+                                      {timeLabel}
+                                    </span>
+                                  </div>
+
+                                  {isOwnerOrAdmin && (
+                                    <div className="flex items-center gap-1 shrink-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleEditTeamVideo(vid)}
+                                        className="p-1 rounded-lg text-slate-400 hover:text-[#CCFF00] hover:bg-[#141824] transition-all cursor-pointer"
+                                        title="Modifica Video"
+                                      >
+                                        <Edit3 className="w-3.5 h-3.5" />
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteTeamVideo(vid.id)}
+                                        className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                                        title="Elimina Video"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <h5 className="font-bold text-xs text-white line-clamp-1">{vid.title}</h5>
+                                  {vid.description && (
+                                    <p className="text-[11px] text-slate-300 mt-1 line-clamp-2 leading-relaxed">
+                                      {vid.description}
+                                    </p>
+                                  )}
+                                </div>
+
+                                <div className="pt-2 border-t border-[#161B26] flex items-center justify-between text-[10px]">
+                                  <span className="text-slate-400 font-mono">
+                                    {vid.authorName || vid.authorId || 'Arbitro'} • {new Date(vid.createdAt).toLocaleDateString('it-IT')}
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const videoUrl = vid.externalUrl || vid.storagePath || '';
+                                      setActiveViewerMedia({
+                                        id: vid.id,
+                                        url: videoUrl,
+                                        title: vid.title,
+                                        subtitle: `${vid.targetName} • ${selectedTeam.name}`,
+                                        description: vid.description,
+                                        timestampMark: vid.timestampMark,
+                                        endTimestampMark: vid.endTimestampMark,
+                                        mediaType: vid.mediaType || 'video',
+                                        targetType: vid.targetType,
+                                        targetId: vid.targetId || selectedTeam.id,
+                                        targetName: vid.targetName,
+                                        homeTeamId: selectedTeam.id,
+                                        homeTeamName: selectedTeam.name,
+                                      });
+                                      setIsViewerOpen(true);
+                                    }}
+                                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#CCFF00]/10 hover:bg-[#CCFF00]/20 text-[#CCFF00] font-black transition-all cursor-pointer border border-[#CCFF00]/30"
+                                  >
+                                    <Play className="w-3 h-3 fill-[#CCFF00]" /> Guarda
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="p-4 sm:p-5 rounded-xl bg-[#090C13] border border-dashed border-[#1E2436] flex flex-col items-center justify-center text-center space-y-2">
+                          <Film className="w-7 h-7 text-slate-600" />
+                          <div>
+                            <p className="text-xs font-bold text-slate-300">
+                              Nessuna nota video registrata su allenatore o dirigenti
+                            </p>
+                            <p className="text-[11px] text-slate-500 max-w-md mt-0.5">
+                              Carica un filmato o incolla un link (YouTube, Veo, Pixellot) associandolo a un dirigente o mister della squadra digitandone il nome da tastiera.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingVideo(null);
+                              setVideoModalTargetType('staff');
+                              setVideoModalTargetId(selectedTeam.id);
+                              setVideoModalTargetName('');
+                              setIsVideoModalOpen(true);
+                            }}
+                            className="mt-1 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#141824] hover:bg-[#1C2232] text-[#CCFF00] hover:text-[#d8ff33] border border-[#252B3C] text-xs font-bold transition-all cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" /> Carica la prima nota video staff
                           </button>
                         </div>
                       )}
@@ -3491,8 +3666,9 @@ function SquadreContent() {
             if (selectedPlayer && data.targetType === 'giocatore') {
               setPlayerVideos(DbService.getVideos('giocatore', selectedPlayer.id, `${selectedPlayer.firstName} ${selectedPlayer.lastName}`));
             }
-            if (selectedTeam && data.targetType === 'squadra') {
+            if (selectedTeam) {
               setTeamVideos(DbService.getVideos('squadra', selectedTeam.id));
+              setStaffVideos(DbService.getStaffVideos(selectedTeam.id));
             }
             setIsVideoModalOpen(false);
             setEditingVideo(null);

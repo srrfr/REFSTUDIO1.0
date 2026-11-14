@@ -192,12 +192,21 @@ export class SupabaseService {
   static mapVideoFromRow(row: any): VideoClip {
     const isVeo = row.video_source === 'VEO' || isVeoUrl(row.external_url);
     const isPixellot = row.video_source === 'PIXELLOT' || isPixellotUrl(row.external_url);
+    
+    let mappedTargetType = row.target_type;
+    let mappedTargetName = row.target_name || '';
+    if (mappedTargetName.startsWith('[Staff:')) {
+      mappedTargetType = 'staff';
+      const m = mappedTargetName.match(/\[Staff:\s*(.*?)\]/);
+      if (m) mappedTargetName = m[1];
+    }
+
     return {
       id: row.id,
       authorId: row.author_id,
-      targetType: row.target_type,
+      targetType: mappedTargetType,
       targetId: row.target_id,
-      targetName: row.target_name,
+      targetName: mappedTargetName,
       videoSource: isVeo ? 'VEO' : isPixellot ? 'PIXELLOT' : (row.video_source || 'YOUTUBE'),
       externalUrl: row.external_url,
       storagePath: row.storage_path,
@@ -589,12 +598,20 @@ export class SupabaseService {
 
     const isVeo = video.videoSource === 'VEO' || isVeoUrl(video.externalUrl);
     const isPixellot = video.videoSource === 'PIXELLOT' || isPixellotUrl(video.externalUrl);
+    const isStaff = video.targetType === 'staff' || video.targetType === 'allenatore' || video.targetType === 'dirigente';
+
+    let dbTargetType = video.targetType;
+    let dbTargetName = video.targetName;
+    if (isStaff && !video.targetName.startsWith('[Staff:')) {
+      dbTargetName = `[Staff: ${video.targetName}]`;
+    }
+
     const payload = {
       id: video.id,
       author_id: video.authorId || 'ref-1',
-      target_type: video.targetType,
+      target_type: isStaff ? 'squadra' : dbTargetType,
       target_id: video.targetId,
-      target_name: video.targetName,
+      target_name: dbTargetName,
       video_source: (isVeo || isPixellot) ? 'LOCAL' : video.videoSource,
       external_url: video.externalUrl,
       storage_path: video.storagePath,

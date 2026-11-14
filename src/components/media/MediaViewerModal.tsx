@@ -73,7 +73,7 @@ export interface MediaViewerItem {
   timestampMark?: string;
   endTimestampMark?: string;
   authorName?: string;
-  targetType?: 'squadra' | 'giocatore' | 'partita';
+  targetType?: 'squadra' | 'giocatore' | 'partita' | 'staff' | 'allenatore' | 'dirigente';
   targetId?: string;
   targetName?: string;
   homeTeamId?: string;

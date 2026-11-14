@@ -30,7 +30,7 @@ interface VideoModalProps {
   onClose: () => void;
   onSave: (
     videoData: {
-      targetType: 'squadra' | 'giocatore' | 'partita';
+      targetType: 'squadra' | 'giocatore' | 'partita' | 'staff' | 'allenatore' | 'dirigente';
       targetId: string;
       targetName: string;
       homeTeamId?: string;
@@ -49,7 +49,7 @@ interface VideoModalProps {
     existingVideoId?: string
   ) => void;
   existingVideo?: VideoClip | null;
-  initialTargetType?: 'squadra' | 'giocatore' | 'partita';
+  initialTargetType?: 'squadra' | 'giocatore' | 'partita' | 'staff' | 'allenatore' | 'dirigente';
   initialTargetId?: string;
   initialTargetName?: string;
   initialUploadedMedia?: UploadResult | null;
@@ -75,9 +75,14 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 }) => {
   const { user, isAdmin } = useAuth();
   const [mode, setMode] = useState<'UPLOAD' | 'URL'>('UPLOAD');
-  const [targetType, setTargetType] = useState<'squadra' | 'giocatore' | 'partita'>(initialTargetType);
+  const [targetType, setTargetType] = useState<'squadra' | 'giocatore' | 'partita' | 'staff'>(
+    initialTargetType === 'allenatore' || initialTargetType === 'dirigente' ? 'staff' : (initialTargetType as any) || 'squadra'
+  );
   const [targetId, setTargetId] = useState(initialTargetId);
   const [targetName, setTargetName] = useState(initialTargetName);
+  const [staffMemberName, setStaffMemberName] = useState('');
+  const [staffRole, setStaffRole] = useState('Dirigente');
+  const [selectedPlayerId, setSelectedPlayerId] = useState('');
   const [videoSource, setVideoSource] = useState<VideoSource>('LOCAL');
   const [externalUrl, setExternalUrl] = useState('');
   const [storagePath, setStoragePath] = useState('');
@@ -97,9 +102,10 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     (user?.username && existingVideo.authorId.toLowerCase().trim() === user.username.toLowerCase().trim())
   );
 
-  // Squadre dal Database & Partite
+  // Squadre dal Database & Partite & Calciatori
   const [dbTeams, setDbTeams] = useState<Team[]>([]);
   const [dbMatches, setDbMatches] = useState<Match[]>([]);
+  const [dbPlayers, setDbPlayers] = useState<any[]>([]);
   const [homeTeamId, setHomeTeamId] = useState(initialHomeTeamId);
   const [homeTeamName, setHomeTeamName] = useState('');
   const [awayTeamId, setAwayTeamId] = useState(initialAwayTeamId);
@@ -110,14 +116,30 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     if (isOpen) {
       const teams = DbService.getTeams().sort((a, b) => a.name.localeCompare(b.name));
       const matches = DbService.getMatches();
+      const players = DbService.getPlayers();
       setDbTeams(teams);
       setDbMatches(matches);
+      setDbPlayers(players);
       setError('');
 
       if (existingVideo) {
-        setTargetType(existingVideo.targetType);
+        const isStaffType =
+          existingVideo.targetType === 'staff' ||
+          existingVideo.targetType === 'allenatore' ||
+          existingVideo.targetType === 'dirigente';
+        setTargetType(isStaffType ? 'staff' : (existingVideo.targetType as any));
         setTargetId(existingVideo.targetId);
         setTargetName(existingVideo.targetName);
+        if (isStaffType) {
+          const cleanedName = existingVideo.targetName
+            .replace(/^\[Staff:\s*/i, '')
+            .replace(/\]$/, '')
+            .replace(/\s*\([^)]*\)$/, '')
+            .trim();
+          setStaffMemberName(cleanedName);
+        } else if (existingVideo.targetType === 'giocatore') {
+          setSelectedPlayerId(existingVideo.targetId);
+        }
         setTitle(existingVideo.title);
         setDescription(existingVideo.description || '');
         setTimestampMark(existingVideo.timestampMark || '');
@@ -127,7 +149,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         setStoragePath(existingVideo.storagePath || '');
         setMediaType(existingVideo.mediaType || 'video');
         setMode(existingVideo.videoSource === 'LOCAL' && !existingVideo.externalUrl ? 'UPLOAD' : 'URL');
-        setHomeTeamId(existingVideo.homeTeamId || '');
+        setHomeTeamId(existingVideo.homeTeamId || (isStaffType ? existingVideo.targetId : ''));
         setHomeTeamName(existingVideo.homeTeamName || '');
         setAwayTeamId(existingVideo.awayTeamId || '');
         setAwayTeamName(existingVideo.awayTeamName || '');
@@ -136,9 +158,20 @@ export const VideoModal: React.FC<VideoModalProps> = ({
           setError(`Non sei autorizzato a modificare questa nota video: solo il proprietario (@${existingVideo.authorId}) o l'amministratore possono farlo.`);
         }
       } else {
-        setTargetType(initialTargetType);
+        const isInitStaff =
+          initialTargetType === 'staff' ||
+          initialTargetType === 'allenatore' ||
+          initialTargetType === 'dirigente';
+        setTargetType(isInitStaff ? 'staff' : (initialTargetType as any));
         setTargetId(initialTargetId);
         setTargetName(initialTargetName);
+        if (isInitStaff) {
+          const cleaned = initialTargetName.replace(/\s*\([^)]*\)$/, '').trim();
+          setStaffMemberName(cleaned);
+        } else {
+          setStaffMemberName('');
+        }
+        setSelectedPlayerId(initialTargetType === 'giocatore' ? initialTargetId : '');
         setTitle('');
         setDescription('');
         setTimestampMark(initialTimestampMark);
@@ -153,6 +186,10 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         if (initialHomeTeamId) {
           const ht = teams.find((t) => t.id === initialHomeTeamId);
           setHomeTeamId(initialHomeTeamId);
+          setHomeTeamName(ht?.name || '');
+        } else if (isInitStaff && initialTargetId) {
+          const ht = teams.find((t) => t.id === initialTargetId);
+          setHomeTeamId(initialTargetId);
           setHomeTeamName(ht?.name || '');
         } else {
           setHomeTeamId('');
@@ -425,11 +462,6 @@ export const VideoModal: React.FC<VideoModalProps> = ({
       return;
     }
 
-    if (!targetName.trim()) {
-      setError('Indica il soggetto o le squadre a cui associare il contenuto.');
-      return;
-    }
-
     if (!externalUrl.trim()) {
       setError(
         mode === 'UPLOAD'
@@ -450,16 +482,73 @@ export const VideoModal: React.FC<VideoModalProps> = ({
         ? 'YOUTUBE'
         : videoSource;
 
-    const effectiveHomeId = homeTeamId.trim() || undefined;
-    const effectiveAwayId = awayTeamId.trim() || undefined;
-    const effectiveHomeName =
+    let effectiveHomeId = homeTeamId.trim() || undefined;
+    let effectiveAwayId = awayTeamId.trim() || undefined;
+    let effectiveHomeName =
       homeTeamName.trim() || (effectiveHomeId ? dbTeams.find((t) => t.id === effectiveHomeId)?.name : undefined);
-    const effectiveAwayName =
+    let effectiveAwayName =
       awayTeamName.trim() || (effectiveAwayId ? dbTeams.find((t) => t.id === effectiveAwayId)?.name : undefined);
 
     let effectiveTargetId = targetId.trim();
-    if (targetType === 'partita' && effectiveHomeId && effectiveAwayId) {
-      effectiveTargetId = `${effectiveHomeId}_vs_${effectiveAwayId}`;
+    let effectiveTargetName = targetName.trim();
+
+    if (targetType === 'staff') {
+      if (!staffMemberName.trim()) {
+        setError('Inserisci da tastiera il nome e cognome del membro dello staff / dirigente.');
+        return;
+      }
+      const staffTeamId = effectiveHomeId || targetId.trim();
+      if (!staffTeamId) {
+        setError('Seleziona la squadra a cui appartiene il membro dello staff / dirigente.');
+        return;
+      }
+      const stTeam = dbTeams.find((t) => t.id === staffTeamId);
+      effectiveHomeId = staffTeamId;
+      effectiveHomeName = stTeam ? stTeam.name : effectiveHomeName;
+      effectiveTargetId = staffTeamId;
+      effectiveTargetName = `${staffMemberName.trim()}${effectiveHomeName ? ` (${effectiveHomeName})` : ''}`;
+    } else if (targetType === 'giocatore') {
+      if (selectedPlayerId) {
+        effectiveTargetId = selectedPlayerId;
+        const pl = dbPlayers.find((p) => p.id === selectedPlayerId);
+        if (pl) {
+          const pFullName = pl.name || `${pl.firstName || ''} ${pl.lastName || ''}`.trim();
+          effectiveTargetName = `${pFullName}${pl.teamName ? ` (${pl.teamName})` : ''}`;
+          if (pl.teamId && !effectiveHomeId) {
+            effectiveHomeId = pl.teamId;
+            effectiveHomeName = pl.teamName;
+          }
+        }
+      }
+      if (!effectiveTargetName) {
+        setError('Seleziona un calciatore o inserisci il suo nome.');
+        return;
+      }
+    } else if (targetType === 'partita') {
+      if (effectiveHomeId && effectiveAwayId) {
+        effectiveTargetId = `${effectiveHomeId}_vs_${effectiveAwayId}`;
+        if (!effectiveTargetName) {
+          effectiveTargetName = `${effectiveHomeName} vs ${effectiveAwayName}`;
+        }
+      }
+      if (!effectiveTargetName) {
+        setError('Seleziona le squadre o indica il nome della partita.');
+        return;
+      }
+    } else if (targetType === 'squadra') {
+      effectiveTargetId = effectiveHomeId || targetId.trim();
+      if (effectiveHomeName && !effectiveTargetName) {
+        effectiveTargetName = effectiveHomeName;
+      }
+      if (!effectiveTargetName) {
+        setError('Seleziona una squadra o indica il nome della squadra.');
+        return;
+      }
+    }
+
+    if (!effectiveTargetName.trim()) {
+      setError('Indica il soggetto o le squadre a cui associare il contenuto.');
+      return;
     }
 
     if (existingVideo && !isOwnerOrAdmin) {
@@ -469,8 +558,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
 
     onSave({
       targetType,
-      targetId: effectiveTargetId || targetName.toLowerCase().replace(/\s+/g, '-'),
-      targetName: targetName.trim(),
+      targetId: effectiveTargetId || effectiveTargetName.toLowerCase().replace(/\s+/g, '-'),
+      targetName: effectiveTargetName.trim(),
       homeTeamId: effectiveHomeId,
       homeTeamName: effectiveHomeName,
       awayTeamId: effectiveAwayId,
@@ -492,6 +581,8 @@ export const VideoModal: React.FC<VideoModalProps> = ({
     setDescription('');
     setTimestampMark('');
     setEndTimestampMark('');
+    setStaffMemberName('');
+    setSelectedPlayerId('');
     setHomeTeamId('');
     setHomeTeamName('');
     setAwayTeamId('');
@@ -690,6 +781,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
                 <option value="partita">Partita Intera / Gara (2 Squadre)</option>
                 <option value="squadra">Singola Squadra</option>
                 <option value="giocatore">Calciatore</option>
+                <option value="staff">Membro dello Staff / Dirigente / Mister</option>
               </select>
             </div>
 
@@ -720,7 +812,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             </div>
           </div>
 
-          {/* Sezione SQUADRE DAL DATABASE (per Partita o Singola Squadra) */}
+          {/* Sezione SQUADRE DAL DATABASE (per Partita) */}
           {targetType === 'partita' && (
             <div className="p-3.5 bg-[#121622] rounded-2xl border border-[#232B40] space-y-3">
               <div className="flex items-center justify-between">
@@ -813,6 +905,7 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             </div>
           )}
 
+          {/* Sezione SINGOLA SQUADRA */}
           {targetType === 'squadra' && (
             <div>
               <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
@@ -833,22 +926,162 @@ export const VideoModal: React.FC<VideoModalProps> = ({
             </div>
           )}
 
+          {/* Sezione CALCIATORE */}
+          {targetType === 'giocatore' && (
+            <div className="p-3.5 bg-[#121622] rounded-2xl border border-[#232B40] space-y-3">
+              <span className="text-xs font-black text-[#CCFF00] flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                <Layers className="w-3.5 h-3.5" /> Associazione Calciatore
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-300 uppercase tracking-wider mb-1">
+                    Filtra per Squadra
+                  </label>
+                  <select
+                    value={homeTeamId}
+                    onChange={(e) => {
+                      const tId = e.target.value;
+                      setHomeTeamId(tId);
+                      const t = dbTeams.find((team) => team.id === tId);
+                      setHomeTeamName(t ? t.name : '');
+                    }}
+                    className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  >
+                    <option value="">-- Tutte le Squadre --</option>
+                    {dbTeams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-300 uppercase tracking-wider mb-1">
+                    Seleziona Calciatore
+                  </label>
+                  <select
+                    value={selectedPlayerId}
+                    onChange={(e) => {
+                      const pId = e.target.value;
+                      setSelectedPlayerId(pId);
+                      const p = dbPlayers.find((item) => item.id === pId);
+                      if (p) {
+                        setTargetId(p.id);
+                        const pFullName = p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim();
+                        const pLabel = `${pFullName}${p.teamName ? ` (${p.teamName})` : ''}`;
+                        setTargetName(pLabel);
+                        if (p.teamId) {
+                          setHomeTeamId(p.teamId);
+                          setHomeTeamName(p.teamName || '');
+                        }
+                      }
+                    }}
+                    className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  >
+                    <option value="">-- Seleziona Calciatore --</option>
+                    {dbPlayers
+                      .filter((p) => !homeTeamId || p.teamId === homeTeamId)
+                      .sort((a, b) => (a.name || a.lastName || '').localeCompare(b.name || b.lastName || ''))
+                      .map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name || `${p.firstName || ''} ${p.lastName || ''}`.trim()} {p.teamName ? `(${p.teamName})` : ''}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sezione MEMBRO DELLO STAFF / DIRIGENTE */}
+          {targetType === 'staff' && (
+            <div className="p-3.5 bg-[#121622] rounded-2xl border border-[#232B40] space-y-3">
+              <span className="text-xs font-black text-[#CCFF00] flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                <Shield className="w-3.5 h-3.5" /> Associazione Staff / Dirigente alla Squadra
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-300 uppercase tracking-wider mb-1">
+                    Squadra di Appartenenza *
+                  </label>
+                  <select
+                    value={homeTeamId || targetId}
+                    onChange={(e) => handleSingleTeamChange(e.target.value)}
+                    className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  >
+                    <option value="">-- Seleziona Squadra --</option>
+                    {dbTeams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-slate-300 uppercase tracking-wider mb-1">
+                    Ruolo / Incarico
+                  </label>
+                  <select
+                    value={staffRole}
+                    onChange={(e) => setStaffRole(e.target.value)}
+                    className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#CCFF00] font-semibold"
+                  >
+                    <option value="Dirigente Accompagnatore">Dirigente Accompagnatore</option>
+                    <option value="Dirigente Addetto Arbitro">Dirigente Addetto Arbitro</option>
+                    <option value="Allenatore / Mister">Allenatore / Mister</option>
+                    <option value="Vice Allenatore">Vice Allenatore</option>
+                    <option value="Preparatore Atletico">Preparatore Atletico</option>
+                    <option value="Medico Sociale">Medico Sociale</option>
+                    <option value="Massaggiatore / Fisioterapista">Massaggiatore / Fisioterapista</option>
+                    <option value="Collaboratore / Staff">Collaboratore / Altro Membro Staff</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black text-slate-300 uppercase tracking-wider mb-1">
+                  Nome e Cognome Membro dello Staff (Scrivi da tastiera) *
+                </label>
+                <input
+                  type="text"
+                  value={staffMemberName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setStaffMemberName(val);
+                    const tName = homeTeamName || dbTeams.find((t) => t.id === (homeTeamId || targetId))?.name || '';
+                    setTargetName(val.trim() ? `${val.trim()}${tName ? ` (${tName})` : ''}` : '');
+                  }}
+                  placeholder="Es. Mario Rossi (o digita il nome del dirigente)"
+                  className="w-full bg-[#161B2B] border border-[#263048] rounded-xl px-3 py-2 text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:border-[#CCFF00] font-semibold"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Questa nota video apparirà automaticamente nel <strong>Profilo Arbitrale della squadra</strong> alla sezione Staff & Dirigenti.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Nome Soggetto / Match (Personalizzabile) */}
-          <div>
-            <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
-              Nome Soggetto / Partita
-            </label>
-            <input
-              type="text"
-              value={targetName}
-              onChange={(e) => {
-                setTargetName(e.target.value);
-                if (!targetId) setTargetId(e.target.value.toLowerCase().replace(/\s+/g, '-'));
-              }}
-              placeholder="Es. Vianese Calcio vs Rolo Fabbrico..."
-              className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
-            />
-          </div>
+          {targetType !== 'staff' && (
+            <div>
+              <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">
+                Nome Soggetto / Partita
+              </label>
+              <input
+                type="text"
+                value={targetName}
+                onChange={(e) => {
+                  setTargetName(e.target.value);
+                  if (!targetId) setTargetId(e.target.value.toLowerCase().replace(/\s+/g, '-'));
+                }}
+                placeholder="Es. Vianese Calcio vs Rolo Fabbrico..."
+                className="w-full bg-[#11141D] border border-[#212638] rounded-xl px-3 py-2.5 text-xs text-slate-200 placeholder:text-slate-600 focus:outline-none focus:border-[#CCFF00] focus:ring-1 focus:ring-[#CCFF00]/40 transition-all font-medium"
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold text-slate-400 mb-1.5 uppercase tracking-wider text-[10px]">

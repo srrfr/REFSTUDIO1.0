@@ -1607,7 +1607,13 @@ export class DbService {
   static getNotes(targetType?: string, targetId?: string, currentUsername?: string): Note[] {
     this.ensureLoaded();
     let list = (inMemoryData.notes || []).filter((n) => !this.isNoteDeleted(n.id));
-    if (targetType) list = list.filter((n) => n.targetType === targetType);
+    if (targetType) {
+      if (targetType === 'staff') {
+        list = list.filter((n) => n.targetType === 'allenatore' || n.targetType === 'dirigente' || (n.targetType as string) === 'staff');
+      } else {
+        list = list.filter((n) => n.targetType === targetType);
+      }
+    }
     if (targetId) list = list.filter((n) => n.targetId === targetId);
 
     // Regola di visibilità:
@@ -1950,12 +1956,16 @@ export class DbService {
     if (targetType) {
       const cleanType = targetType.toLowerCase().trim();
       list = list.filter((v) => {
+        if (cleanType === 'staff') {
+          return v.targetType === 'staff' || v.targetType === 'dirigente' || v.targetType === 'allenatore';
+        }
         if (v.targetType && v.targetType.toLowerCase().trim() === cleanType) return true;
-        // Se si richiedono i video di una squadra, includi anche i video delle gare in cui è coinvolta
+        // Se si richiedono i video di una squadra, includi anche i video delle gare in cui è coinvolta o dello staff
         if (cleanType === 'squadra' && targetId) {
           const cid = String(targetId).toLowerCase().trim();
           if (v.homeTeamId && String(v.homeTeamId).toLowerCase().trim() === cid) return true;
           if (v.awayTeamId && String(v.awayTeamId).toLowerCase().trim() === cid) return true;
+          if ((v.targetType === 'staff' || v.targetType === 'dirigente' || v.targetType === 'allenatore') && (String(v.targetId).toLowerCase().trim() === cid || String(v.homeTeamId).toLowerCase().trim() === cid)) return true;
         }
         return false;
       });
@@ -1986,6 +1996,21 @@ export class DbService {
       });
     }
     return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  static getStaffVideos(teamId?: string): VideoClip[] {
+    this.ensureLoaded();
+    const cleanId = teamId ? String(teamId).toLowerCase().trim() : '';
+    return (inMemoryData.videos || []).filter((v) => {
+      if (this.isVideoDeleted(v.id)) return false;
+      const isStaff = v.targetType === 'staff' || v.targetType === 'dirigente' || v.targetType === 'allenatore';
+      if (!isStaff) return false;
+      if (!cleanId) return true;
+      return (
+        (v.targetId && String(v.targetId).toLowerCase().trim() === cleanId) ||
+        (v.homeTeamId && String(v.homeTeamId).toLowerCase().trim() === cleanId)
+      );
+    }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }
 
   static addVideo(video: Omit<VideoClip, 'id' | 'createdAt' | 'authorId'> & { authorId?: string }): VideoClip {

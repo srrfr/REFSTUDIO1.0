@@ -246,11 +246,11 @@ export interface VideoClip {
   id: string;
   authorId: string;
   authorName?: string;
-  targetType: 'squadra' | 'giocatore' | 'partita';
+  targetType: 'squadra' | 'giocatore' | 'partita' | 'staff' | 'allenatore' | 'dirigente';
   targetId: string;
   targetName: string;
-  homeTeamId?: string; // ID Squadra di Casa (per gare)
-  homeTeamName?: string; // Nome Squadra di Casa
+  homeTeamId?: string; // ID Squadra di Casa (per gare) o Squadra di riferimento (per staff/squadra)
+  homeTeamName?: string; // Nome Squadra di Casa o Squadra di riferimento
   awayTeamId?: string; // ID Squadra Ospite (per gare)
   awayTeamName?: string; // Nome Squadra Ospite
   videoSource: VideoSource;
