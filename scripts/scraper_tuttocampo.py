@@ -658,7 +658,7 @@ def run_app_sync():
 
     print("\n1b. Calcolo e aggiornamento automatico squalifiche scontate e provvedimenti del Giudice Sportivo...")
     res_gs = subprocess.run(
-        [sys.executable, "scripts/scraper_giudice_sportivo.py", "--sync-only"],
+        [sys.executable, "scripts/scraper_giudice_sportivo.py", "--sync-only", "--no-git"],
         capture_output=True,
         text=True,
         encoding="utf-8",
@@ -680,6 +680,13 @@ def run_app_sync():
         return False
     if res_seed.stdout:
         print(res_seed.stdout.strip())
+
+    # Commit e push finale dell'intero set di dati aggiornati
+    try:
+        from scraper_giudice_sportivo import git_commit_and_push
+        git_commit_and_push("chore(sync): aggiornamento rose, classifiche e provvedimenti disciplinari")
+    except Exception as e_push:
+        print(f" ⚠️ Avviso git push finale: {e_push}")
 
     print("\n🎉 AGGIORNAMENTO AUTOMATICO REFSTUDIO COMPLETATO!")
     print("Tutti i dati (rose, gare, classifiche) sono ora aggiornati in tempo reale sull'applicazione.")

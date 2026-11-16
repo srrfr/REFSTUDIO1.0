@@ -985,17 +985,18 @@ def git_commit_and_push(commit_message=None):
             check=False
         )
 
-        # Se il push viene rifiutato per commit remoti concorrenti, tenta allineamento con rebase
+        # Se il push viene rifiutato per commit remoti concorrenti, tenta allineamento pulito
         if push_res.returncode != 0 and ("rejected" in push_res.stderr or "fetch first" in push_res.stderr):
-            print(" [*] Il repository remoto contiene modifiche recenti: allineamento con git pull --rebase...")
-            rebase_res = subprocess.run(
-                ["git", "pull", "--rebase", "origin", branch],
+            print(" [*] Il repository remoto contiene modifiche recenti: allineamento automatico (git merge -X ours)...")
+            subprocess.run(["git", "fetch", "origin", branch], cwd=str(ROOT_DIR), check=False)
+            merge_res = subprocess.run(
+                ["git", "merge", f"origin/{branch}", "-m", f"chore(data): allineamento dati con origin/{branch}", "-X", "ours"],
                 cwd=str(ROOT_DIR),
                 capture_output=True,
                 text=True,
                 check=False
             )
-            if rebase_res.returncode == 0:
+            if merge_res.returncode == 0:
                 print(" [*] Nuovo invio a GitHub dopo allineamento...")
                 push_res = subprocess.run(
                     ["git", "push", "origin", branch],
@@ -1004,6 +1005,9 @@ def git_commit_and_push(commit_message=None):
                     text=True,
                     check=False
                 )
+            else:
+                print(" [!] Merge concorrente non automatico: annullamento merge per preservare integrità dei file...")
+                subprocess.run(["git", "merge", "--abort"], cwd=str(ROOT_DIR), check=False)
 
         if push_res.returncode == 0:
             print(f" [✓] Modifiche inviate a GitHub con successo!")
