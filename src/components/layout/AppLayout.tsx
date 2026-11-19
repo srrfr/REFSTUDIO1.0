@@ -14,6 +14,33 @@ interface AppLayoutProps {
 export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        // Garantisce che il cookie ngrok sia sempre presente per evitare il blocco ERR_NGROK_6024
+        document.cookie = 'ngrok-skip-browser-warning=true; path=/; max-age=31536000; SameSite=Lax';
+
+        // Intercetta tutte le chiamate fetch del router Next.js (prefetch, navigazione RSC e API)
+        const win = window as any;
+        if (!win.__ngrok_fetch_patched) {
+          win.__ngrok_fetch_patched = true;
+          const origFetch = window.fetch;
+          window.fetch = function (input: RequestInfo | URL, init?: RequestInit) {
+            try {
+              init = init || {};
+              const headers = new Headers(init.headers || {});
+              if (!headers.has('ngrok-skip-browser-warning')) {
+                headers.set('ngrok-skip-browser-warning', 'true');
+              }
+              init.headers = headers;
+            } catch {}
+            return origFetch.call(this, input, init);
+          };
+        }
+      } catch {}
+    }
+  }, []);
+
   return (
     <RealtimeSyncProvider>
       <div className="flex min-h-screen bg-[#08090C] text-slate-100 antialiased selection:bg-[#CCFF00] selection:text-black">

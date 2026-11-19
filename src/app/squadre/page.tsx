@@ -149,7 +149,7 @@ function SquadreContent() {
   // 1: 'CATEGORY' -> Selezione Categoria (al momento Eccellenza)
   // 2: 'GIRONE'   -> Selezione Girone (A o B)
   // 3: 'TEAMS'    -> Visualizzazione Squadre & Rose
-  const [viewStep, setViewStep] = useState<ViewStep>(initialQ ? 'TEAMS' : 'CATEGORY');
+  const [viewStep, setViewStep] = useState<ViewStep>('TEAMS');
   const [selectedCategory, setSelectedCategory] = useState<'eccellenza'>('eccellenza');
 
   const { user, isAdmin } = useAuth();

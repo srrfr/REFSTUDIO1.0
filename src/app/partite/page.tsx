@@ -60,7 +60,7 @@ export default function MatchesPage() {
   // 1: 'CATEGORY' -> Selezione Categoria (al momento Eccellenza)
   // 2: 'GIRONE'   -> Selezione Girone (A o B)
   // 3: 'MATCHES'  -> Visualizzazione Gare & Classifiche
-  const [viewStep, setViewStep] = useState<ViewStep>('CATEGORY');
+  const [viewStep, setViewStep] = useState<ViewStep>('MATCHES');
 
   // Parametri di selezione
   const [selectedCategory, setSelectedCategory] = useState<'eccellenza'>('eccellenza');
