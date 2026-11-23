@@ -118,6 +118,8 @@ export default function MatchesPage() {
   // Sottoscrizione Realtime multi-dispositivo
   useRealtimeSync(refreshMatchesAndStandings);
 
+  const hasMountedRef = React.useRef(false);
+
   // Inizializzazione dati all'avvio
   useEffect(() => {
     const all = DbService.getMatches();
@@ -129,11 +131,13 @@ export default function MatchesPage() {
     const s = DbService.getStandings('A');
     setStandings(s);
     setTeams(DbService.getTeams());
+    hasMountedRef.current = true;
   }, []);
 
-  // Aggiorna le partite mostrate e la classifica quando l'utente cambia girone o giornata
+  // Aggiorna le partite mostrate e la classifica solo quando l'utente cambia girone o giornata dopo il mount
   // NOTA: Non reimposta selectedDay per permettere la libera navigazione tra tutte le giornate
   useEffect(() => {
+    if (!hasMountedRef.current) return;
     const m = DbService.getMatches(activeGirone, selectedDay);
     setDayMatches(m);
     const s = DbService.getStandings(activeGirone);

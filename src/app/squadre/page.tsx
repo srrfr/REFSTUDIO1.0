@@ -406,6 +406,30 @@ function SquadreContent() {
     return map;
   }, [teams]);
 
+  // Map del conteggio note per squadra (evita query ridondanti nel loop di rendering)
+  const notesCountByTeam = useMemo(() => {
+    const map = new Map<string, number>();
+    const allNotes = DbService.getNotes('squadra', undefined, user?.username);
+    allNotes.forEach((n) => {
+      if (n.targetId) {
+        map.set(n.targetId, (map.get(n.targetId) || 0) + 1);
+      }
+    });
+    return map;
+  }, [teams, user?.username]);
+
+  // Map del conteggio video per squadra
+  const videosCountByTeam = useMemo(() => {
+    const map = new Map<string, number>();
+    const allVideos = DbService.getVideos('squadra');
+    allVideos.forEach((v) => {
+      if (v.targetId) {
+        map.set(v.targetId, (map.get(v.targetId) || 0) + 1);
+      }
+    });
+    return map;
+  }, [teams]);
+
   // Selezione e apertura scheda dettagliata
   const handleSelectTeam = (team: Team) => {
     setSelectedTeam(team);
@@ -1244,8 +1268,8 @@ function SquadreContent() {
                   const recent = recentMatchesByTeam.get(team.id) || [];
                   const standing = standingsByTeam.get(team.name.toLowerCase().trim());
                   const pCount = playersCountByTeam.get(team.id) || 0;
-                  const notesCount = DbService.getNotes('squadra', team.id, user?.username).length;
-                  const videosCount = DbService.getVideos('squadra', team.id).length;
+                  const notesCount = notesCountByTeam.get(team.id) || 0;
+                  const videosCount = videosCountByTeam.get(team.id) || 0;
 
                   return (
                     <tr
@@ -1354,8 +1378,8 @@ function SquadreContent() {
             const recent = recentMatchesByTeam.get(team.id) || [];
             const standing = standingsByTeam.get(team.name.toLowerCase().trim());
             const pCount = playersCountByTeam.get(team.id) || 0;
-            const notesCount = DbService.getNotes('squadra', team.id, user?.username).length;
-            const videosCount = DbService.getVideos('squadra', team.id).length;
+            const notesCount = notesCountByTeam.get(team.id) || 0;
+            const videosCount = videosCountByTeam.get(team.id) || 0;
 
             return (
               <div

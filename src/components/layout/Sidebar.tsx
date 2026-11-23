@@ -103,6 +103,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 onClick={() => isMobileView && onClose?.()}
                 className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-xs tracking-wide transition-all ${
                   isActive

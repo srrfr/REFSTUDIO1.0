@@ -110,6 +110,7 @@ export function getPlayerMediaSummary(
 
 /**
  * Crea una mappa efficiente di riepilogo per un array di calciatori.
+ * Ottimizzata con indici invertiti per evitare ricerche lineari O(P * N).
  */
 export function buildPlayersMediaMap(
   players: Player[],
@@ -118,8 +119,98 @@ export function buildPlayersMediaMap(
 ): Map<string, PlayerMediaSummary> {
   const map = new Map<string, PlayerMediaSummary>();
 
+  // Indici veloci per targetId O(1)
+  const notesByTargetId = new Map<string, Note[]>();
+  const nameMatchedNotes: Note[] = [];
+
+  for (let i = 0; i < allNotes.length; i++) {
+    const n = allNotes[i];
+    if (n.targetType !== 'giocatore') continue;
+    if (n.targetId) {
+      const tid = String(n.targetId).trim().toLowerCase();
+      let arr = notesByTargetId.get(tid);
+      if (!arr) {
+        arr = [];
+        notesByTargetId.set(tid, arr);
+      }
+      arr.push(n);
+    }
+    if (n.targetName) {
+      nameMatchedNotes.push(n);
+    }
+  }
+
+  const videosByTargetId = new Map<string, VideoClip[]>();
+  const nameMatchedVideos: VideoClip[] = [];
+
+  for (let i = 0; i < allVideos.length; i++) {
+    const v = allVideos[i];
+    const vType = (v.targetType || '').toLowerCase().trim();
+    if (vType !== 'giocatore') continue;
+    if (v.targetId) {
+      const tid = String(v.targetId).trim().toLowerCase();
+      let arr = videosByTargetId.get(tid);
+      if (!arr) {
+        arr = [];
+        videosByTargetId.set(tid, arr);
+      }
+      arr.push(v);
+    }
+    if (v.targetName) {
+      nameMatchedVideos.push(v);
+    }
+  }
+
   players.forEach((player) => {
-    map.set(player.id, getPlayerMediaSummary(player, allNotes, allVideos));
+    const pId = String(player.id || '').trim().toLowerCase();
+    const directNotes = notesByTargetId.get(pId) || [];
+    const directVideos = videosByTargetId.get(pId) || [];
+
+    const matchedNotesSet = new Set<Note>(directNotes);
+    const matchedVideosSet = new Set<VideoClip>(directVideos);
+
+    // Controlla il sottoinsieme di note che usano matching per targetName
+    if (nameMatchedNotes.length > 0) {
+      for (let i = 0; i < nameMatchedNotes.length; i++) {
+        const n = nameMatchedNotes[i];
+        if (matchNoteToPlayer(n, player)) {
+          matchedNotesSet.add(n);
+        }
+      }
+    }
+
+    if (nameMatchedVideos.length > 0) {
+      for (let i = 0; i < nameMatchedVideos.length; i++) {
+        const v = nameMatchedVideos[i];
+        if (matchVideoToPlayer(v, player)) {
+          matchedVideosSet.add(v);
+        }
+      }
+    }
+
+    const matchedNotes = Array.from(matchedNotesSet);
+    const matchedVideos = Array.from(matchedVideosSet);
+
+    const hasRefereeNotes = Boolean(
+      player.refereeNotes &&
+      player.refereeNotes.trim() &&
+      !player.refereeNotes.includes('[Giudice Sportivo')
+    );
+    const refereeNotesText = hasRefereeNotes ? player.refereeNotes!.trim() : undefined;
+
+    const textCount = matchedNotes.length;
+    const videoCount = matchedVideos.length;
+    const totalCount = textCount + videoCount;
+
+    map.set(player.id, {
+      hasMedia: totalCount > 0,
+      textCount,
+      videoCount,
+      totalCount,
+      textNotes: matchedNotes,
+      videoNotes: matchedVideos,
+      refereeNotes: refereeNotesText,
+    });
   });
 
   return map;

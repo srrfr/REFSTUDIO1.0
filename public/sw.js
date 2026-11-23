@@ -1,13 +1,23 @@
 // RefStudio Progressive Web App Service Worker
-const CACHE_NAME = 'refstudio-cache-v1.0.3';
+const CACHE_NAME = 'refstudio-cache-v1.0.4';
 
 const STATIC_ASSETS = [
   '/',
+  '/designazioni',
+  '/giocatori',
+  '/squadre',
+  '/partite',
+  '/note-video',
+  '/profilo',
   '/manifest.json',
+  '/manifest.webmanifest',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
   '/icons/icon.svg',
   '/icons/apple-touch-icon.png',
+  '/logo_small.png',
+  '/logo_big.png',
+  '/favicon.png',
   '/favicon.svg'
 ];
 
@@ -31,16 +41,26 @@ function isValidCacheableResponse(response) {
   return true;
 }
 
-// Install Event - Pre-cache core shell
+// Install Event - Pre-cache core shell e pagine principali
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('[SW] Non-critical precache failure:', err);
-      });
+      // Usiamo Promise.allSettled con makeNgrokSafeRequest per pre-caricare senza blocchi
+      return Promise.allSettled(
+        STATIC_ASSETS.map((assetUrl) => {
+          const req = makeNgrokSafeRequest(new Request(assetUrl));
+          return fetch(req)
+            .then((res) => {
+              if (isValidCacheableResponse(res)) {
+                return cache.put(assetUrl, res);
+              }
+            })
+            .catch(() => {});
+        })
+      );
     })
   );
-  // Force immediate activation
+  // Forza l'attivazione immediata del nuovo Service Worker
   self.skipWaiting();
 });
 
@@ -57,19 +77,19 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event - Network first with fallback for offline support
+// Fetch Event - Performance first con Stale-While-Revalidate per una navigazione istantanea
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // Skip non-GET requests and browser extensions
+  // Ignora richieste non-GET ed estensioni del browser
   if (request.method !== 'GET' || !url.protocol.startsWith('http')) {
     return;
   }
 
   const safeRequest = makeNgrokSafeRequest(request);
 
-  // API calls and Supabase Realtime/REST: Network ONLY / Network First without caching stale data
+  // 1. API calls e Supabase Realtime/REST: Network ONLY / Network First senza caching
   if (url.pathname.startsWith('/api/') || url.hostname.includes('supabase.co')) {
     event.respondWith(
       fetch(safeRequest).catch(() => {
@@ -82,30 +102,45 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Next.js RSC requests (_rsc query) o chunks dinamici: Network First con bypass ngrok, MAI fallback a '/'
+  // 2. Next.js RSC requests (_rsc query) e route data:
+  // STRATEGIA STALE-WHILE-REVALIDATE: restituisce IMMEDIATAMENTE la copia in cache (0ms lag!)
+  // e aggiorna la cache in background tramite ngrok.
   if (url.searchParams.has('_rsc') || url.pathname.includes('/_next/data/')) {
     event.respondWith(
-      fetch(safeRequest).then((networkResponse) => {
-        if (isValidCacheableResponse(networkResponse)) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(safeRequest)
+          .then((networkResponse) => {
+            if (isValidCacheableResponse(networkResponse)) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseToCache);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(() => cachedResponse);
+
+        // Se è presente in cache ed è valido, lo restituiamo SUBITO (zero latenza al click della scheda)
+        if (cachedResponse && isValidCacheableResponse(cachedResponse)) {
+          return cachedResponse;
         }
-        return networkResponse;
-      }).catch(async () => {
-        const cached = await caches.match(request);
-        if (cached) return cached;
-        return new Response('', { status: 503 });
+
+        // Se non ancora in cache (primo click), attendiamo la risposta di rete
+        return fetchPromise.then((res) => {
+          if (res) return res;
+          if (cachedResponse) return cachedResponse;
+          return new Response('', { status: 503 });
+        });
       })
     );
     return;
   }
 
-  // Static Assets / Images: Cache First, then Network
+  // 3. Static Assets / Scripts / CSS / Chunks Next.js / Immagini: Cache First, poi Network
   if (
+    url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
-    url.pathname.match(/\.(png|jpg|jpeg|svg|webp|ico|woff2?)$/)
+    url.pathname.match(/\.(png|jpg|jpeg|svg|webp|ico|woff2?|css|js)$/)
   ) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
@@ -126,33 +161,40 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Navigation (HTML pages): Network first, fallback to cache
+  // 4. Navigation (HTML pages): Stale-While-Revalidate per transizione istantanea tra le pagine
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(safeRequest)
-        .then((networkResponse) => {
-          if (isValidCacheableResponse(networkResponse)) {
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(request, responseToCache);
+      caches.match(request).then((cachedResponse) => {
+        const fetchPromise = fetch(safeRequest)
+          .then((networkResponse) => {
+            if (isValidCacheableResponse(networkResponse)) {
+              const responseToCache = networkResponse.clone();
+              caches.open(CACHE_NAME).then((cache) => {
+                cache.put(request, responseToCache);
+              });
+            }
+            return networkResponse;
+          })
+          .catch(async () => {
+            if (cachedResponse) return cachedResponse;
+            const rootCached = await caches.match('/');
+            if (rootCached) return rootCached;
+            return new Response('Modalità offline attiva.', {
+              headers: { 'Content-Type': 'text/html; charset=utf-8' },
             });
-          }
-          return networkResponse;
-        })
-        .catch(async () => {
-          const cached = await caches.match(request);
-          if (cached) return cached;
-          const rootCached = await caches.match('/');
-          if (rootCached) return rootCached;
-          return new Response('Modalità offline attiva.', {
-            headers: { 'Content-Type': 'text/html; charset=utf-8' },
           });
-        })
+
+        if (cachedResponse && isValidCacheableResponse(cachedResponse)) {
+          return cachedResponse;
+        }
+
+        return fetchPromise;
+      })
     );
     return;
   }
 
-  // Default: Stale-while-revalidate for other requests
+  // 5. Default: Stale-while-revalidate per tutte le altre richieste
   event.respondWith(
     caches.match(request).then((cachedResponse) => {
       const fetchPromise = fetch(safeRequest)

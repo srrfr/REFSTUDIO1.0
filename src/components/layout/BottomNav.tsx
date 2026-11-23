@@ -39,6 +39,7 @@ export const BottomNav: React.FC = () => {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition-all relative min-w-[56px] ${
                 isActive
                   ? 'text-[#CCFF00]'
